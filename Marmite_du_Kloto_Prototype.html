@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Marmite du Kloto — Prototype</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.47.0/iconfont/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --noir:#1E1B1A; --noir2:#171414; --orange:#F47C20; --orange-dk:#D9661A; --orange-lt:#FFA35C;
+  --clair:#FAF7F3; --blanc:#FFFFFF; --bord:#EAE2DA; --txt:#1E1B1A; --mut:#8A817B;
+  --tint:#FDEBDA; --tint-bd:#F6C79A; --tint-tx:#9A5716; --vert:#3F7D4E; --vert-bg:#E7F1E8;
+  --radius-lg:22px; --radius:14px; --radius-sm:10px;
+  --shadow-sm:0 1px 2px rgba(30,27,26,.05),0 1px 4px rgba(30,27,26,.04);
+  --shadow-md:0 8px 20px rgba(30,27,26,.09),0 2px 6px rgba(30,27,26,.05);
+  --shadow-lg:0 32px 70px rgba(12,10,9,.4);
+  --shadow-orange:0 8px 18px rgba(244,124,32,.28);
+  --ring:0 0 0 3px rgba(244,124,32,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+::selection{background:var(--orange);color:#fff;}
+html{height:100%;}
+body{font-family:'Plus Jakarta Sans','Segoe UI',system-ui,-apple-system,Roboto,sans-serif;background:radial-gradient(ellipse at top,#2b2422 0%,#171414 60%);color:var(--txt);min-height:100%;padding:26px 16px;}
+:focus-visible{outline:2px solid var(--orange);outline-offset:2px;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#DCD3C9;border-radius:20px;border:2px solid var(--clair);}
+::-webkit-scrollbar-thumb:hover{background:#CBBFAF;}
+.app{display:flex;min-height:calc(100vh - 52px);max-width:1200px;margin:0 auto;background:var(--noir);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-lg);}
+/* Sidebar */
+.side{width:222px;background:linear-gradient(180deg,#1c1815,#141110 85%);padding:22px 14px;display:flex;flex-direction:column;gap:3px;flex-shrink:0;}
+.brand{display:flex;align-items:center;gap:11px;padding:4px 8px 20px;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,.07);}
+.brand .mk{width:46px;height:46px;border-radius:50%;object-fit:cover;background:#fff;flex-shrink:0;box-shadow:0 0 0 3px rgba(244,124,32,.35),0 4px 12px rgba(0,0,0,.35);}
+.brand .nm{color:var(--orange);font-size:15px;font-weight:700;line-height:1.15;letter-spacing:.01em;}
+.brand .sb{color:#8A817B;font-size:11px;margin-top:1px;}
+.navgrp{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#655D58;font-weight:700;padding:14px 13px 6px;}
+.navgrp:first-of-type{padding-top:2px;}
+.nav{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:11px;color:#C9C0BA;font-size:14px;font-weight:500;cursor:pointer;transition:.15s ease;}
+.nav i{font-size:19px;width:19px;text-align:center;}
+.nav:hover{background:#231F1D;color:#fff;}
+.nav.on{background:var(--orange);color:var(--noir2);font-weight:700;box-shadow:var(--shadow-orange);}
+.side .foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:14px 8px 2px;color:#8A817B;font-size:12px;border-top:1px solid rgba(255,255,255,.07);margin-top:14px;}
+.side .foot .av{width:32px;height:32px;border-radius:50%;background:#2A2624;color:var(--orange);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;position:relative;flex-shrink:0;}
+.side .foot .av::after{content:'';position:absolute;bottom:-1px;right:-1px;width:9px;height:9px;border-radius:50%;background:var(--vert);border:2px solid #171414;}
+/* Main */
+.main{flex:1;background:var(--clair);padding:26px 30px;overflow:auto;min-width:0;}
+.scr{display:none;animation:fade .25s ease;}
+.scr.on{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+.top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;gap:12px;flex-wrap:wrap;}
+.top h1{font-size:22px;font-weight:700;letter-spacing:-.01em;}
+.top .sub{font-size:12.5px;color:var(--mut);margin-top:3px;}
+.pill{background:var(--noir);color:var(--orange);font-size:12px;font-weight:600;padding:7px 14px 7px 12px;border-radius:20px;display:inline-flex;align-items:center;gap:7px;box-shadow:var(--shadow-sm);}
+.pill::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--vert);box-shadow:0 0 0 3px rgba(63,125,78,.3);flex-shrink:0;}
+/* cards / grid */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+.stat{border-radius:var(--radius);padding:16px 17px;position:relative;overflow:hidden;box-shadow:var(--shadow-sm);transition:.15s ease;}
+.stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.stat .ic{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.stat .l{font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding-right:36px;}
+.stat .v{font-size:25px;font-weight:700;margin-top:5px;letter-spacing:-.01em;}
+.stat.dark{background:linear-gradient(155deg,#242020,var(--noir));} .stat.dark .l{color:#B7ADA6;} .stat.dark .v{color:var(--orange);} .stat.dark .ic{background:rgba(244,124,32,.16);color:var(--orange);}
+.stat.wht{background:#fff;border:1px solid var(--bord);} .stat.wht .l{color:var(--mut);} .stat.wht .v{color:var(--noir);} .stat.wht .ic{background:var(--clair);color:var(--noir);}
+.stat.acc{background:var(--tint);border:1px solid var(--tint-bd);} .stat.acc .l{color:var(--tint-tx);} .stat.acc .v{color:var(--orange-dk);} .stat.acc .ic{background:rgba(255,255,255,.55);color:var(--orange-dk);}
+.card{background:#fff;border:1px solid var(--bord);border-radius:var(--radius);padding:17px 19px;margin-bottom:16px;box-shadow:var(--shadow-sm);}
+.card h3{font-size:14.5px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.card h3 i{color:var(--orange);font-size:17px;}
+.chart-card{background:#fff;border:1px solid var(--bord);border-radius:var(--radius);padding:17px 19px;margin-bottom:16px;box-shadow:var(--shadow-sm);}
+.chart-card h3{font-size:14.5px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.chart-card h3 i{color:var(--orange);font-size:17px;}
+.chart-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.chart-bar{display:flex;flex-direction:column;align-items:center;gap:9px;}
+.chart-bar .bar{width:100%;height:126px;border-radius:12px 12px 4px 4px;background:var(--tint);position:relative;overflow:hidden;display:flex;align-items:flex-end;}
+.chart-bar .fill{width:100%;background:linear-gradient(180deg,var(--orange-lt),var(--orange));border-radius:8px 8px 0 0;transition:height .6s cubic-bezier(.22,.9,.27,1);}
+.chart-bar .label{font-size:12px;color:var(--mut);text-align:center;font-weight:500;}
+.chart-bar .value{font-size:13.5px;font-weight:700;color:var(--txt);}
+.tag{font-size:12px;padding:5px 12px;border-radius:20px;background:var(--tint);color:var(--tint-tx);font-weight:600;display:inline-flex;align-items:center;gap:6px;margin:3px 5px 3px 0;}
+.sec-t{font-size:14px;font-weight:600;color:var(--noir);margin:8px 0 10px;display:flex;align-items:center;gap:7px;}
+.sec-t i{color:var(--orange);font-size:18px;}
+.fin-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.fin{border-radius:12px;padding:15px 17px;}
+.fin .l{font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+.fin .v{font-size:26px;font-weight:600;margin-top:4px;}
+.fin.dep{background:#fff;border:1px solid var(--bord);} .fin.dep .l{color:var(--mut);} .fin.dep .v{color:var(--noir);}
+.fin.net{background:var(--noir);} .fin.net .l{color:#B7ADA6;} .fin.net .v{color:var(--orange);}
+.dep-form label{display:block;font-size:12px;color:var(--mut);font-weight:600;margin:12px 0 5px;}
+.dep-form select,.dep-form input{width:100%;padding:10px 12px;border:1px solid var(--bord);border-radius:9px;font-size:14px;font-family:inherit;color:var(--noir);background:#fff;}
+.dep-form select:focus,.dep-form input:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(244,124,32,.15);}
+.dep-form .btn{width:100%;margin-top:16px;justify-content:center;}
+.dep-total-row{display:flex;justify-content:space-between;font-size:16px;font-weight:700;border-top:2px solid var(--noir);padding-top:11px;margin-top:6px;color:var(--noir);}
+.x-del{cursor:pointer;color:#C9302C;font-size:17px;font-weight:700;}
+.pill.warn{background:#FFF6E0;color:#7A5410;}
+.pill.danger{background:#FCEBEB;color:#A32D2D;}
+.rep-index{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:18px;}
+.rep-card{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--bord);border-radius:12px;padding:14px 16px;cursor:pointer;transition:.15s;}
+.rep-card:hover{border-color:var(--orange);transform:translateY(-2px);}
+.rep-card>i:first-child{font-size:22px;color:var(--orange);}
+.rep-card .rc-t{font-size:14px;font-weight:700;color:var(--noir);}
+.rep-card .rc-s{font-size:12px;color:var(--mut);}
+.rep-card .chev{margin-left:auto;color:var(--mut);}
+.tag i{font-size:12px;}
+.btn{border:none;border-radius:10px;padding:10px 18px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s ease;}
+.btn-o{background:var(--orange);color:var(--noir2);box-shadow:var(--shadow-orange);} .btn-o:hover{background:var(--orange-dk);color:#fff;transform:translateY(-1px);box-shadow:0 14px 28px rgba(217,102,26,.35);} .btn-o:active{transform:translateY(0);box-shadow:var(--shadow-sm);}
+.btn-g{background:#fff;border:1px solid var(--bord);color:var(--noir);} .btn-g:hover{border-color:var(--noir);background:var(--clair);transform:translateY(-1px);} .btn-g:active{transform:translateY(0);}
+/* POS */
+.pos{display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start;}
+.cats{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.cat{padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid var(--bord);background:#fff;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px;}
+.cat:hover{border-color:var(--orange);color:var(--orange-dk);}
+.cat.on{background:var(--noir);color:#fff;border-color:var(--noir);}
+.prods{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.prod{background:#fff;border:1px solid var(--bord);border-radius:12px;padding:13px;cursor:pointer;transition:.15s;box-shadow:var(--shadow-sm);}
+.prod:hover{border-color:var(--orange);transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.prod .pn{font-size:13.5px;font-weight:600;}
+.prod .pp{font-size:12px;color:var(--orange-dk);margin-top:4px;font-weight:600;}
+.ticket{background:#fff;border:1px solid var(--bord);border-radius:var(--radius);padding:17px;position:sticky;top:0;box-shadow:var(--shadow-sm);}
+.ticket h3{font-size:14px;font-weight:700;margin-bottom:2px;}
+.ticket .meta{font-size:11px;color:var(--mut);margin-bottom:10px;}
+.line{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:7px 0;border-top:1px solid #F0EAE3;}
+.line .x{color:#C9302C;cursor:pointer;font-size:15px;margin-left:8px;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;transition:.15s;}
+.line .x:hover{background:#FCE8E7;}
+.tot{display:flex;justify-content:space-between;font-size:17px;font-weight:700;border-top:2px solid var(--noir);padding-top:10px;margin-top:8px;}
+.pays{display:flex;gap:7px;margin:12px 0;flex-wrap:wrap;}
+.pay{flex:1;text-align:center;font-size:11px;font-weight:600;padding:9px 4px;border:1px solid var(--bord);border-radius:9px;cursor:pointer;min-width:56px;transition:.15s;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.pay i{font-size:15px;color:var(--mut);}
+.pay:hover{border-color:var(--orange);}
+.pay.on{background:var(--tint);border-color:var(--orange);color:var(--tint-tx);font-weight:700;} .pay.on i{color:var(--tint-tx);}
+.empty{color:var(--mut);font-size:13px;text-align:center;padding:22px 0;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.empty i{font-size:26px;color:var(--bord);}
+.selbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#fff;border:1px solid var(--bord);border-radius:12px;padding:12px 15px;margin-bottom:16px;box-shadow:var(--shadow-sm);}
+.seg{display:inline-flex;background:var(--clair);border-radius:10px;padding:3px;}
+.segb{border:none;background:transparent;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:var(--mut);font-family:inherit;transition:.15s;}
+.segb.on{background:var(--noir);color:#fff;box-shadow:var(--shadow-sm);}
+.selbar label{font-size:13px;color:var(--mut);margin-right:6px;font-weight:600;}
+.selbar select,.selbar input{padding:9px 12px;border:1px solid var(--bord);border-radius:9px;font-size:13px;font-family:inherit;background:#fff;color:var(--noir);transition:.15s;}
+.selbar select:focus,.selbar input:focus{outline:none;border-color:var(--orange);box-shadow:var(--ring);}
+/* tables */
+.floor{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;}
+.tbl{border-radius:12px;padding:13px 12px;cursor:pointer;min-height:82px;border:1.5px solid;transition:.15s;}
+.tbl:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.tbl .tn{font-size:15px;font-weight:700;display:flex;justify-content:space-between;align-items:center;}
+.tbl .ts{font-size:12px;margin-top:8px;font-weight:500;display:flex;align-items:center;}
+.tbl.lib{background:var(--vert-bg);border-color:var(--vert);color:#2E5A38;}
+.tbl.occ{background:var(--tint);border-color:var(--orange);color:var(--tint-tx);}
+.tbl.pay{background:#FFF6E0;border-color:#E0A72E;color:#7A5410;}
+.leg{display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap;font-size:12.5px;font-weight:500;}
+.leg span{display:flex;align-items:center;gap:6px;} .leg b{width:12px;height:12px;border-radius:4px;display:inline-block;}
+/* table rows */
+table.grid{width:100%;border-collapse:collapse;font-size:13px;}
+table.grid th{text-align:left;color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:8px 6px;}
+table.grid td{padding:10px 6px;border-top:1px solid #F0EAE3;}
+table.grid tbody tr:hover td{background:#FCFAF6;}
+.rankb{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--tint);color:var(--tint-tx);font-size:11px;font-weight:700;margin-right:7px;}
+.rankb.r1{background:var(--orange);color:#fff;}
+.badge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;white-space:nowrap;}
+.b-ok{background:var(--vert-bg);color:#2E5A38;} .b-bas{background:#FFF6E0;color:#7A5410;} .b-rup{background:var(--tint);color:var(--tint-tx);}
+.search-wrap{position:relative;margin-bottom:14px;}
+.search-wrap i{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--mut);font-size:15px;pointer-events:none;}
+.search{width:100%;padding:10px 14px 10px 36px;border:1px solid var(--bord);border-radius:10px;font-size:13px;font-family:inherit;margin-bottom:0;transition:.15s;}
+.search:focus{outline:none;border-color:var(--orange);box-shadow:var(--ring);}
+/* kitchen tickets */
+.kts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.kt{background:#fff;border:1px solid var(--bord);border-radius:var(--radius);padding:15px;border-top:4px solid var(--orange);box-shadow:var(--shadow-sm);transition:.15s;}
+.kt:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.kt .kh{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-bottom:8px;font-weight:500;align-items:center;}
+.kt .kh i{font-size:13px;margin-right:4px;}
+.kt .kt-t{font-size:14.5px;font-weight:700;margin-bottom:9px;}
+.kt .kl{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;}
+.kt .ktot{display:flex;justify-content:space-between;align-items:center;background:var(--noir);color:var(--orange);border-radius:8px;padding:8px 11px;margin-top:10px;font-size:12px;font-weight:700;}
+.kt .st{margin-top:10px;font-size:11px;font-weight:700;padding:5px 11px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;}
+.st-prep{background:#FFF6E0;color:#7A5410;} .st-pret{background:var(--vert-bg);color:#2E5A38;}
+.note{font-size:12px;color:var(--mut);margin-top:12px;display:flex;align-items:flex-start;gap:6px;}
+/* modal */
+.modal-ov{position:fixed;inset:0;background:rgba(23,20,20,.6);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:1000;}
+.modal-ov.on{display:flex;animation:ovIn .15s ease;}
+@keyframes ovIn{from{opacity:0;}to{opacity:1;}}
+.modal-bx{background:#fff;border-radius:16px;padding:24px 24px 22px;width:350px;max-width:90vw;box-shadow:0 30px 70px rgba(0,0,0,.4);position:relative;animation:modalIn .22s cubic-bezier(.2,.9,.25,1.05);}
+@keyframes modalIn{from{opacity:0;transform:translateY(14px) scale(.97);}to{opacity:1;transform:none;}}
+.modal-bx .mh{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+.modal-bx .mh img{width:34px;height:34px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px rgba(244,124,32,.2);}
+.modal-bx .mt{font-size:16px;font-weight:700;color:var(--noir);}
+.modal-bx .msub{font-size:13px;color:var(--mut);margin:0 0 14px 44px;}
+.modal-bx input{width:100%;padding:12px 14px;border:1px solid var(--bord);border-radius:9px;font-size:17px;font-family:inherit;margin-bottom:16px;color:var(--noir);transition:.15s;}
+.modal-bx input:focus{outline:none;border-color:var(--orange);box-shadow:var(--ring);}
+.modal-act{display:flex;gap:9px;justify-content:flex-end;}
+.modal-act .btn{min-width:104px;}
+.modal-close{position:absolute;top:16px;right:16px;width:28px;height:28px;border-radius:50%;border:none;background:var(--clair);color:var(--mut);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:.15s;}
+.modal-close:hover{background:var(--bord);color:var(--noir);}
+/* reçu */
+.rc-bx{width:380px;padding:0;overflow:hidden;}
+.rc-paper{padding:24px 26px 8px;}
+.rc-head{text-align:center;border-bottom:1px dashed var(--bord);padding-bottom:14px;margin-bottom:12px;}
+.rc-head img{width:58px;height:58px;border-radius:50%;object-fit:cover;margin-bottom:8px;box-shadow:0 0 0 3px rgba(244,124,32,.18);}
+.rc-nm{font-size:17.5px;font-weight:700;color:var(--noir);}
+.rc-sb{font-size:11px;color:var(--mut);line-height:1.5;}
+.rc-doc{text-align:center;font-size:12px;font-weight:700;letter-spacing:3px;color:var(--orange-dk);text-transform:uppercase;margin-bottom:12px;}
+.rc-meta{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-bottom:4px;}
+.rc-items{border-top:1px dashed var(--bord);border-bottom:1px dashed var(--bord);padding:10px 0;margin:10px 0;}
+.rc-line{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:var(--noir);}
+.rc-total{display:flex;justify-content:space-between;font-size:18px;font-weight:700;color:var(--noir);margin-top:8px;}
+.rc-pay{font-size:12px;color:var(--mut);margin-top:9px;text-align:center;}
+.rc-thanks{text-align:center;font-size:13px;color:var(--orange-dk);font-style:italic;margin:14px 0 2px;}
+.rc-actions{padding:6px 26px 22px;}
+@media print{
+  body>*:not(#rcModal){display:none!important;}
+  #rcModal{position:static!important;display:block!important;background:#fff;}
+  #rcModal .modal-bx{box-shadow:none;width:auto;margin:0 auto;}
+  .rc-actions{display:none!important;}
+}
+@media(max-width:760px){
+  body{padding:0;}
+  .app{border-radius:0;box-shadow:none;min-height:100vh;}
+  .stats{grid-template-columns:1fr 1fr;}
+  .pos{grid-template-columns:1fr;}
+  .prods,.floor,.kts{grid-template-columns:1fr 1fr;}
+  .side{width:64px;}
+  .brand .nm,.brand .sb,.nav span,.side .foot span,.navgrp{display:none;}
+}
+</style>
+</head>
+<body>
+<div class="modal-ov" id="pxModal">
+  <div class="modal-bx">
+    <button class="modal-close" onclick="pxCancel()" aria-label="Fermer"><i class="ti ti-x"></i></button>
+    <div class="mh"><img src="LOGO-Marmite_du_Kloto.jpg" alt=""><span class="mt">Prix du plat</span></div>
+    <div class="msub" id="pxName">Plat</div>
+    <input id="pxInput" type="number" min="0" step="100" placeholder="Prix en FCFA">
+    <div class="modal-act">
+      <button class="btn btn-g" onclick="pxCancel()">Annuler</button>
+      <button class="btn btn-o" onclick="pxOk()">Valider</button>
+    </div>
+  </div>
+</div>
+<div class="modal-ov" id="rcModal">
+  <div class="modal-bx rc-bx">
+    <button class="modal-close" onclick="rcClose()" aria-label="Fermer"><i class="ti ti-x"></i></button>
+    <div class="rc-paper" id="rcPaper"></div>
+    <div class="modal-act rc-actions">
+      <button class="btn btn-g" onclick="rcClose()">Fermer</button>
+      <button class="btn btn-o" onclick="window.print()">Imprimer</button>
+    </div>
+  </div>
+</div>
+<div class="modal-ov" id="stockModal">
+  <div class="modal-bx">
+    <button class="modal-close" onclick="stockCancel()" aria-label="Fermer"><i class="ti ti-x"></i></button>
+    <div class="mh"><img src="LOGO-Marmite_du_Kloto.jpg" alt=""><span class="mt">Réception de stock</span></div>
+    <div class="msub">Ajouter des quantités reçues</div>
+    <label style="display:block;margin:8px 0 6px;font-size:13px;color:var(--mut)">Produit</label>
+    <select id="stockProd" style="width:100%;padding:10px;border:1px solid var(--bord);border-radius:8px;margin-bottom:10px;background:#fff;color:var(--noir)"></select>
+    <input id="stockQty" type="number" min="1" placeholder="Quantité reçue" style="width:100%;padding:12px 14px;border:1px solid var(--bord);border-radius:9px;font-size:17px;margin-bottom:12px;">
+    <input id="stockPrice" type="number" min="0" placeholder="Prix unitaire (facultatif)" style="width:100%;padding:12px 14px;border:1px solid var(--bord);border-radius:9px;font-size:14px;color:var(--noir);margin-bottom:12px;">
+    <input id="stockSupplier" type="text" placeholder="Fournisseur / Expéditeur (ex: Nom du livreur)" style="width:100%;padding:10px 12px;border:1px solid var(--bord);border-radius:9px;font-size:14px;color:var(--noir);margin-bottom:10px;">
+    <div class="modal-act">
+      <button class="btn btn-g" onclick="stockCancel()">Annuler</button>
+      <button class="btn btn-o" onclick="stockOk()">Ajouter</button>
+    </div>
+  </div>
+</div>
+<div class="modal-ov" id="detModal">
+  <div class="modal-bx" style="width:880px;max-width:95vw;max-height:88vh;overflow:auto;">
+    <div id="detBody"></div>
+    <div class="modal-act" style="margin-top:16px;">
+      <button class="btn btn-g" onclick="detClose()">Fermer</button>
+      <button class="btn btn-o" onclick="printDet()"><i class="ti ti-printer"></i> Imprimer</button>
+    </div>
+  </div>
+</div>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <img class="mk" src="LOGO-Marmite_du_Kloto.jpg" alt="Logo La Marmite du Kloto">
+      <div><div class="nm">La Marmite</div><div class="sb">du Kloto · Bar-Resto</div></div>
+    </div>
+    <div class="navgrp">Vue d'ensemble</div>
+    <div class="nav on" data-s="accueil"><i class="ti ti-home"></i><span>Accueil</span></div>
+    <div class="nav" data-s="ventes"><i class="ti ti-cash-register"></i><span>Ventes / Caisse</span></div>
+    <div class="nav" data-s="tables"><i class="ti ti-layout-grid"></i><span>Tables</span></div>
+    <div class="navgrp">Opérations</div>
+    <div class="nav" data-s="bar"><i class="ti ti-bottle"></i><span>Bar / Stock</span></div>
+    <div class="nav" data-s="cuisine"><i class="ti ti-tools-kitchen-2"></i><span>Cuisine</span></div>
+    <div class="nav" data-s="livraison"><i class="ti ti-moped"></i><span>Livraison</span></div>
+    <div class="navgrp">Gestion</div>
+    <div class="nav" data-s="depenses"><i class="ti ti-wallet"></i><span>Dépenses</span></div>
+    <div class="nav" data-s="rapports"><i class="ti ti-chart-bar"></i><span>Rapports</span></div>
+    <div class="nav" data-s="cloture"><i class="ti ti-lock"></i><span>Clôture du jour</span></div>
+    <div class="foot"><div class="av">AW</div><span>Awa · Caissière</span></div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ACCUEIL -->
+    <section class="scr on" id="accueil">
+      <div class="top"><div><h1>Bonsoir, Awa <span style="font-size:18px">👋</span></h1><div class="sub">Mardi 21 juillet 2026 · 20:14</div></div><div class="pill">Caisse ouverte</div></div>
+      <div class="sec-t"><i class="ti ti-trending-up"></i>Revenus du jour, par source</div>
+      <div class="stats">
+        <div class="stat wht"><div class="ic"><i class="ti ti-bottle"></i></div><div class="l">Ventes bar</div><div class="v">140 000 F</div></div>
+        <div class="stat wht"><div class="ic"><i class="ti ti-tools-kitchen-2"></i></div><div class="l">Ventes cuisine</div><div class="v">180 000 F</div></div>
+        <div class="stat wht"><div class="ic"><i class="ti ti-moped"></i></div><div class="l">Livraison</div><div class="v">30 000 F</div></div>
+        <div class="stat dark"><div class="ic"><i class="ti ti-coins"></i></div><div class="l">CA total du jour</div><div class="v">350 000 F</div></div>
+      </div>
+
+      <div class="sec-t"><i class="ti ti-wallet"></i>Dépenses &amp; résultat de la journée</div>
+      <div class="fin-grid">
+        <div class="fin dep">
+          <div class="l">Dépenses du jour</div><div class="v" id="acc-dep-v">120 000 F</div>
+          <div style="margin-top:10px;" id="acc-dep-detail"></div>
+        </div>
+        <div class="fin net">
+          <div class="l">Revenu final (net)</div><div class="v" id="acc-net-v">230 000 F</div>
+          <div style="font-size:12px;color:#B7ADA6;margin-top:8px;" id="acc-net-formula">CA total − Dépenses = 350 000 − 120 000 F</div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3><i class="ti ti-chart-bar"></i>Rapports en barres</h3>
+        <div class="chart-grid" id="dashboardChart"></div>
+      </div>
+      <div class="card">
+        <h3><i class="ti ti-alert-triangle"></i>Stock à surveiller</h3>
+        <span class="tag"><i class="ti ti-alert-circle"></i>Awouyo · 4 restantes</span><span class="tag"><i class="ti ti-alert-circle"></i>Guinness · 9</span><span class="tag"><i class="ti ti-alert-circle"></i>Possotomè · 6</span><span class="tag"><i class="ti ti-alert-circle"></i>Eau Voltic · 5</span>
+      </div>
+      <div class="card">
+        <h3><i class="ti ti-flame"></i>Top ventes du jour</h3>
+        <table class="grid"><tbody>
+          <tr><td><span class="rankb r1">1</span>Poulet braisé</td><td style="text-align:right;color:var(--mut)">120 ventes</td></tr>
+          <tr><td><span class="rankb">2</span>Riz au gras</td><td style="text-align:right;color:var(--mut)">95 ventes</td></tr>
+          <tr><td><span class="rankb">3</span>Castel</td><td style="text-align:right;color:var(--mut)">88 ventes</td></tr>
+          <tr><td><span class="rankb">4</span>Coca</td><td style="text-align:right;color:var(--mut)">80 ventes</td></tr>
+        </tbody></table>
+      </div>
+    </section>
+
+    <!-- VENTES -->
+    <section class="scr" id="ventes">
+      <div class="top"><div><h1>Ventes / Caisse</h1><div class="sub" id="v-ctx">Nouvelle commande</div></div><div class="pill" id="v-pill">Sur place · Table 3</div></div>
+      <div class="selbar">
+        <div class="seg"><button class="segb on" id="tp-place" onclick="setType('place')">Sur place</button><button class="segb" id="tp-liv" onclick="setType('liv')">Livraison</button></div>
+        <div id="sel-place"><label>Table</label><select id="tblSel" onchange="pickTable()"></select></div>
+        <div id="sel-liv" style="display:none"><label>Livreur</label><select id="livSel" onchange="pickLiv()"></select> <input id="cliInput" placeholder="Nom du client" oninput="pickLiv()"></div>
+      </div>
+      <div class="pos">
+        <div>
+          <div class="cats" id="cats"></div>
+          <div class="prods" id="prods"></div>
+        </div>
+        <div class="ticket">
+          <div style="text-align:center;border-bottom:1px dashed var(--bord);padding-bottom:8px;margin-bottom:8px;">
+            <img src="LOGO-Marmite_du_Kloto.jpg" alt="" style="width:48px;height:48px;border-radius:50%;object-fit:cover;margin-bottom:4px;">
+            <div style="font-size:13px;font-weight:600;color:var(--noir);">La Marmite du Kloto · Bar-Resto</div>
+            <div style="font-size:11px;color:var(--mut);">Avedji, non loin de la Côte d'Or · Tél. +228 91 04 27 02</div>
+          </div>
+          <h3>Commande</h3><div class="meta" id="v-meta">Table 3 · 21/07/2026 · 20:14</div>
+          <div id="cart"><div class="empty"><i class="ti ti-shopping-cart"></i>Touchez un produit pour l'ajouter</div></div>
+          <div class="tot"><span>Total</span><span id="cart-tot">0 F</span></div>
+          <div class="pays">
+            <div class="pay on"><i class="ti ti-cash"></i>Espèces</div><div class="pay"><i class="ti ti-device-mobile"></i>TMoney</div><div class="pay"><i class="ti ti-device-mobile"></i>Flooz</div><div class="pay"><i class="ti ti-arrows-shuffle"></i>Mixte</div>
+          </div>
+          <button class="btn btn-o" style="width:100%" onclick="valider()">Encaisser &amp; imprimer le reçu</button>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-g" style="flex:1" onclick="addProductsFromVente()">Ajouter des produits</button>
+            <button class="btn btn-g" style="flex:1" onclick="printAndClearVente()">Imprimer la facture &amp; débarrasser</button>
+          </div>
+          <div class="note">À la validation : vente enregistrée, stock du bar déstocké, caisse créditée.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TABLES -->
+    <section class="scr" id="tables">
+      <div class="top"><div><h1>Plan de salle</h1><div class="sub">Sélectionnez une table pour ajouter des produits ou imprimer son reçu et la clôturer</div></div></div>
+      <div class="leg"><span><b style="background:var(--vert-bg);border:1px solid var(--vert)"></b>Libre</span><span><b style="background:var(--tint);border:1px solid var(--orange)"></b>Occupée</span><span><b style="background:#FFF6E0;border:1px solid #E0A72E"></b>À encaisser</span></div>
+      <div class="selbar" style="margin-bottom:12px;">
+        <label>Ouvrir la table n°</label>
+        <input id="tblNum" type="number" min="1" placeholder="ex. 34" style="width:110px;">
+        <button class="btn btn-g" onclick="ouvrirNum()">Ouvrir</button>
+        <span style="font-size:12px;color:var(--mut);">Saisissez un numéro même au-delà de 30, si vous ajoutez des tables.</span>
+      </div>
+      <div class="pos">
+        <div class="floor" id="floor"></div>
+        <div class="ticket">
+          <h3 id="ard-t">Table 3</h3><div class="meta" id="ard-m">Ouverte à 19:42 · 4 couverts</div>
+          <div id="ard"></div>
+          <div class="tot"><span>Total</span><span id="ard-tot">17 000 F</span></div>
+          <button class="btn btn-o" style="width:100%;margin-top:11px" onclick="toVentesFromTable(ardTable)">Ajouter des produits</button>
+          <button class="btn btn-g" style="width:100%;margin-top:8px" onclick="cloturer()">Imprimer la facture &amp; débarrasser</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- BAR -->
+    <section class="scr" id="bar">
+      <div class="top"><div><h1>Bar — Stock</h1><div class="sub">Prix par défaut modifiable · déstockage automatique à la vente</div></div><button class="btn btn-o" onclick="openStockModal()">+ Charger du stock</button></div>
+      <div class="search-wrap"><i class="ti ti-search"></i><input class="search" id="bar-search" placeholder="Rechercher une boisson…" oninput="renderBar()"></div>
+      <div class="card" id="stock-log-card" style="margin-top:12px;padding:10px 14px;">
+        <h3><i class="ti ti-history"></i>Historique des réceptions</h3>
+        <div id="stock-log" style="font-size:13px;color:var(--mut);max-height:160px;overflow:auto;padding-top:6px;"></div>
+      </div>
+      <div class="card" style="padding:6px 14px">
+        <table class="grid"><thead><tr><th>Produit</th><th>Catégorie</th><th style="text-align:right">Prix</th><th style="text-align:right">Stock</th><th style="text-align:right">État</th></tr></thead>
+        <tbody id="bar-rows"></tbody></table>
+      </div>
+    </section>
+
+    <!-- CUISINE -->
+    <section class="scr" id="cuisine">
+      <div class="top"><div><h1>Cuisine — Bons de commande</h1><div class="sub">Prix par plat et nombre total de plats à faire</div></div><div class="pill">3 en préparation</div></div>
+      <div class="kts">
+        <div class="kt"><div class="kh"><span>Table 3</span><span><i class="ti ti-clock"></i>20:14</span></div><div class="kt-t">Sur place</div><div class="kl"><span>2 × Poulet braisé</span><span>10 000</span></div><div class="kl"><span>1 × Riz au gras</span><span>2 000</span></div><div class="kl"><span>1 × Alloco</span><span>1 500</span></div><div class="ktot"><span>Plats à faire</span><span>4</span></div><div class="st st-prep"><i class="ti ti-flame"></i>En préparation</div></div>
+        <div class="kt"><div class="kh"><span>Livraison · WhatsApp</span><span><i class="ti ti-clock"></i>13:05</span></div><div class="kt-t">Mme Adjo</div><div class="kl"><span>2 × Riz sauce arachide</span><span>6 000</span></div><div class="kl"><span>1 × Poisson braisé</span><span>5 000</span></div><div class="note" style="margin:6px 0 0"><i class="ti ti-note"></i>Note : peu pimenté</div><div class="ktot"><span>Plats à faire</span><span>3</span></div><div class="st st-pret"><i class="ti ti-check"></i>Prêt</div></div>
+        <div class="kt"><div class="kh"><span>Table 8</span><span><i class="ti ti-clock"></i>20:02</span></div><div class="kt-t">Sur place</div><div class="kl"><span>3 × Fufu</span><span>4 500</span></div><div class="kl"><span>2 × Poulet braisé</span><span>10 000</span></div><div class="ktot"><span>Plats à faire</span><span>5</span></div><div class="st st-prep"><i class="ti ti-flame"></i>En préparation</div></div>
+      </div>
+    </section>
+
+    <!-- LIVRAISON -->
+    <section class="scr" id="livraison">
+      <div class="top"><div><h1>Livraison</h1><div class="sub">Commandes WhatsApp saisies à la main · suivi des livreurs</div></div></div>
+      <div class="card">
+        <h3><i class="ti ti-moped"></i>Courses en cours</h3>
+        <table class="grid"><thead><tr><th>Client</th><th>Livreur</th><th style="text-align:right">À encaisser</th><th style="text-align:right">Statut</th></tr></thead><tbody>
+          <tr><td>Mme Adjo · Agoè</td><td>Kofi</td><td style="text-align:right">15 000 F</td><td style="text-align:right"><span class="badge b-bas">En route</span></td></tr>
+          <tr><td>M. Yao · Kégué</td><td>Kossi</td><td style="text-align:right">9 500 F</td><td style="text-align:right"><span class="badge b-ok">Livré</span></td></tr>
+          <tr><td>Ama · Adidogomé</td><td>Kofi</td><td style="text-align:right">12 000 F</td><td style="text-align:right"><span class="badge b-bas">En préparation</span></td></tr>
+        </tbody></table>
+      </div>
+      <div class="card">
+        <h3><i class="ti ti-wallet"></i>Comptes des livreurs (fin de journée)</h3>
+        <table class="grid"><thead><tr><th>Livreur</th><th style="text-align:center">Livraisons</th><th style="text-align:right">À remettre</th></tr></thead><tbody>
+          <tr><td>Kofi</td><td style="text-align:center">5</td><td style="text-align:right;font-weight:600">45 000 F</td></tr>
+          <tr><td>Kossi</td><td style="text-align:center">3</td><td style="text-align:right;font-weight:600">28 500 F</td></tr>
+          <tr><td>Mensah</td><td style="text-align:center">2</td><td style="text-align:right;font-weight:600">17 000 F</td></tr>
+        </tbody></table>
+        <div class="note">Chaque vente livraison est reliée à son livreur. En fin de journée, chacun remet le montant exact encaissé.</div>
+      </div>
+    </section>
+
+    <!-- DEPENSES -->
+    <section class="scr" id="depenses">
+      <div class="top"><div><h1>Dépenses</h1><div class="sub">Enregistrez les vraies dépenses du jour : achats, transport, salaires, charges…</div></div><div class="pill" id="dep-total-pill">Total : 0 F</div></div>
+      <div class="pos" style="grid-template-columns:1fr 330px;">
+        <div>
+          <div class="stats" id="dep-cats"></div>
+          <div class="card">
+            <h3><i class="ti ti-list-details"></i>Dépenses du jour</h3>
+            <table class="grid"><thead><tr><th>Catégorie</th><th>Description</th><th style="text-align:right">Montant</th><th></th></tr></thead>
+            <tbody id="dep-rows"></tbody></table>
+            <div class="dep-total-row"><span>Total dépenses</span><span id="dep-total">0 F</span></div>
+          </div>
+        </div>
+        <div class="card dep-form">
+          <h3><i class="ti ti-plus"></i>Nouvelle dépense</h3>
+          <label>Catégorie</label>
+          <select id="dep-cat">
+            <option>Achats bar</option>
+            <option>Achats cuisine</option>
+            <option>Transport</option>
+            <option>Salaires</option>
+            <option>Électricité / Eau</option>
+            <option>Entretien</option>
+            <option>Autres</option>
+          </select>
+          <label>Montant (FCFA)</label>
+          <input id="dep-amt" type="number" min="0" step="500" placeholder="ex. 15000">
+          <label>Description</label>
+          <input id="dep-desc" type="text" placeholder="ex. Casiers Castel + Guinness">
+          <button class="btn btn-o" onclick="addDepense()"><i class="ti ti-check"></i> Ajouter la dépense</button>
+          <div class="note" style="margin-top:12px;"><i class="ti ti-info-circle"></i> Chaque dépense met à jour le total et le revenu net de l'accueil.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RAPPORTS -->
+    <section class="scr" id="rapports">
+      <div class="top">
+        <div><h1>Rapports</h1><div class="sub">Bilan de gestion — prêt à imprimer</div></div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div class="seg" id="rep-period">
+            <button class="segb on" onclick="setPeriod('Jour',this)">Jour</button>
+            <button class="segb" onclick="setPeriod('Semaine',this)">Semaine</button>
+            <button class="segb" onclick="setPeriod('Mois',this)">Mois</button>
+          </div>
+          <button class="btn btn-o" onclick="printReport()"><i class="ti ti-printer"></i> Imprimer</button>
+        </div>
+      </div>
+
+      <div class="rep-index">
+        <div class="rep-card" onclick="openDetReport('bar')"><i class="ti ti-bottle"></i><div><div class="rc-t">Ventes bar</div><div class="rc-s">Réception · vendu · restant · CA</div></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="rep-card" onclick="openDetReport('cuisine')"><i class="ti ti-tools-kitchen-2"></i><div><div class="rc-t">Ventes cuisine</div><div class="rc-s">Plats vendus et CA</div></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="rep-card" onclick="openDetReport('livraisons')"><i class="ti ti-moped"></i><div><div class="rc-t">Livraisons</div><div class="rc-s">Par livreur et CA</div></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="rep-card" onclick="openDetReport('revenus')"><i class="ti ti-trending-up"></i><div><div class="rc-t">Revenus par source</div><div class="rc-s">Synthèse des recettes</div></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="rep-card" onclick="openDetReport('depenses')"><i class="ti ti-wallet"></i><div><div class="rc-t">Dépenses par catégorie</div><div class="rc-s">Ligne par ligne</div></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="rep-card" onclick="openDetReport('produits')"><i class="ti ti-flame"></i><div><div class="rc-t">Produits les plus vendus</div><div class="rc-s">Classement du jour</div></div><i class="ti ti-chevron-right chev"></i></div>
+      </div>
+      <div class="sec-t"><i class="ti ti-file-text"></i>Bilan complet du jour</div>
+      <div class="rep-sheet" id="reportSheet">
+        <div class="rep-head">
+          <img src="LOGO-Marmite_du_Kloto.jpg" alt="">
+          <div class="rep-h-info">
+            <div class="rep-h-name">La Marmite du Kloto · Bar-Resto</div>
+            <div class="rep-h-sub">Avedji, non loin de la Côte d'Or · Tél. +228 91 04 27 02</div>
+          </div>
+          <div class="rep-h-title">
+            <div class="rep-h-t">Rapport de gestion</div>
+            <div class="rep-h-p" id="rep-period-label">Journée du 21 juillet 2026</div>
+          </div>
+        </div>
+
+        <div class="rep-kpis">
+          <div class="rep-kpi"><div class="k">Chiffre d'affaires</div><div class="v" id="rep-ca-v">350 000 F</div></div>
+          <div class="rep-kpi"><div class="k">Dépenses</div><div class="v" id="rep-dep-v">120 000 F</div></div>
+          <div class="rep-kpi accent"><div class="k">Bénéfice net</div><div class="v" id="rep-net-v">230 000 F</div></div>
+          <div class="rep-kpi"><div class="k">Commandes</div><div class="v">72</div></div>
+        </div>
+
+        <div class="rep-cols">
+          <div class="rep-block">
+            <div class="rep-bt">Revenus par source</div>
+            <table class="rep-tbl"><tbody>
+              <tr><td>Ventes bar</td><td>140 000 F</td></tr>
+              <tr><td>Ventes cuisine</td><td>180 000 F</td></tr>
+              <tr><td>Livraisons</td><td>30 000 F</td></tr>
+              <tr class="tot"><td>Chiffre d'affaires</td><td>350 000 F</td></tr>
+            </tbody></table>
+          </div>
+          <div class="rep-block">
+            <div class="rep-bt">Dépenses par catégorie</div>
+            <table class="rep-tbl"><tbody id="rep-dep-tbl"></tbody></table>
+          </div>
+        </div>
+
+        <div class="rep-net"><span>Résultat net de la période</span><span id="rep-net-band-v">230 000 F</span></div>
+
+        <div class="rep-block">
+          <div class="rep-bt">Produits les plus vendus</div>
+          <table class="rep-tbl"><tbody>
+            <tr><td>1 · Poulet braisé</td><td>120 ventes</td></tr>
+            <tr><td>2 · Riz au gras</td><td>95 ventes</td></tr>
+            <tr><td>3 · Castel</td><td>88 ventes</td></tr>
+            <tr><td>4 · Coca</td><td>80 ventes</td></tr>
+            <tr><td>5 · Guinness</td><td>62 ventes</td></tr>
+          </tbody></table>
+        </div>
+
+        <div class="rep-foot">
+          <div>Établi par : _______________________</div>
+          <div>Visa du responsable : _______________________</div>
+        </div>
+        <div class="rep-gen" id="rep-gen">Édité le 21/07/2026 · La Marmite du Kloto</div>
+      </div>
+    </section>
+
+    <!-- CLÔTURE -->
+    <section class="scr" id="cloture">
+      <div class="top"><div><h1>Clôture du jour</h1><div class="sub">Arrêté des recettes en fin de journée</div></div><div class="pill">Journée du 21 juillet 2026</div></div>
+      <div class="pos" style="grid-template-columns:1fr 340px;">
+        <div>
+          <div class="card">
+            <h3><i class="ti ti-trending-up"></i>Ce que chaque compartiment a rapporté</h3>
+            <table class="grid"><tbody>
+              <tr><td>Ventes bar</td><td style="text-align:right">140 000 F</td></tr>
+              <tr><td>Ventes cuisine</td><td style="text-align:right">180 000 F</td></tr>
+              <tr><td>Livraisons</td><td style="text-align:right">30 000 F</td></tr>
+              <tr><td style="font-weight:700">Chiffre d'affaires</td><td style="text-align:right;font-weight:700;color:var(--orange-dk)">350 000 F</td></tr>
+            </tbody></table>
+          </div>
+          <div class="card">
+            <h3><i class="ti ti-wallet"></i>Dépenses par catégorie</h3>
+            <table class="grid"><tbody id="clo-dep"></tbody></table>
+          </div>
+          <div class="rep-net"><span>Résultat net de la journée</span><span id="clo-net">230 000 F</span></div>
+          <div class="card">
+            <h3><i class="ti ti-cash"></i>Arrêté de caisse (espèces)</h3>
+            <table class="grid"><tbody>
+              <tr><td>Fond de caisse initial</td><td style="text-align:right" id="clo-fond">50 000 F</td></tr>
+              <tr><td>+ Recettes en espèces</td><td style="text-align:right" id="clo-recesp">200 000 F</td></tr>
+              <tr><td>− Dépenses en espèces</td><td style="text-align:right" id="clo-depesp">120 000 F</td></tr>
+              <tr><td style="font-weight:700">= Montant théorique en caisse</td><td style="text-align:right;font-weight:700;color:var(--orange-dk)" id="clo-theo">130 000 F</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+        <div class="card dep-form">
+          <h3><i class="ti ti-calculator"></i>Comptage &amp; clôture</h3>
+          <label>Montant réel compté en caisse (FCFA)</label>
+          <input id="clo-reel" type="number" min="0" step="500" placeholder="ex. 130000" oninput="calcEcart()">
+          <div class="dep-total-row"><span>Écart (réel − théorique)</span><span id="clo-ecart">0 F</span></div>
+          <button class="btn btn-o" onclick="cloturerJournee()"><i class="ti ti-lock"></i> Clôturer &amp; imprimer</button>
+          <div class="note" style="margin-top:12px;"><i class="ti ti-info-circle"></i> La clôture arrête les recettes du jour, calcule l'écart de caisse et édite le document à signer.</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// ---- Navigation ----
+function go(id){
+  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on', n.dataset.s===id));
+}
+document.querySelectorAll('.nav').forEach(n=>n.addEventListener('click',()=>go(n.dataset.s)));
+
+// ---- Données ----
+const BAR=[["Pils",700,"Bière"],["Lager",700,"Bière"],["Beaufort",700,"Bière"],["Awouyo",800,"Bière"],["Castel",700,"Bière"],["Eku",700,"Bière"],["Doppel",700,"Bière"],["Racines",700,"Bière"],["Guinness",800,"Bière"],["Cocktail",500,"Sucrerie"],["Coca",500,"Sucrerie"],["Malta",500,"Sucrerie"],["Youzou",500,"Sucrerie"],["Chill",600,"Sucrerie"],["Xxl",700,"Énergisante"],["Sport actif",500,"Énergisante"],["Tonic",500,"Sucrerie"],["Djama pils",700,"Bière"],["Djama Lager",700,"Bière"],["Djama 228",700,"Bière"],["Djama noir",800,"Bière"],["Djama panaché",600,"Bière"],["Sikavi",700,"Bière"],["Bitter lemon",500,"Sucrerie"],["Agrumes",500,"Sucrerie"],["Pom Pom",500,"Sucrerie"],["Cristal",600,"Eau"],["Voltic",600,"Eau"],["Verna",300,"Eau"],["Possotome",1500,"Eau"],["Vody",800,"Bière"],["3x",500,"Énergisante"],["Origin",800,"Bière"],["RoxEnergy",1000,"Énergisante"],["Ira",600,"Bière"],["Benin'or",600,"Bière"],["Malta Can",500,"Sucrerie"],["Cocktail Can",500,"Sucrerie"],["Desperado",800,"Bière"],["Heineken",1200,"Bière"],["Red bull",1200,"Énergisante"],["Double 7",800,"Bière"],["Rush",300,"Énergisante"],["Vita mulk",800,"Autre"],["Jameson",1800,"Wisky"],["Johnnie Walker",5000,"Wisky"],["Old Monk",1500,"Wisky"],["Du vin et des jeux",5000,"Vin"],["Thérapie de groupe",5000,"Vin"],["Vallformosa",8500,"Vin"],["Aria",5000,"Vin"],["Hacienda",3500,"Vin"],["Grand versant",5000,"Vin"],["JP chenet",5000,"Vin"],["Muscador",4000,"Vin"],["Mouton Cadet",9000,"Vin"],["Asconi",6000,"Vin"],["Old beaver",5000,"Vin"],["Haut Machel",2500,"Vin"],["Baron de Senac",2500,"Vin"],["Jardin des amoureux",3000,"Vin"],["Baron de Romero",2500,"Vin"],["Fiesta",2000,"Vin"],["Magic",2000,"Vin"],["Martini",6000,"Vin"],["Bella Tavola",6000,"Vin"],["Les Gardielles",5000,"Vin"],["Pied d'argent",7000,"Vin"],["RLG",5000,"Vin"],["Cote de Rhone",6000,"Vin"],["Portal Braz",6000,"Vin"],["Terres légendaires",6000,"Vin"],["Bellerives",6000,"Vin"],["Jas d'Estanquet",5000,"Vin"],["Montmeyrac",5000,"Vin"],["Fifty 50",5000,"Vin"],["Lamorosso",7000,"Vin"],["Du bonnet",7000,"Vin"],["Petite Baie",5000,"Vin"],["Dennis",2500,"Wisky"],["White&Bue",3500,"Wisky"],["Wall street",2500,"Wisky"],["Blue Funeste",3000,"Wisky"],["Jack 10",3000,"Wisky"],["Vodka",9000,"Wisky"],["JB",7000,"Wisky"],["Lion diamond",3500,"Wisky"],["Bishop Oak's",3500,"Wisky"],["Royal circle",3500,"Wisky"]];
+const PLATS=["Fufu","Pâte","Spaghetti","Poisson braisé","Poulet braisé","Frite","Alloco","Attiéké","Riz blanc","Riz au gras","Pomme sauté","Khom","Sifio"];
+// stock simulé pour la démo (mutable, persisted)
+let STOCK={"Awouyo":4,"Guinness":9,"Possotome":6,"Voltic":5,"Castel":48,"Beaufort":30,"Heineken":24,"Coca":60,"Red bull":15};
+try{const _s=localStorage.getItem('Marmite_STOCK');if(_s)STOCK=JSON.parse(_s);}catch(e){}
+function saveStock(){try{localStorage.setItem('Marmite_STOCK',JSON.stringify(STOCK));}catch(e){}
+}
+
+// Réceptions (historique)
+let RECEPTIONS=[];
+try{const _r=localStorage.getItem('Marmite_RECEPTIONS');if(_r)RECEPTIONS=JSON.parse(_r);}catch(e){}
+function saveReceptions(){try{localStorage.setItem('Marmite_RECEPTIONS',JSON.stringify(RECEPTIONS));}catch(e){}}
+function fmt(n){return n.toLocaleString('fr-FR').replace(/ /g,' ')+' F';}
+
+// ---- Stock reception modal helpers ----
+function initStockModal(){
+  const sel=document.getElementById('stockProd');
+  if(!sel)return;
+  sel.innerHTML = BAR.map(b=>`<option value="${b[0]}">${b[0]}</option>`).join('');
+}
+function openStockModal(){initStockModal();document.getElementById('stockQty').value='';document.getElementById('stockPrice').value='';document.getElementById('stockModal').classList.add('on');setTimeout(()=>document.getElementById('stockQty').focus(),40);}
+function openStockModalFor(name){initStockModal();const sel=document.getElementById('stockProd');if(sel)sel.value=name;openStockModal();}
+function stockOk(){
+  const prod=document.getElementById('stockProd').value;
+  const q=parseInt(document.getElementById('stockQty').value)||0;
+  const p=document.getElementById('stockPrice').value?parseInt(document.getElementById('stockPrice').value):null;
+  const supplier=document.getElementById('stockSupplier').value||'';
+  if(!prod||q<=0){alert('Choisissez un produit et saisissez une quantité valide.');return;}
+  STOCK[prod]=(STOCK[prod]||0)+q;
+  if(p!==null&&!isNaN(p)){for(let i=0;i<BAR.length;i++)if(BAR[i][0]===prod){BAR[i][1]=p;break;}}
+  // enregistrer la réception
+  const entry={product:prod,qty:q,price:p,supplier:supplier,date:new Date().toISOString()};
+  RECEPTIONS.unshift(entry);
+  if(RECEPTIONS.length>100)RECEPTIONS.length=100;
+  saveStock();saveReceptions();renderBar();renderStockLog();document.getElementById('stockModal').classList.remove('on');
+}
+function stockCancel(){document.getElementById('stockModal').classList.remove('on');}
+
+// ---- POS ----
+let currentCat="Cuisine", cart=[];
+const cats=["Cuisine","Bière","Vin","Wisky","Sucrerie","Eau","Énergisante"];
+const CAT_ICONS={"Cuisine":"tools-kitchen-2","Bière":"bottle","Sucrerie":"cup","Eau":"droplet","Énergisante":"bolt","Wisky":"glass-full"};
+function renderCats(){
+  document.getElementById('cats').innerHTML=cats.map(c=>`<div class="cat ${c===currentCat?'on':''}" onclick="setCat('${c}')"><i class="ti ti-${CAT_ICONS[c]||'tag'}"></i>${c}</div>`).join('');
+}
+function setCat(c){currentCat=c;renderCats();renderProds();}
+function renderProds(){
+  let list;
+  if(currentCat==="Cuisine"){list=PLATS.map(p=>[p,null]);}
+  else{list=BAR.filter(b=>b[2]===currentCat).map(b=>[b[0],b[1]]);}
+  document.getElementById('prods').innerHTML=list.map(p=>
+    `<div class="prod" onclick="add('${p[0].replace(/'/g,"\\'")}',${p[1]})"><div class="pn">${p[0]}</div><div class="pp">${p[1]==null?'Prix à saisir':fmt(p[1])}</div></div>`).join('');
+}
+function add(name,price){
+  if(price==null||isNaN(price)){askPrice(name,function(pp){addToCart(name,pp);});return;}
+  addToCart(name,price);
+}
+function addToCart(name,price){
+  const ex=cart.find(l=>l.name===name&&l.price===price);
+  if(ex)ex.qty++;else cart.push({name,price,qty:1});
+  renderCart();syncTable();
+}
+function loadTableCart(n){
+  cart=[];
+  const lines=ARD[n]||[];
+  lines.forEach(l=>{
+    const m=String(l[0]).match(/^(\d+)\s*×\s*(.+)$/);
+    if(m){const q=parseInt(m[1]);cart.push({name:m[2],price:Math.round(l[1]/q),qty:q});}
+    else cart.push({name:String(l[0]),price:l[1],qty:1});
+  });
+  renderCart();
+}
+function syncTable(){
+  if(venteType!=='place'||!venteTable)return;
+  const tot=cart.reduce((s,l)=>s+l.price*l.qty,0);
+  if(cart.length){
+    ARD[venteTable]=cart.map(l=>[l.qty+' × '+l.name, l.price*l.qty]);
+    let tbo=TABLES.find(t=>t.n==venteTable);
+    if(!tbo){tbo={n:Number(venteTable),s:'occ',c:2,t:tot};TABLES.push(tbo);TABLES.sort((a,b)=>a.n-b.n);}
+    tbo.s='occ';tbo.t=tot;if(!tbo.c)tbo.c=2;
+  }
+  renderFloor();
+}
+let pxCb=null;
+function askPrice(name,cb){
+  pxCb=cb;
+  document.getElementById('pxName').textContent=name;
+  const inp=document.getElementById('pxInput');inp.value='';
+  document.getElementById('pxModal').classList.add('on');
+  setTimeout(function(){inp.focus();},40);
+  inp.onkeydown=function(e){if(e.key==='Enter')pxOk();else if(e.key==='Escape')pxCancel();};
+}
+function pxOk(){
+  const v=parseInt(document.getElementById('pxInput').value)||0;
+  document.getElementById('pxModal').classList.remove('on');
+  const cb=pxCb;pxCb=null;
+  if(v>0&&cb)cb(v);
+}
+function pxCancel(){document.getElementById('pxModal').classList.remove('on');pxCb=null;}
+function renderCart(){
+  const c=document.getElementById('cart');
+  if(!cart.length){c.innerHTML='<div class="empty"><i class="ti ti-shopping-cart"></i>Touchez un produit pour l\'ajouter</div>';document.getElementById('cart-tot').textContent='0 F';return;}
+  c.innerHTML=cart.map((l,i)=>`<div class="line"><span>${l.qty} × ${l.name}</span><span>${fmt(l.price*l.qty)} <span class="x" onclick="rm(${i})">×</span></span></div>`).join('');
+  document.getElementById('cart-tot').textContent=fmt(cart.reduce((s,l)=>s+l.price*l.qty,0));
+}
+function rm(i){cart.splice(i,1);renderCart();syncTable();}
+function valider(){
+  if(venteType==='place'&&!venteTable){alert('Choisissez d\'abord une table.');return;}
+  if(!cart.length){alert('Ajoutez d\'abord des produits.');return;}
+  const tag = venteType==='place' ? ('Table '+venteTable) : ('Livraison · '+venteLiv);
+  const meta = venteType==='place' ? 'Sur place' : (venteClient||'À livrer');
+  const payEl=document.querySelector('.pay.on');
+  openReceipt({doc:'Reçu', tag:tag, meta:meta, payMode:(payEl?payEl.textContent:'espèces').toLowerCase(),
+    items:cart.map(l=>({label:l.qty+' × '+l.name, amount:l.price*l.qty}))});
+  if(venteType==='place'&&venteTable){
+    const tbo=TABLES.find(t=>t.n==venteTable);
+    if(tbo){tbo.s='lib';delete tbo.c;delete tbo.t;}
+    delete ARD[venteTable];
+    renderFloor();
+  }
+  cart=[];renderCart();
+}
+function addProductsFromVente(){
+  if(venteType==='place'&&venteTable){
+    go('tables');
+    openTable(Number(venteTable));
+  }else{
+    go('tables');
+  }
+}
+
+function printAndClearVente(){
+  if(!cart.length){alert('Ajoutez d\'abord des produits.');return;}
+  const tag = venteType==='place' ? ('Table '+venteTable) : ('Livraison · '+venteLiv);
+  const meta = venteType==='place' ? 'Sur place' : (venteClient||'À livrer');
+  openReceipt({doc:'FACTURE', tag:tag, meta:meta, items:cart.map(l=>({label:l.qty+' × '+l.name, amount:l.price*l.qty}))});
+  if(venteType==='place'&&venteTable){
+    const tbo=TABLES.find(t=>t.n==venteTable);
+    if(tbo){tbo.s='lib';delete tbo.c;delete tbo.t;}
+    delete ARD[venteTable];
+    renderFloor();
+    openTable(venteTable);
+  }
+  cart=[];renderCart();
+}
+function openReceipt(opts){
+  const total=opts.items.reduce((s,it)=>s+it.amount,0);
+  const no=String(472+Math.floor(Math.random()*400));
+  const now=new Date();
+  const dt=now.toLocaleDateString('fr-FR')+' · '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  const rows=opts.items.map(it=>`<div class="rc-line"><span>${it.label}</span><span>${fmt(it.amount)}</span></div>`).join('');
+  const payLine=opts.doc==='FACTURE'?'':`<div class="rc-pay">Payé en ${opts.payMode||'espèces'}</div>`;
+  document.getElementById('rcPaper').innerHTML=
+    '<div class="rc-head"><img src="LOGO-Marmite_du_Kloto.jpg" alt="">'+
+    '<div class="rc-nm">La Marmite du Kloto</div>'+
+    '<div class="rc-sb">Bar-Resto · Avedji, non loin de la Côte d\'Or</div>'+
+    '<div class="rc-sb">Tél. +228 91 04 27 02</div></div>'+
+    '<div class="rc-doc">'+(opts.doc||'Reçu')+'</div>'+
+    '<div class="rc-meta"><span>N° '+no+'</span><span>'+dt+'</span></div>'+
+    '<div class="rc-meta"><span>'+opts.tag+'</span><span>'+(opts.meta||'')+'</span></div>'+
+    '<div class="rc-items">'+rows+'</div>'+
+    '<div class="rc-total"><span>TOTAL</span><span>'+fmt(total)+'</span></div>'+
+    payLine+
+    '<div class="rc-thanks">Merci de votre visite !</div>';
+  document.getElementById('rcModal').classList.add('on');
+}
+function rcClose(){document.getElementById('rcModal').classList.remove('on');}
+// ---- Type de vente : choix table ou livreur ----
+let venteType='place', venteTable='3', venteLiv='Kofi', venteClient='';
+const LIVREURS=['Kofi','Kossi','Mensah'];
+function initSelectors(){
+  document.getElementById('tblSel').innerHTML='<option value="">— choisir une table —</option>'+TABLES.map(tb=>`<option value="${tb.n}" ${tb.n===3?'selected':''}>Table ${tb.n}${tb.s==='lib'?' (libre)':''}</option>`).join('');
+  document.getElementById('livSel').innerHTML=LIVREURS.map(l=>`<option>${l}</option>`).join('');
+}
+function setType(tp){
+  venteType=tp;
+  document.getElementById('tp-place').classList.toggle('on',tp==='place');
+  document.getElementById('tp-liv').classList.toggle('on',tp==='liv');
+  document.getElementById('sel-place').style.display=tp==='place'?'':'none';
+  document.getElementById('sel-liv').style.display=tp==='liv'?'':'none';
+  updateVente();
+}
+function pickTable(){venteTable=document.getElementById('tblSel').value;if(venteTable)loadTableCart(venteTable);else{cart=[];renderCart();}updateVente();}
+function pickLiv(){venteLiv=document.getElementById('livSel').value;venteClient=document.getElementById('cliInput').value;updateVente();}
+function updateVente(){
+  const pill=document.getElementById('v-pill'), meta=document.getElementById('v-meta');
+  if(venteType==='place'){
+    pill.textContent=venteTable?('Sur place · Table '+venteTable):'Sur place · aucune table';
+    if(venteTable){
+      const tbo=TABLES.find(t=>t.n==venteTable);
+      const cv=tbo&&tbo.c?(' · '+tbo.c+' couverts'):'';
+      meta.textContent='Table '+venteTable+cv+' · 21/07/2026 · 20:14';
+    } else meta.textContent='Choisir une table';
+  }else{
+    pill.textContent='Livraison · '+venteLiv;
+    meta.textContent='Livraison · '+venteLiv+(venteClient?(' · '+venteClient):'')+' · 21/07/2026 · 20:14';
+  }
+}
+function toVentesFromTable(n){venteType='place';venteTable=String(n);document.getElementById('tblSel').value=String(n);loadTableCart(n);setType('place');go('ventes');}
+document.querySelectorAll('.pay').forEach(p=>p.addEventListener('click',()=>{document.querySelectorAll('.pay').forEach(x=>x.classList.remove('on'));p.classList.add('on');}));
+
+// ---- BAR stock ----
+function renderBar(){
+  const q=(document.getElementById('bar-search').value||'').toLowerCase();
+  const rows=BAR.filter(b=>b[0].toLowerCase().includes(q)).map(b=>{
+    const st=STOCK[b[0]]!==undefined?STOCK[b[0]]:36;
+    let cls='b-ok',lbl='En stock';
+    if(st<=0){cls='b-rup';lbl='Rupture';}else if(st<=10){cls='b-bas';lbl='Bas';}
+    return `<tr><td>${b[0]}</td><td style="color:var(--mut)">${b[2]}</td><td style="text-align:right">${fmt(b[1])}</td><td style="text-align:right;font-weight:600">${st}</td><td style="text-align:right"><span class="badge ${cls}">${lbl}</span></td></tr>`;
+  }).join('');
+  document.getElementById('bar-rows').innerHTML=rows;
+}
+
+function renderStockLog(){
+  const el=document.getElementById('stock-log');
+  if(!el)return;
+  if(!RECEPTIONS.length){el.innerHTML='<div class="empty"><i class="ti ti-inbox"></i>Aucune réception enregistrée</div>';return}
+  el.innerHTML=RECEPTIONS.slice(0,20).map(r=>{
+    const d=new Date(r.date);
+    const ds=d.toLocaleString('fr-FR');
+    const pr=r.price?(' — '+fmt(r.price)+' / u'):''
+    return `<div style="padding:6px 0;border-bottom:1px dashed var(--bord)"><div style="font-weight:600">${r.product} × ${r.qty}${pr}</div><div style="font-size:12px;color:var(--mut)">${r.supplier?('Fournisseur: '+r.supplier+' · '):''}${ds}</div></div>`;
+  }).join('');
+}
+
+function renderDashboardChart(){
+  const data=[
+    {label:'Bar',value:140000},
+    {label:'Cuisine',value:180000},
+    {label:'Livraison',value:30000},
+    {label:'Dépenses',value:120000}
+  ];
+  const max=Math.max(...data.map(d=>d.value));
+  const container=document.getElementById('dashboardChart');
+  if(!container)return;
+  container.innerHTML=data.map(d=>{
+    const pct=Math.round((d.value/max)*100);
+    return `<div class="chart-bar"><div class="bar"><div class="fill" style="height:${pct}%"></div></div><div class="value">${fmt(d.value)}</div><div class="label">${d.label}</div></div>`;
+  }).join('');
+}
+
+// ---- Tables ----
+const ARD={
+  1:[["1 × Poulet braisé",5000],["1 × Alloco",1500],["2 × Castel",1400]],
+  3:[["2 × Poulet braisé",10000],["3 × Coca",1500],["2 × Castel",1400]],
+  4:[["3 × Poisson braisé",15000],["4 × Heineken",4800],["2 × Coca",1000]],
+  6:[["1 × Riz au gras",2500],["2 × Beaufort",1400],["2 × Coca",1000]],
+  8:[["4 × Poulet braisé",20000],["5 × Castel",3500],["2 × Guinness",1600]],
+  12:[["2 × Fufu",4000],["1 × Poisson braisé",5000],["3 × Coca",1500]],
+  15:[["1 × Poulet braisé",5000],["2 × Djama pils",1400],["1 × Possotome",1500]],
+  18:[["3 × Poulet braisé",15000],["4 × Castel",2800],["2 × Coca",1000]],
+  23:[["1 × Spaghetti",2500],["2 × Beaufort",1400],["2 × Malta",1000]]
+};
+const COUV={1:2,3:4,4:3,6:2,8:5,12:3,15:2,18:4,23:2};
+const PAYTBL={4:1,8:1,15:1};
+const TABLES=[];
+(function(){
+  for(let n=1;n<=30;n++){
+    if(ARD[n]){
+      const t=ARD[n].reduce((s,l)=>s+l[1],0);
+      TABLES.push({n:n,s:PAYTBL[n]?'pay':'occ',c:COUV[n]||2,t:t});
+    } else TABLES.push({n:n,s:'lib'});
+  }
+})();
+function renderFloor(){
+  document.getElementById('floor').innerHTML=TABLES.map(tb=>{
+    const lbl={lib:'Libre',occ:'Occupée',pay:'À encaisser'}[tb.s];
+    const inner=tb.s==='lib'?`<div class="ts">${lbl}</div>`:`<div class="ts"><i class="ti ti-users" style="font-size:12px;margin-right:4px;"></i>${tb.c} couverts · ${fmt(tb.t)}</div>`;
+    return `<div class="tbl ${tb.s}" onclick="openTable(${tb.n})"><div class="tn">Table ${tb.n}</div>${inner}</div>`;
+  }).join('');
+}
+let ardTable=3;
+function openTable(n){
+  ardTable=n;
+  let tb=TABLES.find(t=>t.n===n);
+  if(!tb){tb={n:n,s:'lib'};TABLES.push(tb);TABLES.sort((a,b)=>a.n-b.n);renderFloor();}
+  const lines=ARD[n]||[];
+  document.getElementById('ard-t').textContent='Table '+n;
+  document.getElementById('ard-m').textContent=tb.s==='lib'?'Table libre':`${tb.c} couverts · ouverte à 19:42`;
+  document.getElementById('ard').innerHTML=lines.length?lines.map(l=>`<div class="line"><span>${l[0]}</span><span>${l[1]?fmt(l[1]):''}</span></div>`).join(''):'<div class="empty"><i class="ti ti-clipboard-list"></i>Aucune commande ouverte</div>';
+  const tot=lines.reduce((s,l)=>s+l[1],0);
+  document.getElementById('ard-tot').textContent=fmt(tot);
+}
+function ouvrirNum(){
+  const v=parseInt(document.getElementById('tblNum').value);
+  if(!v||v<1){alert('Saisissez un numéro de table valide.');return;}
+  openTable(v);
+}
+function cloturer(){
+  const lines=ARD[ardTable]||[];
+  if(!lines.length){alert('Cette table n\'a aucune commande à facturer.');return;}
+  openReceipt({doc:'FACTURE', tag:'Table '+ardTable, meta:'Sur place',
+    items:lines.map(l=>({label:l[0], amount:l[1]}))});
+  const tbo=TABLES.find(t=>t.n===ardTable);
+  if(tbo){tbo.s='lib';delete tbo.c;delete tbo.t;}
+  delete ARD[ardTable];
+  renderFloor();openTable(ardTable);
+}
+
+// ---- Dépenses ----
+let depenses=[
+  {cat:'Achats bar', desc:'Casiers Castel + Guinness', amt:70000},
+  {cat:'Achats cuisine', desc:'Marché (viande, riz, légumes)', amt:35000},
+  {cat:'Transport', desc:'Livraison des marchandises', amt:15000}
+];
+const CA_JOUR=350000;
+const CAISSE_BASE=250000; // fond de caisse 50 000 + recettes espèces 200 000
+function renderDepenses(){
+  const tot=depenses.reduce((s,d)=>s+d.amt,0);
+  const tb=document.getElementById('dep-rows');
+  tb.innerHTML = depenses.length ? depenses.map((d,i)=>`<tr><td><span class="tag">${d.cat}</span></td><td>${d.desc||'—'}</td><td style="text-align:right;font-weight:600">${fmt(d.amt)}</td><td style="text-align:right"><span class="x-del" onclick="rmDep(${i})">×</span></td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--mut);padding:16px 0">Aucune dépense saisie</td></tr>';
+  document.getElementById('dep-total').textContent=fmt(tot);
+  const solde=CAISSE_BASE-tot;
+  const pill=document.getElementById('dep-total-pill');
+  pill.textContent='Caisse disponible : '+fmt(solde);
+  pill.classList.toggle('danger', solde<0);
+  pill.classList.toggle('warn', solde>=0 && solde<20000);
+  const cats={};depenses.forEach(d=>{cats[d.cat]=(cats[d.cat]||0)+d.amt;});
+  const entries=Object.keys(cats).map(k=>[k,cats[k]]).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  const icons={'Achats bar':'ti-bottle','Achats cuisine':'ti-basket','Transport':'ti-truck','Salaires':'ti-users','Électricité / Eau':'ti-bolt','Entretien':'ti-tool','Autres':'ti-dots'};
+  document.getElementById('dep-cats').innerHTML=entries.map((e,i)=>`<div class="stat ${i===0?'dark':'wht'}"><div class="ic"><i class="ti ${icons[e[0]]||'ti-dots'}"></i></div><div class="l">${e[0]}</div><div class="v">${fmt(e[1])}</div></div>`).join('');
+  const dv=document.getElementById('acc-dep-v'); if(dv)dv.textContent=fmt(tot);
+  const nv=document.getElementById('acc-net-v'); if(nv)nv.textContent=fmt(CA_JOUR-tot);
+  const nf=document.getElementById('acc-net-formula'); if(nf)nf.textContent='CA total − Dépenses = 350 000 − '+tot.toLocaleString('fr-FR')+' F';
+  const dd=document.getElementById('acc-dep-detail'); if(dd)dd.innerHTML=entries.map(e=>`<span class="tag">${e[0]} · ${e[1].toLocaleString('fr-FR')}</span>`).join('');
+  renderRapport();
+  if(typeof renderCloture==='function')renderCloture();
+}
+function addDepense(){
+  const cat=document.getElementById('dep-cat').value;
+  const amt=parseInt(document.getElementById('dep-amt').value)||0;
+  const desc=document.getElementById('dep-desc').value.trim();
+  if(amt<=0){alert('Entrez un montant valide.');return;}
+  const solde=CAISSE_BASE-depenses.reduce((s,d)=>s+d.amt,0);
+  if(amt>solde){alert('Dépense refusée : '+fmt(amt)+' dépasse la caisse disponible ('+fmt(solde)+').');return;}
+  depenses.push({cat:cat,desc:desc,amt:amt});
+  document.getElementById('dep-amt').value='';
+  document.getElementById('dep-desc').value='';
+  renderDepenses();
+}
+function rmDep(i){depenses.splice(i,1);renderDepenses();}
+
+// ---- Rapports ----
+const REPCSS=`
+.rep-sheet{background:#fff;border:1px solid #EAE2DA;border-radius:14px;padding:26px 30px;max-width:820px;margin:0 auto;color:#1E1B1A;font-family:'Segoe UI',system-ui,sans-serif;}
+.rep-head{display:flex;align-items:center;gap:14px;border-bottom:3px solid #F47C20;padding-bottom:16px;margin-bottom:18px;}
+.rep-head img{width:62px;height:62px;border-radius:50%;object-fit:cover;}
+.rep-h-name{font-size:18px;font-weight:700;}
+.rep-h-sub{font-size:12px;color:#8A817B;margin-top:2px;}
+.rep-h-title{margin-left:auto;text-align:right;}
+.rep-h-t{font-size:16px;font-weight:700;color:#D9661A;}
+.rep-h-p{font-size:12px;color:#8A817B;margin-top:2px;}
+.rep-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.rep-kpi{background:#FAF7F3;border-radius:10px;padding:13px 15px;}
+.rep-kpi .k{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#8A817B;}
+.rep-kpi .v{font-size:20px;font-weight:700;margin-top:4px;}
+.rep-kpi.accent{background:#1E1B1A;} .rep-kpi.accent .k{color:#C9C0BA;} .rep-kpi.accent .v{color:#F47C20;}
+.rep-cols{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:18px;}
+.rep-bt{font-size:13px;font-weight:700;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #EAE2DA;}
+.rep-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.rep-tbl td{padding:7px 2px;border-bottom:1px solid #F0EAE3;}
+.rep-tbl td:last-child{text-align:right;font-weight:600;}
+.rep-tbl tr.tot td{border-top:2px solid #1E1B1A;border-bottom:none;font-weight:700;padding-top:9px;color:#D9661A;}
+.rep-net{display:flex;justify-content:space-between;align-items:center;background:#F47C20;color:#1E1B1A;border-radius:10px;padding:14px 18px;font-size:17px;font-weight:700;margin-bottom:20px;}
+.rep-foot{display:flex;justify-content:space-between;gap:20px;margin-top:28px;font-size:12px;color:#5F564F;}
+.rep-gen{text-align:center;font-size:11px;color:#8A817B;margin-top:16px;}
+`;
+document.head.insertAdjacentHTML('beforeend','<style>'+REPCSS+'</style>');
+function setTxt(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+function renderRapport(){
+  const dep=depenses.reduce((s,d)=>s+d.amt,0);
+  const ca=350000, net=ca-dep;
+  setTxt('rep-ca-v', fmt(ca));
+  setTxt('rep-dep-v', fmt(dep));
+  setTxt('rep-net-v', fmt(net));
+  setTxt('rep-net-band-v', fmt(net));
+  const cats={};depenses.forEach(d=>{cats[d.cat]=(cats[d.cat]||0)+d.amt;});
+  const rows=Object.keys(cats).map(k=>`<tr><td>${k}</td><td>${fmt(cats[k])}</td></tr>`).join('');
+  const tbl=document.getElementById('rep-dep-tbl');
+  if(tbl)tbl.innerHTML=rows+`<tr class="tot"><td>Total dépenses</td><td>${fmt(dep)}</td></tr>`;
+}
+function setPeriod(label, btn){
+  document.querySelectorAll('#rep-period .segb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const map={'Jour':'Journée du 21 juillet 2026','Semaine':'Semaine du 15 au 21 juillet 2026','Mois':'Mois de juillet 2026'};
+  setTxt('rep-period-label', map[label]||label);
+}
+function printReport(){
+  const html=document.getElementById('reportSheet').outerHTML;
+  const w=window.open('','_blank');
+  if(!w){alert('Autorisez les fenêtres pop-up pour imprimer le rapport.');return;}
+  w.document.write('<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Rapport de gestion — La Marmite du Kloto</title><style>'+REPCSS+'body{margin:0;padding:20px;background:#fff;}@page{margin:14mm;}</style></head><body>'+html+'</body></html>');
+  w.document.close();
+  setTimeout(function(){w.focus();w.print();},350);
+}
+
+// ---- Rapports détaillés (consultables & imprimables) ----
+let detHTML='';
+function repHeaderD(title){
+  const now=new Date();const dt=now.toLocaleDateString('fr-FR')+' · '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  return `<div class="rep-head"><img src="LOGO-Marmite_du_Kloto.jpg" alt=""><div class="rep-h-info"><div class="rep-h-name">La Marmite du Kloto · Bar-Resto</div><div class="rep-h-sub">Avedji, non loin de la Côte d'Or · Tél. +228 91 04 27 02</div></div><div class="rep-h-title"><div class="rep-h-t">${title}</div><div class="rep-h-p">Journée du 21 juillet 2026 · édité ${dt}</div></div></div>`;
+}
+function repFootD(){return `<div class="rep-foot"><div>Établi par : _______________________</div><div>Visa du responsable : _______________________</div></div><div class="rep-gen">La Marmite du Kloto · Bar-Resto</div>`;}
+function buildDetReport(type){
+  if(type==='revenus'){
+    return `<div class="rep-sheet">`+repHeaderD('Rapport des revenus')+
+      `<div class="rep-block"><div class="rep-bt">Revenus par source</div><table class="rep-tbl"><tbody>`+
+      `<tr><td>Ventes bar (boissons)</td><td>${fmt(140000)}</td></tr><tr><td>Ventes cuisine (nourriture)</td><td>${fmt(180000)}</td></tr><tr><td>Livraisons</td><td>${fmt(30000)}</td></tr>`+
+      `<tr class="tot"><td>Chiffre d'affaires</td><td>${fmt(350000)}</td></tr></tbody></table></div>`+
+      `<div class="rep-cols"><div class="rep-block"><div class="rep-bt">Détail bar par catégorie</div><table class="rep-tbl"><tbody>`+
+      `<tr><td>Bières</td><td>${fmt(78000)}</td></tr><tr><td>Sucreries</td><td>${fmt(34000)}</td></tr><tr><td>Eaux</td><td>${fmt(12000)}</td></tr><tr><td>Énergisantes</td><td>${fmt(10000)}</td></tr><tr><td>Whisky</td><td>${fmt(6000)}</td></tr>`+
+      `<tr class="tot"><td>Total bar</td><td>${fmt(140000)}</td></tr></tbody></table></div>`+
+      `<div class="rep-block"><div class="rep-bt">Détail cuisine (top plats)</div><table class="rep-tbl"><tbody>`+
+      `<tr><td>Poulet braisé</td><td>${fmt(60000)}</td></tr><tr><td>Riz au gras</td><td>${fmt(47500)}</td></tr><tr><td>Poisson braisé</td><td>${fmt(40000)}</td></tr><tr><td>Autres plats</td><td>${fmt(32500)}</td></tr>`+
+      `<tr class="tot"><td>Total cuisine</td><td>${fmt(180000)}</td></tr></tbody></table></div></div>`+
+      repFootD()+`</div>`;
+  }
+  if(type==='depenses'){
+    const cats={};depenses.forEach(d=>{cats[d.cat]=(cats[d.cat]||0)+d.amt;});
+    const catRows=Object.keys(cats).map(k=>`<tr><td>${k}</td><td>${fmt(cats[k])}</td></tr>`).join('');
+    const dep=depenses.reduce((s,d)=>s+d.amt,0);
+    const lineRows=depenses.map(d=>`<tr><td>${d.cat} — ${d.desc||'—'}</td><td>${fmt(d.amt)}</td></tr>`).join('');
+    return `<div class="rep-sheet">`+repHeaderD('Rapport des dépenses')+
+      `<div class="rep-block"><div class="rep-bt">Dépenses par catégorie</div><table class="rep-tbl"><tbody>${catRows}<tr class="tot"><td>Total dépenses</td><td>${fmt(dep)}</td></tr></tbody></table></div>`+
+      `<div class="rep-block"><div class="rep-bt">Détail des dépenses (ligne par ligne)</div><table class="rep-tbl"><tbody>${lineRows||'<tr><td>Aucune dépense</td><td>—</td></tr>'}</tbody></table></div>`+
+      repFootD()+`</div>`;
+  }
+  if(type==='bar'){
+    const rows=[['Castel',24,40,48,28000],['Beaufort',12,20,30,14000],['Guinness',12,15,9,12000],['Heineken',12,10,24,12000],['Coca',48,40,60,20000],['Djama pils',24,20,10,14000],['Possotomè',12,8,6,12000],['Jameson (whisky)',6,6,4,10800],['Red bull',12,5,15,6000],['Autres (sucreries, eaux…)','—','—','—',11200]];
+    const body=rows.map(r=>`<tr><td>${r[0]}</td><td style="text-align:right">${r[1]}</td><td style="text-align:right">${r[2]}</td><td style="text-align:right">${r[3]}</td><td style="text-align:right;font-weight:600">${fmt(r[4])}</td></tr>`).join('');
+    const tot=rows.reduce((s,r)=>s+r[4],0);
+    return `<div class="rep-sheet">`+repHeaderD('Rapport — Ventes bar')+
+      `<div class="rep-block"><div class="rep-bt">Détail par boisson · réception, ventes, stock restant, CA</div>`+
+      `<table class="rep-tbl"><thead><tr><td style="font-weight:700">Produit</td><td style="font-weight:700;text-align:right">Reçu</td><td style="font-weight:700;text-align:right">Vendu</td><td style="font-weight:700;text-align:right">Restant</td><td style="font-weight:700;text-align:right">CA</td></tr></thead>`+
+      `<tbody>${body}<tr class="tot"><td>Chiffre d'affaires bar</td><td></td><td></td><td></td><td style="text-align:right">${fmt(tot)}</td></tr></tbody></table></div>`+
+      repFootD()+`</div>`;
+  }
+  if(type==='cuisine'){
+    const rows=[['Poulet braisé',12,60000],['Riz au gras',19,47500],['Poisson braisé',8,40000],['Alloco',10,15000],['Fufu',5,10000],['Autres plats','—',7500]];
+    const body=rows.map(r=>`<tr><td>${r[0]}</td><td style="text-align:right">${r[1]}</td><td style="text-align:right;font-weight:600">${fmt(r[2])}</td></tr>`).join('');
+    const tot=rows.reduce((s,r)=>s+r[2],0);
+    return `<div class="rep-sheet">`+repHeaderD('Rapport — Ventes cuisine')+
+      `<div class="rep-block"><div class="rep-bt">Détail par plat · quantité vendue et CA</div>`+
+      `<table class="rep-tbl"><thead><tr><td style="font-weight:700">Plat</td><td style="font-weight:700;text-align:right">Vendu</td><td style="font-weight:700;text-align:right">CA</td></tr></thead>`+
+      `<tbody>${body}<tr class="tot"><td>Chiffre d'affaires cuisine</td><td></td><td style="text-align:right">${fmt(tot)}</td></tr></tbody></table></div>`+
+      `<div class="rep-gen">Nourriture préparée à la commande — pas de stock de plats.</div>`+repFootD()+`</div>`;
+  }
+  if(type==='livraisons'){
+    const rows=[['Kofi',5,14000],['Kossi',3,9000],['Mensah',2,7000]];
+    const body=rows.map(r=>`<tr><td>${r[0]}</td><td style="text-align:right">${r[1]}</td><td style="text-align:right;font-weight:600">${fmt(r[2])}</td></tr>`).join('');
+    const tot=rows.reduce((s,r)=>s+r[2],0);
+    const nb=rows.reduce((s,r)=>s+r[1],0);
+    return `<div class="rep-sheet">`+repHeaderD('Rapport — Livraisons')+
+      `<div class="rep-block"><div class="rep-bt">Détail par livreur · nombre de livraisons et CA</div>`+
+      `<table class="rep-tbl"><thead><tr><td style="font-weight:700">Livreur</td><td style="font-weight:700;text-align:right">Livraisons</td><td style="font-weight:700;text-align:right">CA</td></tr></thead>`+
+      `<tbody>${body}<tr class="tot"><td>Total (${nb} livraisons)</td><td></td><td style="text-align:right">${fmt(tot)}</td></tr></tbody></table></div>`+
+      repFootD()+`</div>`;
+  }
+  if(type==='produits'){
+    return `<div class="rep-sheet">`+repHeaderD('Produits les plus vendus')+
+      `<div class="rep-block"><div class="rep-bt">Classement du jour</div><table class="rep-tbl"><tbody>`+
+      `<tr><td>1 · Poulet braisé</td><td>120 ventes</td></tr><tr><td>2 · Riz au gras</td><td>95 ventes</td></tr><tr><td>3 · Castel</td><td>88 ventes</td></tr><tr><td>4 · Coca</td><td>80 ventes</td></tr><tr><td>5 · Guinness</td><td>62 ventes</td></tr>`+
+      `</tbody></table></div>`+repFootD()+`</div>`;
+  }
+  return '';
+}
+function openDetReport(type){
+  detHTML=buildDetReport(type);
+  document.getElementById('detBody').innerHTML=detHTML;
+  document.getElementById('detModal').classList.add('on');
+}
+function detClose(){document.getElementById('detModal').classList.remove('on');}
+function printDet(){
+  const w=window.open('','_blank');
+  if(!w){alert('Autorisez les fenêtres pop-up pour imprimer le rapport.');return;}
+  w.document.write('<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Rapport — La Marmite du Kloto</title><style>'+REPCSS+'body{margin:0;padding:20px;background:#fff;}@page{margin:14mm;}</style></head><body>'+detHTML+'</body></html>');
+  w.document.close();setTimeout(function(){w.focus();w.print();},350);
+}
+
+// ---- Clôture du jour ----
+const FOND_CAISSE=50000;
+const REC_ESPECES=200000;
+const REC_TMONEY=90000;
+const REC_FLOOZ=40000;
+const REC_CARTE=20000;
+const CA_TOTAL=REC_ESPECES+REC_TMONEY+REC_FLOOZ+REC_CARTE; // 350 000
+function renderCloture(){
+  const dep=depenses.reduce((s,d)=>s+d.amt,0);
+  const theo=FOND_CAISSE+REC_ESPECES-dep;
+  const cats={};depenses.forEach(d=>{cats[d.cat]=(cats[d.cat]||0)+d.amt;});
+  const depEl=document.getElementById('clo-dep');
+  if(depEl)depEl.innerHTML=Object.keys(cats).map(k=>`<tr><td>${k}</td><td style="text-align:right">${fmt(cats[k])}</td></tr>`).join('')+
+    `<tr><td style="font-weight:700">Total dépenses</td><td style="text-align:right;font-weight:700;color:var(--orange-dk)">${fmt(dep)}</td></tr>`;
+  setTxt('clo-net', fmt(CA_TOTAL-dep));
+  setTxt('clo-fond', fmt(FOND_CAISSE));
+  setTxt('clo-recesp', fmt(REC_ESPECES));
+  setTxt('clo-depesp', fmt(dep));
+  setTxt('clo-theo', fmt(theo));
+  calcEcart();
+}
+function calcEcart(){
+  const dep=depenses.reduce((s,d)=>s+d.amt,0);
+  const theo=FOND_CAISSE+REC_ESPECES-dep;
+  const reel=parseInt(document.getElementById('clo-reel').value)||0;
+  const ecart=reel-theo;
+  const el=document.getElementById('clo-ecart');
+  if(el){el.textContent=(ecart>0?'+':'')+fmt(ecart);el.style.color=ecart<0?'#A32D2D':(ecart>0?'#7A5410':'#2E5A38');}
+}
+function cloturerJournee(){
+  const dep=depenses.reduce((s,d)=>s+d.amt,0);
+  const theo=FOND_CAISSE+REC_ESPECES-dep;
+  const reel=parseInt(document.getElementById('clo-reel').value)||0;
+  if(reel<=0){alert('Saisissez le montant réel compté en caisse.');return;}
+  const ecart=reel-theo;
+  const now=new Date();
+  const dt=now.toLocaleDateString('fr-FR')+' · '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  const cats={};depenses.forEach(d=>{cats[d.cat]=(cats[d.cat]||0)+d.amt;});
+  const depCatRows=Object.keys(cats).map(k=>`<tr><td>${k}</td><td>${fmt(cats[k])}</td></tr>`).join('');
+  const doc=`<div class="rep-sheet">`+
+    `<div class="rep-head"><img src="LOGO-Marmite_du_Kloto.jpg" alt=""><div class="rep-h-info"><div class="rep-h-name">La Marmite du Kloto · Bar-Resto</div><div class="rep-h-sub">Avedji, non loin de la Côte d'Or · Tél. +228 91 04 27 02</div></div><div class="rep-h-title"><div class="rep-h-t">Clôture de journée</div><div class="rep-h-p">${dt}</div></div></div>`+
+    `<div class="rep-cols"><div class="rep-block"><div class="rep-bt">Ce que chaque compartiment a rapporté</div><table class="rep-tbl"><tbody>`+
+    `<tr><td>Ventes bar</td><td>${fmt(140000)}</td></tr><tr><td>Ventes cuisine</td><td>${fmt(180000)}</td></tr><tr><td>Livraisons</td><td>${fmt(30000)}</td></tr>`+
+    `<tr class="tot"><td>Chiffre d'affaires</td><td>${fmt(CA_TOTAL)}</td></tr></tbody></table></div>`+
+    `<div class="rep-block"><div class="rep-bt">Dépenses par catégorie</div><table class="rep-tbl"><tbody>`+
+    depCatRows+`<tr class="tot"><td>Total dépenses</td><td>${fmt(dep)}</td></tr></tbody></table></div></div>`+
+    `<div class="rep-net"><span>Résultat net de la journée</span><span>${fmt(CA_TOTAL-dep)}</span></div>`+
+    `<div class="rep-block"><div class="rep-bt">Arrêté de caisse (espèces)</div><table class="rep-tbl"><tbody>`+
+    `<tr><td>Fond de caisse initial</td><td>${fmt(FOND_CAISSE)}</td></tr><tr><td>+ Recettes espèces</td><td>${fmt(REC_ESPECES)}</td></tr><tr><td>− Dépenses espèces</td><td>${fmt(dep)}</td></tr>`+
+    `<tr class="tot"><td>Montant théorique</td><td>${fmt(theo)}</td></tr><tr><td>Montant réel compté</td><td>${fmt(reel)}</td></tr>`+
+    `<tr class="tot"><td>Écart</td><td>${(ecart>0?'+':'')+fmt(ecart)}</td></tr></tbody></table></div>`+
+    `<div class="rep-foot"><div>Caissier : _______________________</div><div>Visa du responsable : _______________________</div></div>`+
+    `<div class="rep-gen">Clôturé le ${dt} · La Marmite du Kloto</div></div>`;
+  const w=window.open('','_blank');
+  if(w){w.document.write('<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Clôture — La Marmite du Kloto</title><style>'+REPCSS+'body{margin:0;padding:20px;background:#fff;}@page{margin:14mm;}</style></head><body>'+doc+'</body></html>');w.document.close();setTimeout(function(){w.focus();w.print();},350);}
+  alert('Journée clôturée.\nÉcart de caisse : '+(ecart>0?'+':'')+fmt(ecart)+(ecart===0?' (caisse juste)':'')+'\nLe document de clôture est prêt à imprimer et à signer.');
+}
+
+// init
+renderCats();renderProds();initStockModal();renderBar();renderStockLog();renderDashboardChart();renderFloor();initSelectors();openTable(3);setType('place');loadTableCart(3);renderDepenses();renderRapport();renderCloture();
+</script>
+</body>
+</html>

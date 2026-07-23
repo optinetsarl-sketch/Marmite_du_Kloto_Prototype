@@ -1,0 +1,11 @@
+# Fichiers de verrouillage LibreOffice / Office
+.~lock.*#
+~$*
+
+# Dossiers système
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Config locale de l'outil Claude
+.claude/
