@@ -9,3 +9,17 @@ Desktop.ini
 
 # Config locale de l'outil Claude
 .claude/
+
+# Python / Django
+.venv/
+__pycache__/
+*.py[cod]
+backend/db.sqlite3
+backend/.env
+backend/media/
+backend/staticfiles/
+
+# Node / Vite
+node_modules/
+frontend/dist/
+
