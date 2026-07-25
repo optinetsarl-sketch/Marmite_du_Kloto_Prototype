@@ -26,11 +26,50 @@ const CLASSES_STATUT = {
   livree: 'b-bas',
 }
 
+function FormulaireLivreur({ onFerme, onErreur }) {
+  const [nom, setNom] = useState('')
+  const [telephone, setTelephone] = useState('')
+  const [envoi, setEnvoi] = useState(false)
+
+  async function creer(e) {
+    e.preventDefault()
+    setEnvoi(true)
+    try {
+      await api.post('/livreurs/', { nom, telephone, actif: true })
+      onFerme()
+    } catch (echec) {
+      onErreur(echec.message)
+      setEnvoi(false)
+    }
+  }
+
+  return (
+    <form className="card" onSubmit={creer} style={{ marginTop: 10 }}>
+      <h3>Nouveau livreur</h3>
+      <div className="grille-champs">
+        <div>
+          <label className="lbl">Nom</label>
+          <input className="champ" value={nom} onChange={(e) => setNom(e.target.value)} required autoFocus />
+        </div>
+        <div>
+          <label className="lbl">Téléphone</label>
+          <input className="champ" value={telephone} onChange={(e) => setTelephone(e.target.value)} />
+        </div>
+      </div>
+      <div className="modal-act" style={{ marginTop: 12 }}>
+        <button type="button" className="btn btn-g" onClick={onFerme}>Annuler</button>
+        <button className="btn btn-o" disabled={envoi}>{envoi ? 'Création…' : 'Créer'}</button>
+      </div>
+    </form>
+  )
+}
+
 export default function Livraison() {
   const naviguer = useNavigate()
   const [courses, setCourses] = useState([])
   const [comptes, setComptes] = useState([])
   const [livreurs, setLivreurs] = useState([])
+  const [showFormLivreur, setShowFormLivreur] = useState(false)
   const [erreur, setErreur] = useState('')
   const [bon, setBon] = useState(null)
   const [aEncaisser, setAEncaisser] = useState(null)
@@ -48,6 +87,15 @@ export default function Livraison() {
       setComptes(tableau)
       setLivreurs(liste_livreurs)
       setErreur('')
+    } catch (echec) {
+      setErreur(echec.message)
+    }
+  }
+
+  async function assignerLivreur(commande, livreurId) {
+    try {
+      await api.patch(`/commandes/${commande.id}/`, { livreur: livreurId || null })
+      await charger()
     } catch (echec) {
       setErreur(echec.message)
     }
@@ -129,21 +177,34 @@ export default function Livraison() {
                       </span>
                     </td>
                     <td data-actions style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <button className="btn btn-g btn-mini" onClick={() => setBon(course)}>
-                        Bon
-                      </button>{' '}
-                      {etape.suivant ? (
-                        <button
-                          className="btn btn-o btn-mini"
-                          onClick={() => avancer(course, etape.suivant)}
+                      <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+                        <button className="btn btn-g btn-mini" onClick={() => setBon(course)}>
+                          Bon
+                        </button>
+                        <select
+                          className="champ"
+                          value={course.livreur ?? ''}
+                          onChange={(e) => assignerLivreur(course, e.target.value ? Number(e.target.value) : null)}
+                          style={{ minWidth: 140, padding: '6px 8px' }}
                         >
-                          {etape.action}
-                        </button>
-                      ) : (
-                        <button className="btn btn-o btn-mini" onClick={() => setAEncaisser(course)}>
-                          Encaisser
-                        </button>
-                      )}
+                          <option value="">— aucun —</option>
+                          {livreurs.map((l) => (
+                            <option key={l.id} value={l.id}>{l.nom}</option>
+                          ))}
+                        </select>
+                        {etape.suivant ? (
+                          <button
+                            className="btn btn-o btn-mini"
+                            onClick={() => avancer(course, etape.suivant)}
+                          >
+                            {etape.action}
+                          </button>
+                        ) : (
+                          <button className="btn btn-o btn-mini" onClick={() => setAEncaisser(course)}>
+                            Encaisser
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )
@@ -203,6 +264,17 @@ export default function Livraison() {
           money n'y figure pas, il arrive directement sur le compte.
         </div>
       </div>
+
+      {showFormLivreur ? (
+        <FormulaireLivreur
+          onFerme={() => { setShowFormLivreur(false); charger() }}
+          onErreur={setErreur}
+        />
+      ) : (
+        <div style={{ marginTop: 10 }}>
+          <button className="btn btn-o" onClick={() => setShowFormLivreur(true)}>+ Ajouter un livreur</button>
+        </div>
+      )}
 
       {bon && <BonLivraison commande={bon} onFerme={() => setBon(null)} />}
       {aEncaisser && (

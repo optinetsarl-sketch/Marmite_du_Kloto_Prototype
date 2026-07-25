@@ -5,12 +5,14 @@ import BonCuisine from '../composants/BonCuisine'
 
 export default function Cuisine() {
   const [commandes, setCommandes] = useState([])
+  const [historique, setHistorique] = useState([])
   const [erreur, setErreur] = useState('')
   const [bon, setBon] = useState(null)
 
   async function charger() {
     try {
       setCommandes(await liste('/commandes/?pour_cuisine=1&page_size=100'))
+      setHistorique(await liste('/commandes/?historique_cuisine=1&aujourdhui=1&page_size=50'))
       setErreur('')
     } catch (echec) {
       setErreur(echec.message)
@@ -49,7 +51,7 @@ export default function Cuisine() {
 
   return (
     <>
-      <div className="top">
+      <div className="top" style={{ gap: '10px', flexWrap: 'wrap' }}>
         <div>
           <h1>Cuisine — Bons de commande</h1>
           <div className="sub">
@@ -57,58 +59,83 @@ export default function Cuisine() {
           </div>
         </div>
         <div className="pill">{enPreparation.length} en préparation</div>
+        <div className="pill vert">{termines.length} prêts à servir</div>
+        <div className="pill vert">{historique.length} clôturés aujourd'hui</div>
       </div>
 
       {erreur && <div className="erreur">{erreur}</div>}
 
-      {commandes.length === 0 ? (
+      {commandes.length === 0 && (
         <div className="card">
           <div className="etat">
             Aucun bon en cours. Une commande arrive ici dès qu'elle est envoyée en cuisine.
           </div>
         </div>
-      ) : (
-        <>
-          <div className="cuis-sec">
-            <span className="cuis-point prep" />
-            En préparation
-            <span className="cuis-compte">{enPreparation.length}</span>
-          </div>
-          {enPreparation.length === 0 ? (
-            <div className="etat" style={{ paddingBottom: 20 }}>Rien en préparation.</div>
-          ) : (
-            <div className="kts">
-              {enPreparation.map((commande) => (
-                <Bon
-                  key={commande.id}
-                  commande={commande}
-                  onImprimer={() => setBon(commande)}
-                  onTermine={() => marquerTermine(commande)}
-                  onAnnuler={() => annuler(commande)}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Le trait qui sépare les repas terminés de ceux en préparation. */}
-          <div className="cuis-separateur" />
-
-          <div className="cuis-sec">
-            <span className="cuis-point pret" />
-            Terminés — prêts à servir
-            <span className="cuis-compte">{termines.length}</span>
-          </div>
-          {termines.length === 0 ? (
-            <div className="etat">Aucun repas terminé pour l'instant.</div>
-          ) : (
-            <div className="kts">
-              {termines.map((commande) => (
-                <Bon key={commande.id} commande={commande} onImprimer={() => setBon(commande)} />
-              ))}
-            </div>
-          )}
-        </>
       )}
+
+      <div className="cuis-sec">
+        <span className="cuis-point prep" />
+        En préparation
+        <span className="cuis-compte">{enPreparation.length}</span>
+      </div>
+      {enPreparation.length === 0 ? (
+        <div className="etat" style={{ paddingBottom: 20 }}>Rien en préparation.</div>
+      ) : (
+        <div className="kts">
+          {enPreparation.map((commande) => (
+            <Bon
+              key={commande.id}
+              commande={commande}
+              onImprimer={() => setBon(commande)}
+              onTermine={() => marquerTermine(commande)}
+              onAnnuler={() => annuler(commande)}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className="cuis-separateur" />
+
+      <div className="cuis-sec">
+        <span className="cuis-point pret" />
+        Terminés — prêts à servir
+        <span className="cuis-compte">{termines.length}</span>
+      </div>
+      {termines.length === 0 ? (
+        <div className="etat">Aucun repas terminé pour l'instant.</div>
+      ) : (
+        <div className="kts">
+          {termines.map((commande) => (
+            <Bon key={commande.id} commande={commande} onImprimer={() => setBon(commande)} />
+          ))}
+        </div>
+      )}
+
+      <div className="cuis-historique">
+        <div className="cuis-sec">
+          <span className="cuis-point historique" />
+          Historique des repas clôturés aujourd'hui
+          <span className="cuis-compte">{historique.length}</span>
+        </div>
+        {historique.length === 0 ? (
+          <div className="etat">Aucun repas clôturé aujourd'hui.</div>
+        ) : (
+          <div className="historique-liste">
+            {historique.map((commande) => (
+              <div className="hist-item" key={`hist-${commande.id}`}>
+                <div className="hist-entete">
+                  <span>{commande.table_numero ? `Table ${commande.table_numero}` : commande.client_nom || 'Sans table'}</span>
+                  <span>{new Date(commande.cloturee_le).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <div className="hist-corps">
+                  <span>{commande.lignes.filter((ligne) => ligne.rayon === 'cuisine').reduce((somme, ligne) => somme + ligne.quantite, 0)} plats</span>
+                  <span>{commande.total ? `${commande.total.toLocaleString('fr-FR')} F` : '—'}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {bon && <BonCuisine commande={bon} onFerme={() => setBon(null)} />}
     </>
@@ -160,8 +187,6 @@ function Bon({ commande, onImprimer, onTermine, onAnnuler }) {
           {termine ? 'Terminé' : 'En préparation'}
         </div>
 
-        {/* Un repas terminé ne repasse pas en cours : le bouton n'existe plus.
-            On peut seulement annuler un repas encore en préparation. */}
         {!termine && (
           <div className="kt-actions">
             <button className="btn btn-g" onClick={onImprimer}>

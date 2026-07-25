@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -69,6 +70,14 @@ class CommandeViewSet(viewsets.ModelViewSet):
                     Commande.STATUT_LIVREE,
                 ],
             )
+        if self.request.query_params.get("historique_cuisine") == "1":
+            queryset = queryset.filter(
+                statut=Commande.STATUT_PAYEE,
+                lignes__produit__categorie__rayon=Categorie.RAYON_CUISINE,
+            ).distinct()
+            if self.request.query_params.get("aujourdhui") == "1":
+                queryset = queryset.filter(cloturee_le__date=timezone.localdate())
+            return queryset.order_by("-cloturee_le")
         return queryset.order_by("ouverte_le")
 
     @action(detail=True, methods=["post"])

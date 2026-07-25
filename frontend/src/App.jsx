@@ -8,6 +8,7 @@ import Cloture from './pages/Cloture'
 import Connexion from './pages/Connexion'
 import Cuisine from './pages/Cuisine'
 import Depenses from './pages/Depenses'
+import Historique from './pages/Historique'
 import Livraison from './pages/Livraison'
 import Rapports from './pages/Rapports'
 import Tables from './pages/Tables'
@@ -25,6 +26,7 @@ const MENU = [
   { groupe: 'Gestion' },
   { to: '/catalogue', libelle: 'Catalogue' },
   { to: '/depenses', libelle: 'Dépenses' },
+  { to: '/historique', libelle: 'Historique' },
   { to: '/rapports', libelle: 'Rapports' },
   { to: '/cloture', libelle: 'Clôture du jour' },
 ]
@@ -86,6 +88,7 @@ export default function App() {
           <Route path="/cuisine" element={<Cuisine />} />
           <Route path="/livraison" element={<Livraison />} />
           <Route path="/depenses" element={<Depenses />} />
+          <Route path="/historique" element={<Historique />} />
           <Route path="/rapports" element={<Rapports />} />
           <Route path="/cloture" element={<Cloture />} />
           <Route path="*" element={<Navigate to="/" replace />} />

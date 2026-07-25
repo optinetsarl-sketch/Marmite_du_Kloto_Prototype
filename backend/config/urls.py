@@ -39,6 +39,7 @@ urlpatterns = [
     path("api/rapports/revenus/", rapports.rapport_revenus),
     path("api/rapports/produits/", rapports.rapport_produits),
     path("api/rapports/cloture/", rapports.rapport_cloture),
+    path("api/rapports/historique/", rapports.historique),
 ]
 
 if settings.DEBUG:

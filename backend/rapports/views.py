@@ -4,7 +4,7 @@
 
 import datetime
 
-from django.db.models import Count, F, Sum
+from django.db.models import Count, F, Q, Sum
 from django.utils import timezone
 from django.utils.formats import date_format
 from rest_framework.decorators import api_view
@@ -289,3 +289,83 @@ def rapport_cloture(request):
 def rapport_produits(request):
     debut, fin, libelle = _periode(request)
     return Response({"periode": libelle, "lignes": top_ventes(debut, fin, limite=20)})
+
+
+@api_view(["GET"])
+def historique(request):
+    """Regroupe les opérations récentes de caisse, stock et commandes."""
+    date_param = request.query_params.get("date")
+    if date_param:
+        try:
+            date = datetime.date.fromisoformat(date_param)
+        except ValueError:
+            date = timezone.localdate()
+    else:
+        date = timezone.localdate()
+
+    commandes = Commande.objects.filter(
+        Q(ouverte_le__date=date) | Q(cloturee_le__date=date)
+    ).select_related("table", "livreur").order_by("-ouverte_le")[:100]
+    depenses = Depense.objects.filter(cree_le__date=date).order_by("-cree_le")[:100]
+    mouvements = MouvementStock.objects.filter(cree_le__date=date).select_related(
+        "produit", "fournisseur"
+    ).order_by("-cree_le")[:100]
+
+    def commande_data(commande):
+        return {
+            "id": commande.pk,
+            "type": "commande",
+            "timestamp": commande.cloturee_le or commande.ouverte_le,
+            "type_libelle": commande.get_type_display(),
+            "statut": commande.statut,
+            "statut_libelle": dict(Commande.STATUTS).get(commande.statut, commande.statut),
+            "table_numero": commande.table.numero if commande.table else None,
+            "client_nom": commande.client_nom,
+            "livreur_nom": commande.livreur.nom if commande.livreur else None,
+            "total": commande.total,
+            "origine": commande.origine,
+            "note": commande.note,
+        }
+
+    def depense_data(depense):
+        return {
+            "id": depense.pk,
+            "type": "depense",
+            "timestamp": depense.cree_le,
+            "categorie": depense.categorie,
+            "categorie_libelle": depense.get_categorie_display(),
+            "mode": depense.mode,
+            "montant": depense.montant,
+            "description": depense.description,
+        }
+
+    def mouvement_data(mouvement):
+        return {
+            "id": mouvement.pk,
+            "type": "mouvement_stock",
+            "timestamp": mouvement.cree_le,
+            "produit": mouvement.produit.nom,
+            "motif": mouvement.motif,
+            "motif_libelle": mouvement.get_motif_display(),
+            "quantite": mouvement.quantite,
+            "fournisseur_nom": mouvement.fournisseur.nom if mouvement.fournisseur else None,
+            "commentaire": mouvement.commentaire,
+        }
+
+    evenements = [
+        *map(commande_data, commandes),
+        *map(depense_data, depenses),
+        *map(mouvement_data, mouvements),
+    ]
+    evenements.sort(key=lambda item: item["timestamp"], reverse=True)
+
+    return Response(
+        {
+            "periode": date_format(date, "j F Y"),
+            "date": date.isoformat(),
+            "commandes": [commande_data(c) for c in commandes],
+            "depenses": [depense_data(d) for d in depenses],
+            "mouvements_stock": [mouvement_data(m) for m in mouvements],
+            "evenements": evenements,
+        }
+    )

@@ -15,6 +15,24 @@ export default function Accueil() {
 
   const { revenus } = bord
 
+  const revenuItems = [
+    { cle: 'bar', libelle: 'Bar', valeur: revenus.bar, couleur: 'var(--orange)' },
+    { cle: 'cuisine', libelle: 'Cuisine', valeur: revenus.cuisine, couleur: 'var(--vert)' },
+    { cle: 'livraison', libelle: 'Livraison', valeur: revenus.livraison, couleur: 'var(--jaune)' },
+  ]
+
+  const chiffreTotal = Math.max(revenus.total, 1)
+  const donutGradient = revenuItems
+    .map((item, index) => {
+      const debut = revenuItems
+        .slice(0, index)
+        .reduce((s, precedent) => s + precedent.valeur, 0)
+      const debutPct = Math.round((debut / chiffreTotal) * 10000) / 100
+      const finPct = Math.round(((debut + item.valeur) / chiffreTotal) * 10000) / 100
+      return `${item.couleur} ${debutPct}% ${finPct}%`
+    })
+    .join(', ')
+
   return (
     <>
       <div className="top">
@@ -24,6 +42,43 @@ export default function Accueil() {
         </div>
         <div className={`pill ${bord.caisse_ouverte ? 'vert' : ''}`}>
           {bord.caisse_ouverte ? 'Caisse ouverte' : 'Caisse fermée'}
+        </div>
+      </div>
+
+      <div className="dashboard-grid">
+        <div className="dashboard-card dash-summary">
+          <div className="dash-title">Chiffre d'affaires</div>
+          <div className="dash-total">{fcfa(revenus.total)}</div>
+          <div className="dash-note">Répartition par source et progrès du jour</div>
+          <div className="dash-pill-row">
+            {revenuItems.map((item) => (
+              <div className="dash-pill" key={item.cle} style={{ borderColor: item.couleur }}>
+                <span className="dash-dot" style={{ background: item.couleur }} />
+                <div>
+                  <div className="dash-pill-label">{item.libelle}</div>
+                  <div className="dash-pill-value">{fcfa(item.valeur)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="dashboard-card dash-graph">
+          <div className="dash-title">Répartition visuelle</div>
+          <div className="donut-chart" style={{ backgroundImage: `conic-gradient(${donutGradient})` }}>
+            <div className="donut-center">
+              <strong>{fcfa(revenus.total)}</strong>
+              <span>CA total</span>
+            </div>
+          </div>
+          <div className="chart-legend">
+            {revenuItems.map((item) => (
+              <div className="chart-legend-item" key={item.cle}>
+                <span className="legend-dot" style={{ background: item.couleur }} />
+                <span>{item.libelle}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

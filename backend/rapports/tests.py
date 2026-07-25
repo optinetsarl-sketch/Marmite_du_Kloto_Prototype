@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.core.management import call_command
+from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from catalogue.models import Produit
@@ -95,6 +96,28 @@ class RapportsTest(APITestCase):
             donnees = self.client.get(f"/api/rapports/revenus/?periode={periode}").data
             self.assertEqual(donnees["revenus"]["total"], 7000, periode)
             self.assertNotIn("None", donnees["periode"])
+
+    def test_historique_regroupe_les_operations_du_jour(self):
+        self._vendre("place", castel=2)
+        self.client.post(
+            "/api/mouvements-stock/reception/",
+            {"produit": self.castel.pk, "quantite": 20},
+            format="json",
+        )
+        self.client.post(
+            "/api/depenses/",
+            {"categorie": "transport", "montant": 5000, "description": "Taxi marché", "mode": "especes"},
+            format="json",
+        )
+
+        historique = self.client.get("/api/rapports/historique/").data
+        self.assertEqual(historique["date"], timezone.localdate().isoformat())
+        self.assertGreaterEqual(len(historique["commandes"]), 1)
+        self.assertGreaterEqual(len(historique["depenses"]), 1)
+        self.assertGreaterEqual(len(historique["mouvements_stock"]), 1)
+        self.assertTrue(any(item["type"] == "commande" for item in historique["evenements"]))
+        self.assertTrue(any(item["type"] == "depense" for item in historique["evenements"]))
+        self.assertTrue(any(item["type"] == "mouvement_stock" for item in historique["evenements"]))
 
     def test_commande_non_encaissee_hors_rapports(self):
         commande = Commande.objects.create()
