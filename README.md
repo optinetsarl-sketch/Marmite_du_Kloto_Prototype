@@ -6,14 +6,18 @@ Django REST côté API, React côté écrans, **un seul compte utilisateur** (le
 `Marmite_du_Kloto_Prototype.html` reste la maquette de référence : c'est elle qui fixe
 la grammaire visuelle, on la garde jusqu'à ce que tous les écrans soient portés.
 
-## Démarrer
+## Démarrer sur Windows (PowerShell)
 
-```bash
-# API — http://127.0.0.1:8000
+```powershell
+# 1. API Backend (depuis le dossier backend)
 cd backend
-../.venv/bin/python manage.py runserver
+..\.venv\Scripts\python.exe manage.py runserver 8050
 
-# Écrans — http://localhost:5173 (proxy /api vers le port 8000)
+# 2. Synchronisation MongoDB Atlas (optionnel en dev, depuis le dossier backend)
+cd backend
+..\.venv\Scripts\python.exe manage.py sync_atlas --loop
+
+# 3. Écrans Frontend (depuis le dossier frontend)
 cd frontend
 npm run dev
 ```

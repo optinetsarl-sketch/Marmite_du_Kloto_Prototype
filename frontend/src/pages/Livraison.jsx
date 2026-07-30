@@ -107,8 +107,11 @@ export default function Livraison() {
 
   async function avancer(commande, statut) {
     try {
-      await api.post(`/commandes/${commande.id}/changer_statut/`, { statut })
+      const res = await api.post(`/commandes/${commande.id}/changer_statut/`, { statut })
       await charger()
+      if (statut === 'en_route') {
+        setBon(res)
+      }
     } catch (echec) {
       setErreur(echec.message)
     }
@@ -127,19 +130,13 @@ export default function Livraison() {
         <div>
           <h1>Livraison</h1>
           <div className="sub">
-            Commandes WhatsApp saisies à la main · suivi des courses et de l'argent des livreurs
+            Suivi des courses et de l'argent des livreurs
           </div>
         </div>
         <div className="pill">{courses.length} course(s) en cours</div>
       </div>
 
       {erreur && <div className="erreur">{erreur}</div>}
-
-      <FormulaireWhatsApp
-        livreurs={livreurs}
-        onErreur={setErreur}
-        onCreee={(commande) => naviguer(`/ventes?commande=${commande.id}`)}
-      />
 
       <div className="card">
         <h3>Courses en cours</h3>
@@ -292,94 +289,4 @@ export default function Livraison() {
   )
 }
 
-function FormulaireWhatsApp({ livreurs, onCreee, onErreur }) {
-  const [ouvert, setOuvert] = useState(false)
-  const [nom, setNom] = useState('')
-  const [telephone, setTelephone] = useState('')
-  const [adresse, setAdresse] = useState('')
-  const [note, setNote] = useState('')
-  const [livreur, setLivreur] = useState('')
-  const [envoi, setEnvoi] = useState(false)
 
-  async function creer(evenement) {
-    evenement.preventDefault()
-    setEnvoi(true)
-    try {
-      const commande = await api.post('/commandes/', {
-        type: 'livraison',
-        origine: 'whatsapp',
-        client_nom: nom,
-        client_telephone: telephone,
-        client_adresse: adresse,
-        note,
-        livreur: Number(livreur) || null,
-      })
-      onCreee(commande)
-    } catch (echec) {
-      onErreur(echec.message)
-      setEnvoi(false)
-    }
-  }
-
-  if (!ouvert) {
-    return (
-      <div className="selbar">
-        <span style={{ fontSize: 13, color: 'var(--mut)' }}>
-          Une commande reçue par WhatsApp se saisit à la main, comme une commande au comptoir.
-        </span>
-        <button className="btn btn-o" style={{ marginLeft: 'auto' }} onClick={() => setOuvert(true)}>
-          + Commande WhatsApp
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <form className="card" onSubmit={creer}>
-      <h3>Nouvelle commande WhatsApp</h3>
-      <div className="grille-champs">
-        <div>
-          <label className="lbl">Nom du client</label>
-          <input className="champ" value={nom} onChange={(e) => setNom(e.target.value)} required autoFocus />
-        </div>
-        <div>
-          <label className="lbl">Téléphone</label>
-          <input className="champ" value={telephone} onChange={(e) => setTelephone(e.target.value)} />
-        </div>
-        <div>
-          <label className="lbl">Adresse de livraison</label>
-          <input className="champ" value={adresse} onChange={(e) => setAdresse(e.target.value)} required />
-        </div>
-        <div>
-          <label className="lbl">Livreur</label>
-          <select className="champ" value={livreur} onChange={(e) => setLivreur(e.target.value)} required>
-            <option value="">— choisir —</option>
-            {livreurs.map((entree) => (
-              <option key={entree.id} value={entree.id}>
-                {entree.nom}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-      <label className="lbl">Note pour la cuisine</label>
-      <input
-        className="champ"
-        placeholder="ex. peu pimenté"
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-      />
-      <div className="modal-act" style={{ marginTop: 16 }}>
-        <button type="button" className="btn btn-g" onClick={() => setOuvert(false)}>
-          Annuler
-        </button>
-        <button className="btn btn-o" disabled={envoi}>
-          {envoi ? 'Création…' : 'Saisir les plats'}
-        </button>
-      </div>
-      <div className="note">
-        La commande est créée, puis on ajoute les plats depuis l'écran de vente.
-      </div>
-    </form>
-  )
-}

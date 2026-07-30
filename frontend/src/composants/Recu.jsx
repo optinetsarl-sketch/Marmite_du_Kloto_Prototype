@@ -33,7 +33,9 @@ export default function Recu({ commande, typeDocument = 'Reçu', onFerme }) {
 
           <div className="rc-doc">{typeDocument}</div>
           <div className="rc-meta">
-            <span>{commande.numero_recu ? `N° ${commande.numero_recu}` : '—'}</span>
+            <span style={{ fontWeight: 700 }}>
+              N° Réf : {typeDocument === 'Addition' ? 'ADD' : 'REC'}-{commande.numero_recu || (commande.id ? String(commande.id).slice(-4) : '001')}
+            </span>
             <span>
               {horodatage.toLocaleDateString('fr-FR')} ·{' '}
               {horodatage.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}

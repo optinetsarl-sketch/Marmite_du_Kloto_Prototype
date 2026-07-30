@@ -1,5 +1,6 @@
 from django.db.models import Count, F, Q, Sum
 from django.utils import timezone
+from utils.dates import date_range
 from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -10,6 +11,8 @@ from .models import Livreur
 
 
 class LivreurSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
+
     class Meta:
         model = Livreur
         fields = ["id", "nom", "telephone", "actif"]
@@ -88,7 +91,7 @@ class LivreurViewSet(viewsets.ModelViewSet):
                 commande__type=Commande.TYPE_LIVRAISON,
                 commande__statut=Commande.STATUT_PAYEE,
                 commande__livreur__isnull=False,
-                commande__cloturee_le__date=jour,
+                commande__cloturee_le__range=date_range(jour),
             )
             .values(livreur_id=F("commande__livreur_id"), nom=F("commande__livreur__nom"))
             .annotate(courses=Count("commande", distinct=True), montant=Sum("montant"))
@@ -115,7 +118,7 @@ class LivreurViewSet(viewsets.ModelViewSet):
                 type=Commande.TYPE_LIVRAISON,
                 statut__in=[Commande.STATUT_LIVREE, Commande.STATUT_PAYEE],
             )
-            .filter(Q(cloturee_le__date=jour) | Q(cloturee_le__isnull=True))
+            .filter(Q(cloturee_le__range=date_range(jour)) | Q(cloturee_le__isnull=True))
             .prefetch_related("lignes__produit__categorie")
             .order_by("ouverte_le")
         )

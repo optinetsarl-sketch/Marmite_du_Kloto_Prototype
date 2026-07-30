@@ -25,25 +25,42 @@ class SessionCaisse(models.Model):
 
     @classmethod
     def courante(cls):
-        return cls.objects.filter(fermee_le__isnull=True).first()
+        session = cls.objects.filter(fermee_le__isnull=True).first()
+        if session is None:
+            session = cls.objects.create(fond_initial=0)
+        return session
 
     @property
     def recettes_especes(self):
-        from ventes.models import Paiement
+        from ventes.models import Paiement, Commande
+        from utils.dates import date_range
 
-        return (
+        dt_start, dt_end = date_range(self.ouverte_le.date())
+        p_especes = (
             Paiement.objects.filter(
                 mode=Paiement.MODE_ESPECES,
-                cree_le__gte=self.ouverte_le,
-                **({"cree_le__lte": self.fermee_le} if self.fermee_le else {}),
+                cree_le__range=(dt_start, dt_end)
             ).aggregate(t=Sum("montant"))["t"]
             or 0
         )
+        if p_especes > 0:
+            return p_especes
+
+        cmds = Commande.objects.exclude(statut=Commande.STATUT_ANNULEE).filter(
+            ouverte_le__range=(dt_start, dt_end)
+        )
+        return sum(c.total for c in cmds)
 
     @property
     def depenses_especes(self):
+        from utils.dates import date_range
+        dt_start, dt_end = date_range(self.ouverte_le.date())
         return (
-            self.depenses.filter(mode=Depense.MODE_ESPECES).aggregate(t=Sum("montant"))["t"] or 0
+            Depense.objects.filter(
+                mode=Depense.MODE_ESPECES,
+                cree_le__range=(dt_start, dt_end)
+            ).aggregate(t=Sum("montant"))["t"]
+            or 0
         )
 
     @property

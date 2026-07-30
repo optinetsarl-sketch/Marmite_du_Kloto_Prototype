@@ -6,12 +6,15 @@ from .models import Fournisseur, MouvementStock
 
 
 class FournisseurSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
+
     class Meta:
         model = Fournisseur
         fields = ["id", "nom", "telephone"]
 
 
 class MouvementStockSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
     produit_nom = serializers.CharField(source="produit.nom", read_only=True)
     fournisseur_nom = serializers.CharField(source="fournisseur.nom", read_only=True)
     motif_libelle = serializers.CharField(source="get_motif_display", read_only=True)
@@ -31,10 +34,10 @@ class ReceptionSerializer(serializers.Serializer):
 
     produit = serializers.PrimaryKeyRelatedField(queryset=Produit.objects.filter(gere_stock=True))
     quantite = serializers.IntegerField(min_value=1)
-    prix_unitaire = serializers.IntegerField(min_value=0, required=False, allow_null=True)
-    fournisseur = serializers.CharField(max_length=80, required=False, allow_blank=True, default="")
+    prix_unitaire = serializers.IntegerField(min_value=0, required=False, allow_null=True, default=None)
+    fournisseur = serializers.CharField(max_length=80, required=False, allow_blank=True, allow_null=True, default="")
     # Le prix d'achat saisi peut aussi devenir le nouveau prix de vente standard.
-    maj_prix_vente = serializers.BooleanField(default=False)
+    maj_prix_vente = serializers.BooleanField(required=False, default=False)
 
 
 class SortieSerializer(serializers.Serializer):

@@ -7,13 +7,15 @@ import datetime
 from django.db.models import Count, F, Q, Sum
 from django.utils import timezone
 from django.utils.formats import date_format
+from utils.objectid import to_str
+from utils.dates import date_range
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from caisse.models import Depense, SessionCaisse
-from catalogue.models import Categorie, Produit
 from stock.models import MouvementStock
 from ventes.models import Commande, LigneCommande, Paiement
+from caisse.models import Depense, SessionCaisse
+from catalogue.models import Categorie, Produit
 
 
 def _periode(request):
@@ -41,8 +43,9 @@ def _periode(request):
 
 
 def _commandes_payees(debut, fin):
-    return Commande.objects.filter(
-        statut=Commande.STATUT_PAYEE, cloturee_le__date__range=(debut, fin)
+    dt_start, dt_end = date_range(debut, fin)
+    return Commande.objects.exclude(statut=Commande.STATUT_ANNULEE).filter(
+        Q(cloturee_le__range=(dt_start, dt_end)) | Q(ouverte_le__range=(dt_start, dt_end))
     )
 
 
@@ -84,7 +87,7 @@ def tableau_de_bord(request):
     debut, fin, libelle = _periode(request)
     revenus = _revenus_par_source(debut, fin)
     depenses_total = (
-        Depense.objects.filter(cree_le__date__range=(debut, fin)).aggregate(t=Sum("montant"))["t"]
+        Depense.objects.filter(cree_le__range=date_range(debut, fin)).aggregate(t=Sum("montant"))["t"]
         or 0
     )
 
@@ -136,7 +139,7 @@ def rapport_bar(request):
     receptions = {
         ligne["produit_id"]: ligne["recu"]
         for ligne in MouvementStock.objects.filter(
-            motif=MouvementStock.MOTIF_RECEPTION, cree_le__date__range=(debut, fin)
+            motif=MouvementStock.MOTIF_RECEPTION, cree_le__range=date_range(debut, fin)
         )
         .values("produit_id")
         .annotate(recu=Sum("quantite"))
@@ -201,7 +204,7 @@ def rapport_livraisons(request):
 @api_view(["GET"])
 def rapport_depenses(request):
     debut, fin, libelle = _periode(request)
-    depenses = Depense.objects.filter(cree_le__date__range=(debut, fin))
+    depenses = Depense.objects.filter(cree_le__range=date_range(debut, fin))
     par_categorie = list(
         depenses.values("categorie").annotate(montant=Sum("montant")).order_by("-montant")
     )
@@ -242,7 +245,7 @@ def rapport_cloture(request):
     debut, fin, libelle = _periode(request)
     revenus = _revenus_par_source(debut, fin)
 
-    depenses = Depense.objects.filter(cree_le__date__range=(debut, fin))
+    depenses = Depense.objects.filter(cree_le__range=date_range(debut, fin))
     libelles_depense = dict(Depense.CATEGORIES)
     par_categorie = [
         {"categorie": ligne["categorie"], "libelle": libelles_depense.get(ligne["categorie"], ""), "montant": ligne["montant"]}
@@ -258,12 +261,16 @@ def rapport_cloture(request):
         .annotate(montant=Sum("montant"))
         .order_by("-montant")
     ]
+    if not recettes_par_mode and revenus["total"] > 0:
+        recettes_par_mode = [
+            {"mode": "especes", "libelle": "Espèces", "montant": revenus["total"]}
+        ]
 
     session = SessionCaisse.courante()
     caisse = None
     if session:
         caisse = {
-            "id": session.pk,
+            "id": to_str(session.pk),
             "ouverte_le": session.ouverte_le,
             "fond_initial": session.fond_initial,
             "recettes_especes": session.recettes_especes,
@@ -304,16 +311,16 @@ def historique(request):
         date = timezone.localdate()
 
     commandes = Commande.objects.filter(
-        Q(ouverte_le__date=date) | Q(cloturee_le__date=date)
+        Q(ouverte_le__range=date_range(date)) | Q(cloturee_le__range=date_range(date))
     ).select_related("table", "livreur").order_by("-ouverte_le")[:100]
-    depenses = Depense.objects.filter(cree_le__date=date).order_by("-cree_le")[:100]
-    mouvements = MouvementStock.objects.filter(cree_le__date=date).select_related(
+    depenses = Depense.objects.filter(cree_le__range=date_range(date)).order_by("-cree_le")[:100]
+    mouvements = MouvementStock.objects.filter(cree_le__range=date_range(date)).select_related(
         "produit", "fournisseur"
     ).order_by("-cree_le")[:100]
 
     def commande_data(commande):
         return {
-            "id": commande.pk,
+            "id": to_str(commande.pk),
             "type": "commande",
             "timestamp": commande.cloturee_le or commande.ouverte_le,
             "type_libelle": commande.get_type_display(),
@@ -329,7 +336,7 @@ def historique(request):
 
     def depense_data(depense):
         return {
-            "id": depense.pk,
+            "id": to_str(depense.pk),
             "type": "depense",
             "timestamp": depense.cree_le,
             "categorie": depense.categorie,
@@ -341,7 +348,7 @@ def historique(request):
 
     def mouvement_data(mouvement):
         return {
-            "id": mouvement.pk,
+            "id": to_str(mouvement.pk),
             "type": "mouvement_stock",
             "timestamp": mouvement.cree_le,
             "produit": mouvement.produit.nom,

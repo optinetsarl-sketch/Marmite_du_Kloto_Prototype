@@ -6,6 +6,7 @@ from .models import Commande, LigneCommande, Paiement, TableResto
 
 
 class LigneCommandeSerializer(serializers.ModelSerializer):
+    id = serializers.SerializerMethodField()
     montant = serializers.IntegerField(read_only=True)
     # Le poste cuisine trie ses lignes là-dessus : un bon de cuisine ne porte
     # que la nourriture, jamais les boissons.
@@ -16,8 +17,13 @@ class LigneCommandeSerializer(serializers.ModelSerializer):
         fields = ["id", "produit", "libelle", "quantite", "prix_unitaire", "note", "montant", "rayon"]
         read_only_fields = ["libelle"]
 
+    def get_id(self, obj):
+        from utils.objectid import to_str
+        return to_str(obj.pk)
+
 
 class PaiementSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
     monnaie_rendue = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -26,6 +32,7 @@ class PaiementSerializer(serializers.ModelSerializer):
 
 
 class CommandeSerializer(serializers.ModelSerializer):
+    id = serializers.SerializerMethodField()
     lignes = LigneCommandeSerializer(many=True, read_only=True)
     paiements = PaiementSerializer(many=True, read_only=True)
     total = serializers.IntegerField(read_only=True)
@@ -45,8 +52,13 @@ class CommandeSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["numero_recu", "cloturee_le"]
 
+    def get_id(self, obj):
+        from utils.objectid import to_str
+        return to_str(obj.pk)
+
 
 class TableRestoSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
     etat = serializers.CharField(read_only=True)
     commande_id = serializers.SerializerMethodField()
     total = serializers.SerializerMethodField()
@@ -58,7 +70,8 @@ class TableRestoSerializer(serializers.ModelSerializer):
 
     def get_commande_id(self, table):
         commande = table.commande_ouverte
-        return commande.pk if commande else None
+        from utils.objectid import to_str
+        return to_str(commande.pk) if commande else None
 
     def get_total(self, table):
         commande = table.commande_ouverte
@@ -67,7 +80,6 @@ class TableRestoSerializer(serializers.ModelSerializer):
     def get_couverts(self, table):
         commande = table.commande_ouverte
         return commande.couverts if commande else 0
-
 
 class AjoutLigneSerializer(serializers.Serializer):
     """Entrée de POST /commandes/{id}/lignes/."""

@@ -1,6 +1,7 @@
 """Configuration Django — La Marmite du Kloto."""
 
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -13,9 +14,9 @@ DEBUG = os.getenv("DEBUG", "1") == "1"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
+    "config.mongo_apps.MongoAdminConfig",
+    "config.mongo_apps.MongoAuthConfig",
+    "config.mongo_apps.MongoContentTypesConfig",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
@@ -32,6 +33,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -43,10 +45,12 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "config.urls"
 
+FRONTEND_DIST = BASE_DIR / "frontend_dist"
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [FRONTEND_DIST] if FRONTEND_DIST.exists() else [],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -60,24 +64,50 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-# SQLite suffit largement pour un poste unique. Basculer sur PostgreSQL revient
-# à renseigner DATABASE_URL_* dans .env, sans toucher au code.
-if os.getenv("DB_ENGINE") == "postgres":
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("DB_NAME", "marmite"),
-            "USER": os.getenv("DB_USER", "marmite"),
-            "PASSWORD": os.getenv("DB_PASSWORD", ""),
-            "HOST": os.getenv("DB_HOST", "localhost"),
-            "PORT": os.getenv("DB_PORT", "5432"),
-        }
-    }
-else:
+# MongoDB via django-mongodb-backend (connecteur officiel MongoDB).
+# Use MongoDB in production, but switch to an in‑memory SQLite database when running the test suite.
+if "test" in sys.argv:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+            "NAME": ":memory:",
+        }
+    }
+    MIGRATION_MODULES = {
+        "catalogue": None,
+        "ventes": None,
+        "stock": None,
+        "caisse": None,
+        "livraison": None,
+        "rapports": None,
+        "admin": None,
+        "auth": None,
+        "contenttypes": None,
+        "sessions": None,
+        "authtoken": None,
+    }
+else:
+    def get_mongo_connection_url():
+        local_url = os.getenv("MONGO_URL", "mongodb://localhost:27017")
+        atlas_url = os.getenv("MONGO_URL_ATLAS")
+        try:
+            from pymongo import MongoClient
+            client = MongoClient(local_url, serverSelectionTimeoutMS=1200)
+            client.admin.command("ping")
+            print(f"[OK] [MongoDB] Connexion LOCALE active : {local_url}")
+            return local_url
+        except Exception as e:
+            if atlas_url and "srv://" in atlas_url and "<" not in atlas_url:
+                print(f"[WARN] [MongoDB] Local indisponible ({e}). Basculement automatique vers ATLAS !")
+                return atlas_url
+            print(f"[INFO] [MongoDB] Utilisation par defaut (local) : {local_url}")
+            return local_url
+
+    DATABASES = {
+        "default": {
+            "ENGINE": "django_mongodb_backend",
+            "HOST": get_mongo_connection_url(),
+            "NAME": os.getenv("DB_NAME", "marmite_kloto_db"),
         }
     }
 
@@ -92,10 +122,23 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [FRONTEND_DIST] if FRONTEND_DIST.exists() else []
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+WHITENOISE_INDEX_FILE = True
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+if "test" in sys.argv:
+    DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+else:
+    DEFAULT_AUTO_FIELD = "django_mongodb_backend.fields.ObjectIdAutoField"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -110,6 +153,11 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 100,
     "EXCEPTION_HANDLER": "config.exceptions.gestionnaire",
+    "DEFAULT_RENDERER_CLASSES": [
+        "config.renderers.MongoJSONRenderer",
+        "rest_framework.renderers.BrowsableAPIRenderer",
+    ],
+    "COERCE_DECIMAL_TO_STRING": False,
 }
 
 CORS_ALLOWED_ORIGINS = os.getenv(

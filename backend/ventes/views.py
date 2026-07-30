@@ -1,4 +1,5 @@
 from django.utils import timezone
+from utils.dates import date_range
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -76,7 +77,7 @@ class CommandeViewSet(viewsets.ModelViewSet):
                 lignes__produit__categorie__rayon=Categorie.RAYON_CUISINE,
             ).distinct()
             if self.request.query_params.get("aujourdhui") == "1":
-                queryset = queryset.filter(cloturee_le__date=timezone.localdate())
+                queryset = queryset.filter(cloturee_le__range=date_range(timezone.localdate()))
             return queryset.order_by("-cloturee_le")
         return queryset.order_by("ouverte_le")
 

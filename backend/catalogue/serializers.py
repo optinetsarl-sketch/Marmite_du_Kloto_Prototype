@@ -4,6 +4,7 @@ from .models import Categorie, Famille, Produit
 
 
 class FamilleSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
     nb_categories = serializers.IntegerField(source="categories.count", read_only=True)
 
     class Meta:
@@ -12,6 +13,7 @@ class FamilleSerializer(serializers.ModelSerializer):
 
 
 class CategorieSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
     famille_nom = serializers.CharField(source="famille.nom", read_only=True)
 
     class Meta:
@@ -20,6 +22,7 @@ class CategorieSerializer(serializers.ModelSerializer):
 
 
 class ProduitSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
     categorie_nom = serializers.CharField(source="categorie.nom", read_only=True)
     rayon = serializers.CharField(source="categorie.rayon", read_only=True)
     stock = serializers.SerializerMethodField()

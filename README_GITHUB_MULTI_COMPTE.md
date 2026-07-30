@@ -78,3 +78,14 @@ git push -u origin main
 
 ## Note importante
 Si le dépôt appartient à une organisation ou à un autre compte, il faut aussi avoir les droits d’écriture sur ce dépôt.
+
+
+# Build frontend
+cd frontend
+npm run build
+# Build backend
+cd ../backend
+.\compile.bat
+# Génération package client
+cd ..
+.\deploy-complete.ps1

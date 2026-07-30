@@ -284,7 +284,9 @@ table.grid tbody tr:hover td{background:#FCFAF6;}
     <div class="nav" data-s="cuisine"><i class="ti ti-tools-kitchen-2"></i><span>Cuisine</span></div>
     <div class="nav" data-s="livraison"><i class="ti ti-moped"></i><span>Livraison</span></div>
     <div class="navgrp">Gestion</div>
+    <div class="nav" data-s="catalogue"><i class="ti ti-apps"></i><span>Catalogue</span></div>
     <div class="nav" data-s="depenses"><i class="ti ti-wallet"></i><span>Dépenses</span></div>
+    <div class="nav" data-s="historique"><i class="ti ti-history"></i><span>Historique</span></div>
     <div class="nav" data-s="rapports"><i class="ti ti-chart-bar"></i><span>Rapports</span></div>
     <div class="nav" data-s="cloture"><i class="ti ti-lock"></i><span>Clôture du jour</span></div>
     <div class="foot"><div class="av">AW</div><span>Awa · Caissière</span></div>
@@ -335,9 +337,9 @@ table.grid tbody tr:hover td{background:#FCFAF6;}
 
     <!-- VENTES -->
     <section class="scr" id="ventes">
-      <div class="top"><div><h1>Ventes / Caisse</h1><div class="sub" id="v-ctx">Nouvelle commande</div></div><div class="pill" id="v-pill">Sur place · Table 3</div></div>
+      <div class="top"><div><h1>Ventes / Caisse</h1><div class="sub" id="v-ctx">Nouvelle commande — non attribuée</div></div><div class="pill" id="v-pill">Sur place · Table 3</div></div>
       <div class="selbar">
-        <div class="seg"><button class="segb on" id="tp-place" onclick="setType('place')">Sur place</button><button class="segb" id="tp-liv" onclick="setType('liv')">Livraison</button></div>
+        <div class="seg"><button class="segb on" id="tp-place" onclick="setType('place')">Sur place</button><button class="segb" id="tp-emp" onclick="setType('emp')">À emporter</button><button class="segb" id="tp-liv" onclick="setType('liv')">Livraison</button></div>
         <div id="sel-place"><label>Table</label><select id="tblSel" onchange="pickTable()"></select></div>
         <div id="sel-liv" style="display:none"><label>Livreur</label><select id="livSel" onchange="pickLiv()"></select> <input id="cliInput" placeholder="Nom du client" oninput="pickLiv()"></div>
       </div>
@@ -358,12 +360,13 @@ table.grid tbody tr:hover td{background:#FCFAF6;}
           <div class="pays">
             <div class="pay on"><i class="ti ti-cash"></i>Espèces</div><div class="pay"><i class="ti ti-device-mobile"></i>TMoney</div><div class="pay"><i class="ti ti-device-mobile"></i>Flooz</div><div class="pay"><i class="ti ti-arrows-shuffle"></i>Mixte</div>
           </div>
-          <button class="btn btn-o" style="width:100%" onclick="valider()">Encaisser &amp; imprimer le reçu</button>
+          <button class="btn btn-o" style="width:100%" onclick="valider()">Valider la commande</button>
+          <button class="btn btn-g" style="width:100%;margin-top:8px;border-color:var(--orange);color:var(--orange);font-weight:600" onclick="openBonCuisine()">🔥 Imprimer le bon de cuisine</button>
           <div style="display:flex;gap:8px;margin-top:8px">
-            <button class="btn btn-g" style="flex:1" onclick="addProductsFromVente()">Ajouter des produits</button>
-            <button class="btn btn-g" style="flex:1" onclick="printAndClearVente()">Imprimer la facture &amp; débarrasser</button>
+            <button class="btn btn-g" style="flex:1" onclick="ouvrirPaiement()">Encaisser</button>
+            <button class="btn btn-g" style="flex:1" onclick="printAndClearVente()">Addition</button>
           </div>
-          <div class="note">À la validation : vente enregistrée, stock du bar déstocké, caisse créditée.</div>
+          <div class="note">Modifiez librement le panier tant que ce n'est pas payé. « Valider » attribue la commande à la table ; « Encaisser » la solde et déstocke le bar.</div>
         </div>
       </div>
     </section>
@@ -406,33 +409,73 @@ table.grid tbody tr:hover td{background:#FCFAF6;}
 
     <!-- CUISINE -->
     <section class="scr" id="cuisine">
-      <div class="top"><div><h1>Cuisine — Bons de commande</h1><div class="sub">Prix par plat et nombre total de plats à faire</div></div><div class="pill">3 en préparation</div></div>
+      <div class="top" style="gap:10px;flex-wrap:wrap">
+        <div><h1>Cuisine — Bons de commande</h1><div class="sub">Les bons ne portent pas de prix : ils servent à préparer, pas à facturer.</div></div>
+        <div class="pill">3 en préparation</div>
+        <div class="pill vert">1 prêt à servir</div>
+      </div>
       <div class="kts">
-        <div class="kt"><div class="kh"><span>Table 3</span><span><i class="ti ti-clock"></i>20:14</span></div><div class="kt-t">Sur place</div><div class="kl"><span>2 × Poulet braisé</span><span>10 000</span></div><div class="kl"><span>1 × Riz au gras</span><span>2 000</span></div><div class="kl"><span>1 × Alloco</span><span>1 500</span></div><div class="ktot"><span>Plats à faire</span><span>4</span></div><div class="st st-prep"><i class="ti ti-flame"></i>En préparation</div></div>
-        <div class="kt"><div class="kh"><span>Livraison · WhatsApp</span><span><i class="ti ti-clock"></i>13:05</span></div><div class="kt-t">Mme Adjo</div><div class="kl"><span>2 × Riz sauce arachide</span><span>6 000</span></div><div class="kl"><span>1 × Poisson braisé</span><span>5 000</span></div><div class="note" style="margin:6px 0 0"><i class="ti ti-note"></i>Note : peu pimenté</div><div class="ktot"><span>Plats à faire</span><span>3</span></div><div class="st st-pret"><i class="ti ti-check"></i>Prêt</div></div>
-        <div class="kt"><div class="kh"><span>Table 8</span><span><i class="ti ti-clock"></i>20:02</span></div><div class="kt-t">Sur place</div><div class="kl"><span>3 × Fufu</span><span>4 500</span></div><div class="kl"><span>2 × Poulet braisé</span><span>10 000</span></div><div class="ktot"><span>Plats à faire</span><span>5</span></div><div class="st st-prep"><i class="ti ti-flame"></i>En préparation</div></div>
+        <div class="kt"><div class="kh"><span>Table 3</span><span><i class="ti ti-clock"></i>20:14</span></div><div class="kt-t">Sur place</div><div class="kl"><span>2 × Poulet braisé</span></div><div class="kl"><span>1 × Riz au gras</span></div><div class="kl"><span>1 × Alloco</span></div><div class="ktot"><span>Plats à faire</span><span>4</span></div><div class="st st-prep"><i class="ti ti-flame"></i>En préparation</div></div>
+        <div class="kt"><div class="kh"><span>Livraison · WhatsApp</span><span><i class="ti ti-clock"></i>13:05</span></div><div class="kt-t">Mme Adjo</div><div class="kl"><span>2 × Riz sauce arachide</span></div><div class="kl"><span>1 × Poisson braisé</span></div><div class="note" style="margin:6px 0 0"><i class="ti ti-note"></i>Note : peu pimenté</div><div class="ktot"><span>Plats à faire</span><span>3</span></div><div class="st st-pret"><i class="ti ti-check"></i>Terminé</div></div>
+        <div class="kt"><div class="kh"><span>Table 8</span><span><i class="ti ti-clock"></i>20:02</span></div><div class="kt-t">Sur place</div><div class="kl"><span>3 × Fufu</span></div><div class="kl"><span>2 × Poulet braisé</span></div><div class="ktot"><span>Plats à faire</span><span>5</span></div><div class="st st-prep"><i class="ti ti-flame"></i>En préparation</div></div>
       </div>
     </section>
 
     <!-- LIVRAISON -->
     <section class="scr" id="livraison">
-      <div class="top"><div><h1>Livraison</h1><div class="sub">Commandes WhatsApp saisies à la main · suivi des livreurs</div></div></div>
+      <div class="top"><div><h1>Livraison</h1><div class="sub">Commandes WhatsApp saisies à la main · suivi des courses et de l'argent des livreurs</div></div><div class="pill">3 course(s) en cours</div></div>
+      <div class="selbar">
+        <span style="font-size:13px;color:var(--mut);">Une commande reçue par WhatsApp se saisit à la main, comme une commande au comptoir.</span>
+        <button class="btn btn-o" style="margin-left:auto">+ Commande WhatsApp</button>
+      </div>
       <div class="card">
-        <h3><i class="ti ti-moped"></i>Courses en cours</h3>
-        <table class="grid"><thead><tr><th>Client</th><th>Livreur</th><th style="text-align:right">À encaisser</th><th style="text-align:right">Statut</th></tr></thead><tbody>
-          <tr><td>Mme Adjo · Agoè</td><td>Kofi</td><td style="text-align:right">15 000 F</td><td style="text-align:right"><span class="badge b-bas">En route</span></td></tr>
-          <tr><td>M. Yao · Kégué</td><td>Kossi</td><td style="text-align:right">9 500 F</td><td style="text-align:right"><span class="badge b-ok">Livré</span></td></tr>
-          <tr><td>Ama · Adidogomé</td><td>Kofi</td><td style="text-align:right">12 000 F</td><td style="text-align:right"><span class="badge b-bas">En préparation</span></td></tr>
+        <h3>Courses en cours</h3>
+        <table class="grid"><thead><tr><th>Client</th><th>Livreur</th><th style="text-align:right">À encaisser</th><th style="text-align:center">Statut</th><th style="text-align:right">Action</th></tr></thead><tbody>
+          <tr><td><div style="font-weight:600">Mme Adjo</div><div style="font-size:12px;color:var(--mut)">Agoè, rond-point Liberté</div></td><td>Kofi</td><td style="text-align:right;font-weight:600">15 000 F</td><td style="text-align:center"><span class="badge b-bas">En route</span></td><td style="text-align:right"><button class="btn btn-g" style="font-size:11px;padding:6px 10px">Bon</button> <button class="btn btn-o" style="font-size:11px;padding:6px 10px">Marquer livrée</button></td></tr>
+          <tr><td><div style="font-weight:600">M. Yao</div><div style="font-size:12px;color:var(--mut)">Kégué, près du marché</div></td><td>Kossi</td><td style="text-align:right;font-weight:600">9 500 F</td><td style="text-align:center"><span class="badge b-ok">Livrée</span></td><td style="text-align:right"><button class="btn btn-o" style="font-size:11px;padding:6px 10px">Encaisser</button></td></tr>
+          <tr><td><div style="font-weight:600">Ama</div><div style="font-size:12px;color:var(--mut)">Adidogomé</div></td><td>Kofi</td><td style="text-align:right;font-weight:600">12 000 F</td><td style="text-align:center"><span class="badge b-bas">En préparation</span></td><td style="text-align:right"><select class="champ" style="min-width:120px;padding:6px 8px;font-size:12px"><option>Kofi</option><option>Kossi</option><option>Mensah</option></select> <button class="btn btn-o" style="font-size:11px;padding:6px 10px">Marquer prête</button></td></tr>
         </tbody></table>
       </div>
       <div class="card">
-        <h3><i class="ti ti-wallet"></i>Comptes des livreurs (fin de journée)</h3>
-        <table class="grid"><thead><tr><th>Livreur</th><th style="text-align:center">Livraisons</th><th style="text-align:right">À remettre</th></tr></thead><tbody>
-          <tr><td>Kofi</td><td style="text-align:center">5</td><td style="text-align:right;font-weight:600">45 000 F</td></tr>
-          <tr><td>Kossi</td><td style="text-align:center">3</td><td style="text-align:right;font-weight:600">28 500 F</td></tr>
-          <tr><td>Mensah</td><td style="text-align:center">2</td><td style="text-align:right;font-weight:600">17 000 F</td></tr>
+        <h3>Comptes des livreurs (fin de journée)</h3>
+        <table class="grid"><thead><tr><th>Livreur</th><th style="text-align:center">Courses du jour</th><th style="text-align:right">À remettre</th><th style="text-align:right">Déjà remis</th></tr></thead><tbody>
+          <tr><td style="font-weight:600"><button class="lien" style="background:none;border:none;cursor:pointer;color:var(--orange-dk);font-weight:600;font-family:inherit;font-size:inherit;text-decoration:underline">Kofi</button></td><td style="text-align:center">5</td><td style="text-align:right;font-weight:700;color:var(--orange-dk)">45 000 F</td><td style="text-align:right;color:var(--mut)">0 F</td></tr>
+          <tr><td style="font-weight:600"><button class="lien" style="background:none;border:none;cursor:pointer;color:var(--orange-dk);font-weight:600;font-family:inherit;font-size:inherit;text-decoration:underline">Kossi</button></td><td style="text-align:center">3</td><td style="text-align:right;font-weight:700;color:var(--orange-dk)">28 500 F</td><td style="text-align:right;color:var(--mut)">0 F</td></tr>
+          <tr><td style="font-weight:600"><button class="lien" style="background:none;border:none;cursor:pointer;color:var(--orange-dk);font-weight:600;font-family:inherit;font-size:inherit;text-decoration:underline">Mensah</button></td><td style="text-align:center">2</td><td style="text-align:right;font-weight:700;color:var(--orange-dk)">17 000 F</td><td style="text-align:right;color:var(--mut)">0 F</td></tr>
         </tbody></table>
-        <div class="note">Chaque vente livraison est reliée à son livreur. En fin de journée, chacun remet le montant exact encaissé.</div>
+        <div class="note">Touchez le nom d'un livreur pour voir le détail de ses courses, plat par plat. « À remettre » est l'argent qu'il a encore en poche : des courses livrées mais pas encore encaissées. L'encaissement les fait basculer en « déjà remis ».</div>
+      </div>
+      <div style="margin-top:10px"><button class="btn btn-o">+ Ajouter un livreur</button></div>
+    </section>
+
+    <!-- CATALOGUE -->
+    <section class="scr" id="catalogue">
+      <div class="top"><div><h1>Catalogue</h1><div class="sub">Gestion des catégories et produits — plats et boissons</div></div><button class="btn btn-o">+ Nouveau produit</button></div>
+      <div class="selbar">
+        <div class="seg"><button class="segb on">Plats (cuisine)</button><button class="segb">Boissons (bar)</button></div>
+      </div>
+      <div class="card">
+        <h3><i class="ti ti-tools-kitchen-2"></i>Plats</h3>
+        <table class="grid"><thead><tr><th>Produit</th><th>Catégorie</th><th style="text-align:right">Prix</th><th style="text-align:center">Actif</th></tr></thead><tbody>
+          <tr><td style="font-weight:600">Fufu</td><td>Cuisine</td><td style="text-align:right;color:var(--orange-dk)">Prix à saisir</td><td style="text-align:center"><span class="badge b-ok">Actif</span></td></tr>
+          <tr><td style="font-weight:600">Poulet braisé</td><td>Cuisine</td><td style="text-align:right;color:var(--orange-dk)">Prix à saisir</td><td style="text-align:center"><span class="badge b-ok">Actif</span></td></tr>
+          <tr><td style="font-weight:600">Alloco</td><td>Cuisine</td><td style="text-align:right;color:var(--orange-dk)">Prix à saisir</td><td style="text-align:center"><span class="badge b-ok">Actif</span></td></tr>
+          <tr><td style="font-weight:600">Riz au gras</td><td>Cuisine</td><td style="text-align:right;color:var(--orange-dk)">Prix à saisir</td><td style="text-align:center"><span class="badge b-ok">Actif</span></td></tr>
+          <tr><td style="font-weight:600">Poisson braisé</td><td>Cuisine</td><td style="text-align:right;color:var(--orange-dk)">Prix à saisir</td><td style="text-align:center"><span class="badge b-ok">Actif</span></td></tr>
+        </tbody></table>
+      </div>
+    </section>
+
+    <!-- HISTORIQUE -->
+    <section class="scr" id="historique">
+      <div class="top"><div><h1>Historique</h1><div class="sub">Commandes soldées (encaissées) — classées de la plus récente à la plus ancienne</div></div></div>
+      <div class="card">
+        <table class="grid"><thead><tr><th>N°</th><th>Table / Client</th><th>Heure</th><th style="text-align:center">Articles</th><th style="text-align:right">Total</th><th style="text-align:center">Paiement</th></tr></thead><tbody>
+          <tr><td style="font-weight:600">#475</td><td>Table 3</td><td style="color:var(--mut)">20:14</td><td style="text-align:center">6</td><td style="text-align:right;font-weight:600">12 900 F</td><td style="text-align:center"><span class="badge b-ok">Espèces</span></td></tr>
+          <tr><td style="font-weight:600">#474</td><td>Livraison · Mme Adjo</td><td style="color:var(--mut)">19:45</td><td style="text-align:center">3</td><td style="text-align:right;font-weight:600">11 000 F</td><td style="text-align:center"><span class="badge b-ok">TMoney</span></td></tr>
+          <tr><td style="font-weight:600">#473</td><td>À emporter</td><td style="color:var(--mut)">19:30</td><td style="text-align:center">2</td><td style="text-align:right;font-weight:600">5 000 F</td><td style="text-align:center"><span class="badge b-ok">Espèces</span></td></tr>
+          <tr><td style="font-weight:600">#472</td><td>Table 8</td><td style="color:var(--mut)">18:55</td><td style="text-align:center">9</td><td style="text-align:right;font-weight:600">25 100 F</td><td style="text-align:center"><span class="badge b-ok">Flooz</span></td></tr>
+        </tbody></table>
       </div>
     </section>
 

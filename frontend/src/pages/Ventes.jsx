@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { api, fcfa, liste } from '../api'
+import BonCuisine from '../composants/BonCuisine'
 import ModalePaiement from '../composants/ModalePaiement'
 import ModalePrix from '../composants/ModalePrix'
 import Recu from '../composants/Recu'
@@ -23,9 +24,12 @@ export default function Ventes() {
   const commandeReprise = parametres.get('commande')
 
   const [categorieActive, setCategorieActive] = useState(null)
+  const [recherche, setRecherche] = useState('')
   const [type, setType] = useState('place')
   const [tableId, setTableId] = useState(parametres.get('table') || '')
   const [livreurId, setLivreurId] = useState('')
+  const [nouveauLivreur, setNouveauLivreur] = useState('')
+  const [modeNouveauLivreur, setModeNouveauLivreur] = useState(false)
   const [client, setClient] = useState('')
 
   // commande = ce qui est persisté au serveur (null tant qu'on n'a pas validé).
@@ -37,6 +41,7 @@ export default function Ventes() {
   const [platEnAttente, setPlatEnAttente] = useState(null)
   const [paiementOuvert, setPaiementOuvert] = useState(false)
   const [documentOuvert, setDocumentOuvert] = useState(null)
+  const [bonCuisineOuvert, setBonCuisineOuvert] = useState(null)
 
   useEffect(() => {
     Promise.all([
@@ -114,15 +119,22 @@ export default function Ventes() {
       .catch((echec) => setErreur(echec.message))
   }, [commandeReprise, chargerPanier])
 
-  const produitsFiltres = useMemo(
-    () => produits.filter((produit) => produit.categorie === categorieActive),
-    [produits, categorieActive],
-  )
+  const produitsFiltres = useMemo(() => {
+    const q = recherche.trim().toLowerCase()
+    if (q) {
+      return produits.filter((produit) => produit.nom.toLowerCase().includes(q))
+    }
+    return produits.filter((produit) => produit.categorie === categorieActive)
+  }, [produits, categorieActive, recherche])
 
   const total = panier.reduce((somme, item) => somme + item.prix_unitaire * item.quantite, 0)
 
   // ---- Édition locale du panier (aucun appel réseau) ----
   function ajouter(produit, prix) {
+    if (produit.gere_stock && (produit.stock <= 0 || produit.etat_stock === 'rupture')) {
+      setErreur(`Le produit « ${produit.nom} » est en rupture de stock.`)
+      return
+    }
     if (produit.prix_libre && prix === undefined) {
       setPlatEnAttente(produit)
       return
@@ -133,6 +145,10 @@ export default function Ventes() {
         (item) => item.produit.id === produit.id && item.prix_unitaire === prixUnitaire && !item.note,
       )
       if (i >= 0) {
+        if (produit.gere_stock && actuel[i].quantite + 1 > produit.stock) {
+          setErreur(`Stock insuffisant pour « ${produit.nom} » (Disponible : ${produit.stock})`)
+          return actuel
+        }
         const copie = [...actuel]
         copie[i] = { ...copie[i], quantite: copie[i].quantite + 1 }
         return copie
@@ -144,7 +160,15 @@ export default function Ventes() {
   function changerQuantite(index, delta) {
     setPanier((actuel) =>
       actuel
-        .map((item, i) => (i === index ? { ...item, quantite: item.quantite + delta } : item))
+        .map((item, i) => {
+          if (i !== index) return item
+          const nouvelleQte = item.quantite + delta
+          if (delta > 0 && item.produit.gere_stock && nouvelleQte > item.produit.stock) {
+            setErreur(`Stock disponible atteint pour « ${item.produit.nom} » (${item.produit.stock} disponible)`)
+            return item
+          }
+          return { ...item, quantite: nouvelleQte }
+        })
         .filter((item) => item.quantite > 0),
     )
   }
@@ -156,6 +180,23 @@ export default function Ventes() {
   // ---- Persistance : « Valider » attribue enfin la commande ----
   async function persister() {
     let cible = commande
+    let idLivreurFinal = Number(livreurId) || null
+
+    // Si un nouveau nom de livreur est saisi, le créer automatiquement en base
+    if (type === 'livraison' && modeNouveauLivreur && nouveauLivreur.trim()) {
+      try {
+        const cree = await api.post('/livreurs/', { nom: nouveauLivreur.trim(), actif: true })
+        const misAJour = await liste('/livreurs/?actif=true')
+        setLivreurs(misAJour)
+        setLivreurId(String(cree.id))
+        idLivreurFinal = Number(cree.id)
+        setModeNouveauLivreur(false)
+        setNouveauLivreur('')
+      } catch (e) {
+        console.error('Erreur création automatique livreur', e)
+      }
+    }
+
     if (type === 'place') {
       // get-or-create : c'est ici, à la validation, que la table est attribuée.
       cible = await api.post(`/tables/${tableId}/ardoise/`, {})
@@ -163,7 +204,7 @@ export default function Ventes() {
       cible = await api.post('/commandes/', {
         type,
         client_nom: client,
-        livreur: type === 'livraison' ? Number(livreurId) || null : null,
+        livreur: type === 'livraison' ? idLivreurFinal : null,
       })
     }
     const misAJour = await api.post(`/commandes/${cible.id}/synchroniser/`, {
@@ -178,17 +219,65 @@ export default function Ventes() {
     return misAJour
   }
 
+  async function chargerProduits() {
+    try {
+      const prods = await liste('/produits/?actif=true&page_size=300')
+      setProduits(prods)
+    } catch (e) {
+      console.error('Erreur rafraîchissement des produits', e)
+    }
+  }
+
   async function valider() {
     setOccupe(true)
     setErreur('')
     try {
-      await persister()
+      const persistee = await persister()
+      await chargerProduits()
       setTables(await liste('/tables/?page_size=200'))
+      if (persistee && persistee.lignes && persistee.lignes.some((l) => l.rayon === 'cuisine')) {
+        setBonCuisineOuvert(persistee)
+      }
+      // L'ardoise s'efface automatiquement après la validation de la commande
+      setCommande(null)
+      setPanier([])
+      setTableId('')
+      setClient('')
+      setParametres({})
     } catch (echec) {
       setErreur(echec.message)
     } finally {
       setOccupe(false)
     }
+  }
+
+  async function imprimerBonCuisine() {
+    setOccupe(true)
+    setErreur('')
+    try {
+      const persistee = await persister()
+      setBonCuisineOuvert(persistee)
+      // L'ardoise s'efface automatiquement après impression du bon de cuisine
+      setCommande(null)
+      setPanier([])
+      setTableId('')
+      setClient('')
+      setParametres({})
+    } catch (echec) {
+      setErreur(echec.message)
+    } finally {
+      setOccupe(false)
+    }
+  }
+
+  function changerType(nouveauType) {
+    if (nouveauType === type) return
+    setType(nouveauType)
+    setCommande(null)
+    setPanier([])
+    setTableId('')
+    setClient('')
+    setParametres({})
   }
 
   async function ouvrirPaiement() {
@@ -206,6 +295,7 @@ export default function Ventes() {
 
   async function encaisser(paiements) {
     const encaissee = await api.post(`/commandes/${commande.id}/encaisser/`, { paiements })
+    await chargerProduits()
     setPaiementOuvert(false)
     setDocumentOuvert({ commande: encaissee, type: 'Reçu' })
     setCommande(null)
@@ -265,7 +355,7 @@ export default function Ventes() {
             <button
               key={entree.code}
               className={`segb ${type === entree.code ? 'on' : ''}`}
-              onClick={() => setType(entree.code)}
+              onClick={() => changerType(entree.code)}
             >
               {entree.libelle}
             </button>
@@ -285,13 +375,68 @@ export default function Ventes() {
         )}
 
         {type === 'livraison' && (
-          <select className="champ auto" value={livreurId} onChange={(e) => setLivreurId(e.target.value)}>
-            {livreurs.map((livreur) => (
-              <option key={livreur.id} value={livreur.id}>
-                {livreur.nom}
-              </option>
-            ))}
-          </select>
+          modeNouveauLivreur ? (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                className="champ auto"
+                placeholder="Nom du nouveau livreur"
+                value={nouveauLivreur}
+                onChange={(e) => setNouveauLivreur(e.target.value)}
+                autoFocus
+              />
+              <button
+                type="button"
+                className="btn btn-o"
+                style={{ padding: '6px 12px', fontSize: 13, whiteSpace: 'nowrap' }}
+                onClick={async () => {
+                  if (!nouveauLivreur.trim()) return
+                  try {
+                    const cree = await api.post('/livreurs/', { nom: nouveauLivreur.trim(), actif: true })
+                    const misAJour = await liste('/livreurs/?actif=true')
+                    setLivreurs(misAJour)
+                    setLivreurId(String(cree.id))
+                    setModeNouveauLivreur(false)
+                    setNouveauLivreur('')
+                  } catch (err) {
+                    setErreur(err.message)
+                  }
+                }}
+              >
+                + Créer
+              </button>
+              <button
+                type="button"
+                className="btn btn-g"
+                style={{ padding: '6px 10px', fontSize: 13 }}
+                onClick={() => setModeNouveauLivreur(false)}
+                title="Annuler"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <select
+              className="champ auto"
+              value={livreurId}
+              onChange={(e) => {
+                if (e.target.value === '__nouveau__') {
+                  setModeNouveauLivreur(true)
+                  setNouveauLivreur('')
+                } else {
+                  setLivreurId(e.target.value)
+                  setModeNouveauLivreur(false)
+                }
+              }}
+            >
+              <option value="">— Choisir un livreur —</option>
+              {livreurs.map((livreur) => (
+                <option key={livreur.id} value={livreur.id}>
+                  {livreur.nom}
+                </option>
+              ))}
+              <option value="__nouveau__">➕ Ajouter un nouveau livreur...</option>
+            </select>
+          )
         )}
 
         {type !== 'place' && (
@@ -306,6 +451,17 @@ export default function Ventes() {
 
       <div className="pos pos-vente">
         <div>
+          <div style={{ marginBottom: 12 }}>
+            <input
+              type="search"
+              className="champ"
+              style={{ width: '100%', fontSize: 14, padding: '9px 14px', borderRadius: 'var(--radius)' }}
+              placeholder="🔍 Rechercher un plat ou une boisson..."
+              value={recherche}
+              onChange={(e) => setRecherche(e.target.value)}
+            />
+          </div>
+
           <div className="cats">
             {categories.map((categorie) => (
               <button
@@ -319,24 +475,28 @@ export default function Ventes() {
           </div>
 
           <div className="prods">
-            {produitsFiltres.map((produit) => (
-              <button
-                key={produit.id}
-                className="prod"
-                disabled={platsBloques}
-                onClick={() => ajouter(produit)}
-              >
-                <div className="pn">{produit.nom}</div>
-                <div className="pp">
-                  {produit.prix_libre ? 'Prix à saisir' : fcfa(produit.prix_standard)}
-                </div>
-                {produit.gere_stock && produit.etat_stock !== 'ok' && (
-                  <div className={`badge ${produit.etat_stock === 'rupture' ? 'b-rup' : 'b-bas'}`}>
-                    {produit.etat_stock === 'rupture' ? 'Rupture' : `Reste ${produit.stock}`}
+            {produitsFiltres.map((produit) => {
+              const enRupture = produit.gere_stock && (produit.stock <= 0 || produit.etat_stock === 'rupture')
+              return (
+                <button
+                  key={produit.id}
+                  className={`prod ${enRupture ? 'en-rupture' : ''}`}
+                  disabled={platsBloques || enRupture}
+                  onClick={() => ajouter(produit)}
+                  title={enRupture ? 'Rupture de stock (0 disponible)' : ''}
+                >
+                  <div className="pn">{produit.nom}</div>
+                  <div className="pp">
+                    {produit.prix_libre ? 'Prix à saisir' : fcfa(produit.prix_standard)}
                   </div>
-                )}
-              </button>
-            ))}
+                  {produit.gere_stock && (
+                    <div className={`badge ${enRupture ? 'b-rup' : produit.etat_stock === 'bas' ? 'b-bas' : 'b-ok'}`}>
+                      {enRupture ? 'Rupture' : `Reste ${produit.stock}`}
+                    </div>
+                  )}
+                </button>
+              )
+            })}
           </div>
         </div>
 
@@ -410,10 +570,39 @@ export default function Ventes() {
             </>
           )}
 
+          {(panier.some((item) => item.produit.rayon === 'cuisine' || item.produit.categorie_rayon === 'cuisine' || item.produit.categorie?.rayon === 'cuisine') || (commande && commande.lignes && commande.lignes.some((l) => l.rayon === 'cuisine'))) && (
+            <button
+              className="btn btn-g"
+              style={{ width: '100%', marginTop: 8, borderColor: 'var(--orange)', color: 'var(--orange)', fontWeight: 600 }}
+              disabled={!total || occupe}
+              onClick={imprimerBonCuisine}
+            >
+              🔥 Imprimer le bon de cuisine
+            </button>
+          )}
+
+          {panier.length > 0 && (
+            <button
+              className="btn btn-g"
+              style={{ width: '100%', marginTop: 8, color: '#777' }}
+              onClick={() => {
+                setCommande(null)
+                setPanier([])
+                setTableId('')
+                setClient('')
+                setParametres({})
+              }}
+            >
+              🗑️ Effacer / Nouveau panier
+            </button>
+          )}
+
           <div className="note">
             {type === 'livraison'
               ? 'La commande part en cuisine à la validation. L’encaissement se fait au retour du livreur.'
-              : 'Modifiez librement le panier tant que ce n’est pas payé. « Valider » attribue la commande à la table ; « Encaisser » la solde et déstocke le bar.'}
+              : type === 'emporter'
+                ? 'Validez pour envoyer le bon en cuisine. Imprimez l’addition pour le client et encaissez.'
+                : 'Modifiez librement le panier tant que ce n’est pas payé. « Valider » attribue la commande à la table ; « Encaisser » la solde et déstocke le bar.'}
           </div>
         </div>
       </div>
@@ -440,6 +629,10 @@ export default function Ventes() {
           typeDocument={documentOuvert.type}
           onFerme={() => setDocumentOuvert(null)}
         />
+      )}
+
+      {bonCuisineOuvert && (
+        <BonCuisine commande={bonCuisineOuvert} onFerme={() => setBonCuisineOuvert(null)} />
       )}
     </>
   )

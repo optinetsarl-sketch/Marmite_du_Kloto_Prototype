@@ -17,17 +17,20 @@ export default function Bar() {
   const [mouvements, setMouvements] = useState([])
   const [recherche, setRecherche] = useState('')
   const [filtre, setFiltre] = useState('tous')
+  const [categories, setCategories] = useState([])
   const [erreur, setErreur] = useState('')
   const [operation, setOperation] = useState(null)
 
   async function charger() {
     try {
-      const [listeProduits, historique] = await Promise.all([
+      const [listeProduits, historique, listeCategories] = await Promise.all([
         liste('/produits/?categorie__rayon=bar&page_size=400'),
         liste('/mouvements-stock/?page_size=30'),
+        liste('/categories/'),
       ])
       setProduits(listeProduits)
       setMouvements(historique)
+      setCategories(listeCategories)
       setErreur('')
     } catch (echec) {
       setErreur(echec.message)
@@ -115,8 +118,27 @@ export default function Bar() {
               {filtres.map((produit) => (
                 <tr key={produit.id}>
                   <td data-titre style={{ fontWeight: 600 }}>{produit.nom}</td>
-                  <td data-label="Catégorie" data-secondaire style={{ color: 'var(--mut)' }}>
-                    {produit.categorie_nom}
+                  <td data-label="Catégorie">
+                    <select
+                      className="champ auto"
+                      style={{ padding: '3px 8px', fontSize: 13, minWidth: 120 }}
+                      value={produit.categorie || ''}
+                      onChange={async (e) => {
+                        const nouvelleCatId = e.target.value
+                        try {
+                          await api.patch(`/produits/${produit.id}/`, { categorie: nouvelleCatId })
+                          await charger()
+                        } catch (err) {
+                          setErreur(err.message)
+                        }
+                      }}
+                    >
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.nom}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td data-label="Prix" style={{ textAlign: 'right' }}>{fcfa(produit.prix_standard)}</td>
                   <td data-label="Stock" style={{ textAlign: 'right', fontWeight: 700 }}>{produit.stock}</td>
@@ -212,6 +234,10 @@ const TITRES = {
 }
 
 function OperationStock({ type, produits, onFerme, onEnregistre }) {
+  if (type === 'inventaire') {
+    return <InventaireGlobal produits={produits} onFerme={onFerme} onEnregistre={onEnregistre} />
+  }
+
   const [produit, setProduit] = useState('')
   const [quantite, setQuantite] = useState('')
   const [prix, setPrix] = useState('')
@@ -224,31 +250,36 @@ function OperationStock({ type, produits, onFerme, onEnregistre }) {
 
   const choisi = produits.find((entree) => String(entree.id) === String(produit))
 
+  function choisirProduit(id) {
+    setProduit(id)
+    const p = produits.find((entree) => String(entree.id) === String(id))
+    if (p && p.prix_standard !== null && p.prix_standard !== undefined) {
+      setPrix(String(p.prix_standard))
+    } else {
+      setPrix('')
+    }
+  }
+
   async function enregistrer(evenement) {
     evenement.preventDefault()
     setErreur('')
     setEnvoi(true)
     try {
+      const pid = !isNaN(Number(produit)) && String(Number(produit)) === String(produit) ? Number(produit) : produit
       if (type === 'reception') {
         await api.post('/mouvements-stock/reception/', {
-          produit: Number(produit),
+          produit: pid,
           quantite: Number(quantite),
-          prix_unitaire: prix ? Number(prix) : null,
-          fournisseur,
-          maj_prix_vente: majPrix,
+          prix_unitaire: prix !== '' && prix !== null ? Number(prix) : null,
+          fournisseur: fournisseur ? fournisseur.trim() : '',
+          maj_prix_vente: Boolean(majPrix),
         })
       } else if (type === 'sortie') {
         await api.post('/mouvements-stock/sortie/', {
-          produit: Number(produit),
+          produit: pid,
           quantite: Number(quantite),
           motif,
-          commentaire,
-        })
-      } else {
-        await api.post('/mouvements-stock/inventaire/', {
-          produit: Number(produit),
-          stock_reel: Number(quantite),
-          commentaire,
+          commentaire: commentaire ? commentaire.trim() : '',
         })
       }
       await onEnregistre()
@@ -268,7 +299,7 @@ function OperationStock({ type, produits, onFerme, onEnregistre }) {
         <select
           className="champ"
           value={produit}
-          onChange={(e) => setProduit(e.target.value)}
+          onChange={(e) => choisirProduit(e.target.value)}
           required
           autoFocus
         >
@@ -374,6 +405,188 @@ function OperationStock({ type, produits, onFerme, onEnregistre }) {
           <button className="btn btn-o" disabled={envoi}>
             {envoi ? 'Enregistrement…' : 'Enregistrer'}
           </button>
+        </div>
+      </form>
+    </Modale>
+  )
+}
+
+function InventaireGlobal({ produits, onFerme, onEnregistre }) {
+  const [recherche, setRecherche] = useState('')
+  const [categorieFiltre, setCategorieFiltre] = useState('')
+  const [stocksReels, setStocksReels] = useState(() => {
+    const init = {}
+    produits.forEach((p) => {
+      init[p.id] = p.stock
+    })
+    return init
+  })
+  const [commentaire, setCommentaire] = useState('Correction / Stock de début')
+  const [erreur, setErreur] = useState('')
+  const [envoi, setEnvoi] = useState(false)
+
+  // Extraire les catégories uniques pour le filtre
+  const categories = Array.from(
+    new Set(produits.map((p) => p.categorie?.nom || p.categorie_nom).filter(Boolean)),
+  )
+
+  const produitsFiltres = produits.filter((p) => {
+    const matchNom = p.nom.toLowerCase().includes(recherche.toLowerCase())
+    const catNom = p.categorie?.nom || p.categorie_nom || ''
+    const matchCat = !categorieFiltre || catNom === categorieFiltre
+    return matchNom && matchCat
+  })
+
+  function changerStock(id, valeur) {
+    setStocksReels((prev) => ({
+      ...prev,
+      [id]: valeur,
+    }))
+  }
+
+  // Articles ayant eu une modification par rapport au stock actuel
+  const modifications = produits.filter((p) => {
+    const sReel = Number(stocksReels[p.id])
+    return !isNaN(sReel) && sReel !== p.stock
+  })
+
+  async function enregistrer(e) {
+    e.preventDefault()
+    setErreur('')
+    if (modifications.length === 0) {
+      onFerme()
+      return
+    }
+    setEnvoi(true)
+    try {
+      for (const p of modifications) {
+        const sReel = Number(stocksReels[p.id])
+        await api.post('/mouvements-stock/inventaire/', {
+          produit: p.id,
+          stock_reel: sReel,
+          commentaire: commentaire || 'Correction / Stock de début',
+        })
+      }
+      await onEnregistre()
+    } catch (echec) {
+      setErreur(echec.message || "Erreur lors de l'enregistrement de l'inventaire")
+      setEnvoi(false)
+    }
+  }
+
+  return (
+    <Modale titre="Correction d'inventaire — Saisie du Stock de Début / Boutique" largeur={850} onFerme={onFerme}>
+      {erreur && <div className="erreur">{erreur}</div>}
+      <form onSubmit={enregistrer}>
+        <div style={{ display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+          <input
+            className="champ"
+            style={{ flex: 2, minWidth: 180 }}
+            placeholder="🔍 Rechercher un article…"
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+          />
+          <select
+            className="champ"
+            style={{ flex: 1, minWidth: 150 }}
+            value={categorieFiltre}
+            onChange={(e) => setCategorieFiltre(e.target.value)}
+          >
+            <option value="">Toutes les catégories</option>
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+          <input
+            className="champ"
+            style={{ flex: 2, minWidth: 180 }}
+            placeholder="Motif / Commentaire (ex: Stock de début boutique)"
+            value={commentaire}
+            onChange={(e) => setCommentaire(e.target.value)}
+          />
+        </div>
+
+        <div style={{ maxHeight: 420, overflowY: 'auto', border: '1px solid var(--bord)', borderRadius: 'var(--radius)' }}>
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Produit</th>
+                <th>Catégorie</th>
+                <th>Prix Standard</th>
+                <th>Stock Théorique</th>
+                <th>Stock en Boutique (Stock de début)</th>
+                <th>Écart</th>
+              </tr>
+            </thead>
+            <tbody>
+              {produitsFiltres.map((p) => {
+                const valSaisie = stocksReels[p.id] !== undefined ? stocksReels[p.id] : p.stock
+                const sReel = Number(valSaisie)
+                const ecart = !isNaN(sReel) ? sReel - p.stock : 0
+
+                return (
+                  <tr key={p.id} style={{ background: ecart !== 0 ? 'rgba(255, 152, 0, 0.06)' : undefined }}>
+                    <td style={{ fontWeight: 600 }}>{p.nom}</td>
+                    <td>{p.categorie?.nom || p.categorie_nom || '—'}</td>
+                    <td>{p.prix_standard ? `${p.prix_standard} F` : 'Prix libre'}</td>
+                    <td>
+                      <span className={`badge ${p.stock <= 0 ? 'b-rup' : p.stock <= p.seuil_alerte ? 'b-bas' : 'b-ok'}`}>
+                        {p.stock}
+                      </span>
+                    </td>
+                    <td style={{ width: 170 }}>
+                      <input
+                        className="champ"
+                        type="number"
+                        min="0"
+                        style={{ margin: 0, padding: '4px 8px', textAlign: 'center', fontWeight: 'bold', fontSize: 14, borderColor: ecart !== 0 ? 'var(--orange-dk)' : undefined }}
+                        value={valSaisie}
+                        onChange={(e) => changerStock(p.id, e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      {ecart === 0 ? (
+                        <span style={{ color: 'var(--txt-clair)', fontSize: 13 }}>0</span>
+                      ) : (
+                        <span
+                          className="badge"
+                          style={{
+                            background: ecart > 0 ? 'rgba(76, 175, 80, 0.15)' : 'rgba(244, 67, 54, 0.15)',
+                            color: ecart > 0 ? '#2e7d32' : '#c62828',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          {ecart > 0 ? `+${ecart}` : ecart}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="modal-act" style={{ marginTop: 18, justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 13, color: 'var(--txt-sombre)' }}>
+            {modifications.length === 0 ? (
+              <span>Aucun ajustement de stock</span>
+            ) : (
+              <span style={{ color: 'var(--orange-dk)', fontWeight: 600 }}>
+                {modifications.length} article(s) à réajuster
+              </span>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button type="button" className="btn btn-g" onClick={onFerme}>
+              Annuler
+            </button>
+            <button className="btn btn-o" disabled={envoi}>
+              {envoi ? 'Enregistrement…' : `Valider l'inventaire (${modifications.length})`}
+            </button>
+          </div>
         </div>
       </form>
     </Modale>

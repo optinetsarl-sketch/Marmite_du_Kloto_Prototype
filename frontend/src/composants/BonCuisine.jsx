@@ -18,8 +18,14 @@ export default function BonCuisine({ commande, onFerme }) {
       <div className="modal-bx rc-bx" id="recu">
         <div className="rc-paper">
           <div className="rc-head">
-            <div className="rc-nm">Bon de cuisine</div>
-            <div className="rc-sb">La Marmite du Kloto · Bar-Resto</div>
+            <img src="/logo.jpg" alt="" />
+            <div className="rc-nm">La Marmite du Kloto</div>
+            <div className="rc-sb">Cuisine</div>
+          </div>
+
+          <div className="rc-doc">BON DE CUISINE</div>
+          <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, color: 'var(--orange-dk)', marginBottom: 6 }}>
+            Réf. Bon N° : BC-{commande.numero_recu || (commande.id ? String(commande.id).slice(-4) : '001')}
           </div>
 
           <div className="rc-meta">

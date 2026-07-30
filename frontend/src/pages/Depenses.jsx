@@ -105,20 +105,37 @@ export default function Depenses() {
 
       <div className="pos" style={{ gridTemplateColumns: '1fr 330px' }}>
         <div>
-          {quatrePremieres.length > 0 && (
-            <div className="stats">
-              {quatrePremieres.map((ligne, rang) => (
-                <div className={`stat ${rang === 0 ? 'dark' : 'wht'}`} key={ligne.categorie}>
-                  <div className="l">{ligne.libelle}</div>
-                  <div className="v">{fcfa(ligne.montant)}</div>
-                </div>
-              ))}
+          {rapport.par_categorie && rapport.par_categorie.length > 0 && (
+            <div className="card" style={{ marginBottom: 16, padding: '14px 16px' }}>
+              <div style={{ fontWeight: 600, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--mut)', marginBottom: 10 }}>
+                Synthèse par catégorie
+              </div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {rapport.par_categorie.map((ligne) => (
+                  <div
+                    key={ligne.categorie}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '6px 12px',
+                      borderRadius: 6,
+                      background: 'var(--fond-sub, #f8f9fa)',
+                      border: '1px solid var(--bord)',
+                      fontSize: 13,
+                    }}
+                  >
+                    <span style={{ color: 'var(--txt-sec, #555)' }}>{ligne.libelle} :</span>
+                    <strong style={{ color: 'var(--primaire, #111)' }}>{fcfa(ligne.montant)}</strong>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
           <div className="card">
             <h3>Dépenses de la journée</h3>
-            <table className="grid cartes">
+            <table className="tbl">
               <thead>
                 <tr>
                   <th>Description</th>
@@ -131,17 +148,17 @@ export default function Depenses() {
               <tbody>
                 {depenses.map((depense) => (
                   <tr key={depense.id}>
-                    <td data-titre>{depense.description || depense.categorie_libelle}</td>
-                    <td data-label="Catégorie">
+                    <td style={{ fontWeight: 600 }}>{depense.description || depense.categorie_libelle}</td>
+                    <td>
                       <span className="tag">{depense.categorie_libelle}</span>
                     </td>
-                    <td data-label="Mode" style={{ color: 'var(--mut)' }}>
+                    <td style={{ color: 'var(--mut)' }}>
                       {MODES.find(([code]) => code === depense.mode)?.[1]}
                     </td>
-                    <td data-label="Montant" style={{ textAlign: 'right', fontWeight: 600 }}>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>
                       {fcfa(depense.montant)}
                     </td>
-                    <td data-actions style={{ textAlign: 'right' }}>
+                    <td style={{ textAlign: 'right' }}>
                       <button className="x" onClick={() => supprimer(depense.id)} aria-label="Supprimer">
                         ✕
                       </button>

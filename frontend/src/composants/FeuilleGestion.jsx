@@ -30,6 +30,9 @@ export default function FeuilleGestion({
             <div className="rep-h-title">
               <div className="rep-h-t">{titre}</div>
               <div className="rep-h-p">{periode}</div>
+              <div className="rep-h-p" style={{ fontSize: 10, color: 'var(--mut)', marginTop: 2 }}>
+                Réf : FG-{edite.getFullYear()}{String(edite.getMonth() + 1).padStart(2, '0')}{String(edite.getDate()).padStart(2, '0')}-{edite.getTime().toString().slice(-4)}
+              </div>
             </div>
           </div>
 

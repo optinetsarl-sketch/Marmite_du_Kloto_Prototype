@@ -2,15 +2,43 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/logo.jpg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Favicon & icônes -->
+    <link rel="icon" type="image/jpeg" href="/logo.jpg" />
+    <link rel="apple-touch-icon" href="/logo.jpg" />
+    <meta name="theme-color" content="#E85D10" />
+
+    <!-- SEO -->
+    <title>La Marmite du Kloto — Gestion</title>
+    <meta name="description" content="Logiciel de gestion de La Marmite du Kloto : ventes, caisse, cuisine, livraisons, stock et rapports." />
+    <meta name="robots" content="noindex, nofollow" />
+
+    <!-- Open Graph (partage réseaux sociaux) -->
+    <meta property="og:title" content="La Marmite du Kloto — Gestion" />
+    <meta property="og:description" content="Logiciel de gestion Bar-Resto Marmite du Kloto" />
+    <meta property="og:image" content="/logo.jpg" />
+    <meta property="og:type" content="website" />
+
+    <!-- Typographie -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <title>La Marmite du Kloto — Gestion</title>
+
+    <!-- Impression des bons (Bon de cuisine & Bon de livraison) -->
+    <style>
+      @media print {
+        /* Masquer toute l'application sauf le document à imprimer */
+        body > #root { display: none !important; }
+        /* #recu est injecté dans <body> via createPortal */
+        .modal-ov { position: static !important; background: none !important; }
+        .modal-bx { box-shadow: none !important; border: none !important; }
+        .rc-actions, .modal-act { display: none !important; }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

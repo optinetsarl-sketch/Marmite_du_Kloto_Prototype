@@ -23,3 +23,9 @@ backend/staticfiles/
 node_modules/
 frontend/dist/
 
+# Build & Deploy générés
+backend/dist/
+backend/build/
+backend/frontend_dist/
+deployment_client/
+*.zip

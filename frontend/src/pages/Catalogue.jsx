@@ -135,18 +135,24 @@ export default function Catalogue() {
           {onglet === 'plats' && (
             <TableProduits
               produits={plats}
+              categories={categories}
               colonnePrix="Prix"
               onEditer={(produit) => setEdition({ type: 'plats', valeur: produit })}
               onSupprimer={(produit) => supprimer(`/produits/${produit.id}/`, produit.nom)}
+              onRecharger={charger}
+              onErreur={setErreur}
             />
           )}
           {onglet === 'boissons' && (
             <TableProduits
               produits={boissons}
+              categories={categories}
               colonnePrix="Prix standard"
               stock
               onEditer={(produit) => setEdition({ type: 'boissons', valeur: produit })}
               onSupprimer={(produit) => supprimer(`/produits/${produit.id}/`, produit.nom)}
+              onRecharger={charger}
+              onErreur={setErreur}
             />
           )}
           {onglet === 'familles' && (
@@ -306,7 +312,7 @@ export default function Catalogue() {
   )
 }
 
-function TableProduits({ produits, colonnePrix, stock, onEditer, onSupprimer }) {
+function TableProduits({ produits, categories = [], colonnePrix, stock, onEditer, onSupprimer, onRecharger, onErreur }) {
   return (
     <table className="grid cartes compacte">
       <thead>
@@ -323,8 +329,27 @@ function TableProduits({ produits, colonnePrix, stock, onEditer, onSupprimer }) 
         {produits.map((produit) => (
           <tr key={produit.id}>
             <td data-titre style={{ fontWeight: 600 }}>{produit.nom}</td>
-            <td data-label="Catégorie" data-secondaire style={{ color: 'var(--mut)' }}>
-              {produit.categorie_nom}
+            <td data-label="Catégorie">
+              <select
+                className="champ auto"
+                style={{ padding: '3px 8px', fontSize: 13, minWidth: 120 }}
+                value={produit.categorie || ''}
+                onChange={async (e) => {
+                  const nouvelleCatId = e.target.value
+                  try {
+                    await api.patch(`/produits/${produit.id}/`, { categorie: nouvelleCatId })
+                    if (onRecharger) await onRecharger()
+                  } catch (err) {
+                    if (onErreur) onErreur(err.message)
+                  }
+                }}
+              >
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.nom}
+                  </option>
+                ))}
+              </select>
             </td>
             <td data-label={colonnePrix} style={{ textAlign: 'right' }}>
               {produit.prix_libre ? (

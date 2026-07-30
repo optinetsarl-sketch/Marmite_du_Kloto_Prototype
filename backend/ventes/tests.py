@@ -154,7 +154,7 @@ class ParcoursVenteTest(APITestCase):
         commande.refresh_from_db()
         self.assertEqual(commande.statut, Commande.STATUT_EN_CUISINE)
         file = self.client.get("/api/commandes/?pour_cuisine=1").data["results"]
-        self.assertIn(commande.pk, [c["id"] for c in file])
+        self.assertIn(str(commande.pk), [c["id"] for c in file])
 
     def test_boisson_seule_ne_va_pas_en_cuisine(self):
         commande = Commande.objects.create(table=TableResto.objects.get(numero=6))

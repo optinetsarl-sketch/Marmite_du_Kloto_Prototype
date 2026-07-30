@@ -112,7 +112,7 @@ class LivraisonTest(APITestCase):
         self._statut(repas, Commande.STATUT_EN_CUISINE)
 
         file = self.client.get("/api/commandes/?pour_cuisine=1").data["results"]
-        self.assertEqual([commande["id"] for commande in file], [repas.pk])
+        self.assertEqual([commande["id"] for commande in file], [str(repas.pk)])
 
     def test_file_cuisine_exclut_les_commandes_servies(self):
         repas = self._course(self.kofi, quantite_poulet=1)

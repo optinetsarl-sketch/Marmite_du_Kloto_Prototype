@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Facture Proforma N° PF-2026/07/MK-01 — OPTINET SARL U</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 15mm;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #222;
+      background: #f4f6f9;
+      margin: 0;
+      padding: 20px;
+    }
+    .invoice-card {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+      position: relative;
+      overflow: hidden;
+    }
+    /* Filigrane Logo en Fond de papier */
+    .invoice-card::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-15deg);
+      width: 450px;
+      height: 450px;
+      background-image: url('../logo-Optinet-sokode.png');
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: contain;
+      opacity: 0.05;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .invoice-content {
+      position: relative;
+      z-index: 1;
+    }
+    .header-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+    }
+    .header-table td {
+      vertical-align: top;
+    }
+    .logo-img {
+      max-width: 220px;
+      height: auto;
+    }
+    .company-info {
+      text-align: right;
+      font-size: 13px;
+      color: #555;
+      line-height: 1.4;
+    }
+    .company-info h2 {
+      margin: 0 0 4px 0;
+      color: #0f4c81;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .company-info .subtitle {
+      font-weight: 600;
+      color: #444;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+    .divider {
+      height: 2px;
+      background: linear-gradient(to right, #0f4c81, #e0e0e0);
+      margin: 15px 0 25px 0;
+    }
+    .doc-title {
+      text-align: center;
+      color: #0f4c81;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      margin: 0 0 25px 0;
+      text-transform: uppercase;
+    }
+    .info-grid {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .info-box {
+      flex: 1;
+      background: rgba(248, 250, 252, 0.9);
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #0f4c81;
+      padding: 15px;
+      border-radius: 4px;
+    }
+    .info-box h4 {
+      margin: 0 0 10px 0;
+      color: #0f4c81;
+      font-size: 14px;
+      text-transform: uppercase;
+    }
+    .info-box p {
+      margin: 3px 0;
+      font-size: 13.5px;
+      color: #334155;
+    }
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 25px;
+      background: rgba(255, 255, 255, 0.95);
+    }
+    .items-table th {
+      background: #0f4c81;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 10px;
+      border: 1px solid #0f4c81;
+    }
+    .items-table td {
+      padding: 12px 10px;
+      border: 1px solid #cbd5e1;
+      font-size: 13px;
+      vertical-align: top;
+    }
+    .items-table tr:nth-child(even) {
+      background: rgba(248, 250, 252, 0.7);
+    }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .text-bold { font-weight: 700; }
+    
+    .total-box {
+      width: 320px;
+      margin-left: auto;
+      border-collapse: collapse;
+      margin-bottom: 25px;
+    }
+    .total-box td {
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 1px solid #cbd5e1;
+    }
+    .total-box .total-row {
+      background: #0f4c81;
+      color: #fff;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .legal-amount {
+      background: rgba(224, 242, 254, 0.9);
+      border: 1px solid #bae6fd;
+      padding: 12px 15px;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #0369a1;
+      margin-bottom: 30px;
+    }
+    .signatures {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 30px;
+      padding-top: 10px;
+    }
+    .sig-box {
+      width: 45%;
+      font-size: 13px;
+    }
+    .sig-box-right {
+      text-align: right;
+    }
+    .stamp-img {
+      max-width: 190px;
+      margin-top: 10px;
+    }
+    .footer-notes {
+      margin-top: 40px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 15px;
+      text-align: center;
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+    .no-print {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .btn-print {
+      background: #0f4c81;
+      color: #fff;
+      border: none;
+      padding: 12px 25px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .btn-print:hover {
+      background: #0b3860;
+    }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .invoice-card { box-shadow: none; padding: 0; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="no-print">
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimer la Proforma (PDF)</button>
+  </div>
+
+  <div class="invoice-card">
+    <div class="invoice-content">
+      <!-- Header -->
+      <table class="header-table">
+        <tr>
+          <td style="width: 40%;">
+            <img src="../logo-Optinet-sokode.png" alt="OPTINET SARL U" class="logo-img" onerror="this.style.display='none'">
+          </td>
+          <td class="company-info">
+            <h2>OPTINET SARL U</h2>
+            <div class="subtitle">Société à Responsabilité Limitée Unipersonnelle</div>
+            <div>Ingénierie Informatique · Sécurité · Réseaux · Logiciels Sur Mesure</div>
+            <div>Lomé-Agoè Cacavéli, Derrière la CEET, Lomé - Togo</div>
+            <div><strong>Tél :</strong> (+228) 90 74 84 65 / 99 05 84 71</div>
+            <div><strong>Email :</strong> optinetsarl@gmail.com</div>
+          </td>
+        </tr>
+      </table>
+
+      <div class="divider"></div>
+
+      <!-- Title -->
+      <div class="doc-title">FACTURE PROFORMA</div>
+
+      <!-- Infos Grid -->
+      <div class="info-grid">
+        <div class="info-box">
+          <h4>Référence Proforma</h4>
+          <p><strong>N° Proforma :</strong> PF-2026/07/MK-01</p>
+          <p><strong>Date :</strong> 30 Juillet 2026</p>
+          <p><strong>Objet :</strong> Conception, développement & déploiement du logiciel de gestion Bar-Restaurant</p>
+        </div>
+
+        <div class="info-box">
+          <h4>Client</h4>
+          <p><strong>Raison Sociale :</strong> LA MARMITE DU KLOTO (Bar-Resto)</p>
+          <p><strong>Adresse :</strong> Lomé-Avédji, non loin de la Côte d'Or, Togo</p>
+          <p><strong>Contact :</strong> (+228) 91 04 27 02 / La Direction</p>
+        </div>
+      </div>
+
+      <!-- Items Table -->
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th style="width: 6%;">N°</th>
+            <th style="width: 54%;">Désignation des Prestations</th>
+            <th style="width: 8%;">Qte</th>
+            <th style="width: 16%;">Prix Unit. (CFA)</th>
+            <th style="width: 16%;">Total (CFA)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-center text-bold">1</td>
+            <td>
+              <strong>Conception & Développement de l'Application Tactile Bar-Restaurant</strong>
+              <ul style="margin: 5px 0 0 15px; padding: 0; font-size: 12px; color: #475569;">
+                <li>Écrans Ventes / Caisse (Sur place, À emporter, Livraison)</li>
+                <li>Poste Cuisine (Bons de commande en direct & gestion de disponibilité)</li>
+                <li>Gestion complète du Stock Bar & Boissons avec alertes de rupture</li>
+                <li>Suivi des Dépenses, Clôtures de Caisse quotidiennes et Rapports d'activité</li>
+              </ul>
+            </td>
+            <td class="text-center">1</td>
+            <td class="text-right">100 000</td>
+            <td class="text-right text-bold">100 000</td>
+          </tr>
+          <tr>
+            <td class="text-center text-bold">2</td>
+            <td>
+              <strong>Déploiement Local, Configuration & Synchronisation Cloud Atlas</strong>
+              <ul style="margin: 5px 0 0 15px; padding: 0; font-size: 12px; color: #475569;">
+                <li>Installation du moteur MongoDB Local (mode hors-ligne haute vitesse)</li>
+                <li>Configuration de la synchronisation automatique continue vers MongoDB Atlas Cloud</li>
+                <li>Création des lanceurs exécutables autonomes (.exe) et raccourcis Bureau</li>
+                <li>Formation du personnel et accompagnement de la responsable</li>
+              </ul>
+            </td>
+            <td class="text-center">1</td>
+            <td class="text-right">50 000</td>
+            <td class="text-right text-bold">50 000</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Totals Table -->
+      <table class="total-box">
+        <tr class="total-row">
+          <td>TOTAL GENERAL NET</td>
+          <td class="text-right">150 000 F CFA</td>
+        </tr>
+      </table>
+
+      <!-- Legal Amount Text -->
+      <div class="legal-amount">
+        Arrêtée la présente facture proforma à la somme de : <strong>Cent Cinquante Mille (150 000) Francs CFA Net à Payer.</strong>
+        <div style="font-size: 12px; margin-top: 5px; color: #475569;">
+          <em>Validité de l'offre : 30 jours &nbsp;·&nbsp; Mode de règlement : Espèces / TMoney / Flooz / Virement &nbsp;·&nbsp; Garantie & Support : 6 Mois</em>
+        </div>
+      </div>
+
+      <!-- Signatures -->
+      <div class="signatures">
+        <div class="sig-box">
+          <strong>Pour le Client (La Marmite du Kloto)</strong><br>
+          <span style="font-size: 12px; color: #64748b;">(Bon pour accord, Date & Signature)</span><br><br><br><br>
+          ___________________________________
+        </div>
+        <div class="sig-box sig-box-right">
+          <strong>Pour OPTINET SARL U</strong><br>
+          <span style="font-size: 12px; color: #0f4c81; font-weight: 700;">Le Directeur Général</span><br>
+          <img src="Cachet Directeur OPTINET.png" alt="Cachet & Signature" class="stamp-img" onerror="this.style.display='none'"><br>
+          <strong style="color: #0f4c81; font-size: 14px;">NABINE Tassounti</strong>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer-notes">
+        <strong>OPTINET SARL U</strong> – Société à Responsabilité Limitée Unipersonnelle<br>
+        Siège social : Lomé-Agoè Cacavéli, Derrière la CEET, Togo &nbsp;·&nbsp; RCCM : TG-LFW-01-2026-B13-00831 &nbsp;·&nbsp; NIF : 1002114979 &nbsp;·&nbsp; CNSS : 215409<br>
+        Tél : (+228) 90 74 84 65 / 99 05 84 71 &nbsp;·&nbsp; Email : optinetsarl@gmail.com &nbsp;·&nbsp; Web : www.optinet.tg
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

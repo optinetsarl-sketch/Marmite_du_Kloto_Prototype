@@ -9,6 +9,7 @@ def fcfa(montant):
 
 
 class DepenseSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
     categorie_libelle = serializers.CharField(source="get_categorie_display", read_only=True)
 
     class Meta:
@@ -51,6 +52,7 @@ class DepenseSerializer(serializers.ModelSerializer):
 
 
 class SessionCaisseSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
     recettes_especes = serializers.IntegerField(read_only=True)
     depenses_especes = serializers.IntegerField(read_only=True)
     montant_theorique = serializers.IntegerField(read_only=True)

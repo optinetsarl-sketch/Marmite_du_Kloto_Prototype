@@ -113,18 +113,18 @@ def synchroniser_lignes(commande, lignes_voulues):
             )
             envoyer_en_cuisine(commande, v["produit"])
 
+    # Déstocker automatiquement les boissons et produits avec suivi de stock
+    deverser_stock(commande)
     return commande
 
 
 @transaction.atomic
 def annuler(commande):
-    """Annule une commande non payée : la retire de la cuisine et libère la table.
-
-    Aucun stock à restituer : le bar n'est déstocké qu'à l'encaissement, donc une
-    commande annulée n'a jamais touché le stock.
-    """
+    """Annule une commande non payée : la retire de la cuisine et libère la table."""
     if commande.statut == Commande.STATUT_PAYEE:
         raise ValidationError("Une commande déjà encaissée ne peut pas être annulée.")
+    # Restituer le stock si la commande avait été déstockée
+    commande.mouvements_stock.all().delete()
     commande.statut = Commande.STATUT_ANNULEE
     commande.cloturee_le = timezone.now()
     commande.save(update_fields=["statut", "cloturee_le"])
@@ -170,8 +170,8 @@ def encaisser(commande, paiements):
 def deverser_stock(commande):
     """Sortie automatique du stock bar. La cuisine est préparée à la commande,
     elle n'a pas de stock de plats à décrémenter (§9)."""
-    if commande.mouvements_stock.exists():
-        return  # déjà déstockée : ne jamais décrémenter deux fois
+    # Réinitialiser les mouvements de cette commande pour recalculer le panier exact
+    commande.mouvements_stock.all().delete()
 
     for ligne in commande.lignes.select_related("produit"):
         if not ligne.produit.gere_stock:

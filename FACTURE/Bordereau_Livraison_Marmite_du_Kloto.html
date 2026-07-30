@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Bordereau de Livraison N° BL/MK/2026/07/001 — OPTINET SARL U</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 6mm;
+    }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      color: #1a1a1a;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 10px;
+    }
+    .invoice-card {
+      max-width: 800px;
+      height: 100%;
+      max-height: 280mm;
+      margin: 0 auto;
+      background: #fff;
+      padding: 22px 26px;
+      border-radius: 4px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      position: relative;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+    /* Filigrane 'LIVRAISON' en fond */
+    .watermark-bg {
+      position: absolute;
+      top: 48%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-30deg);
+      font-size: 80px;
+      font-weight: 900;
+      color: rgba(27, 126, 65, 0.04);
+      letter-spacing: 10px;
+      pointer-events: none;
+      user-select: none;
+      z-index: 0;
+      white-space: nowrap;
+    }
+    .content {
+      position: relative;
+      z-index: 1;
+    }
+    /* Header */
+    .header-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .header-table td {
+      vertical-align: top;
+    }
+    .logo-img {
+      max-width: 180px;
+      height: auto;
+    }
+    .company-title {
+      color: #0b3c6d;
+      font-weight: 700;
+      font-size: 14px;
+      margin: 0 0 1px 0;
+    }
+    .company-sub {
+      color: #1b7e41;
+      font-weight: 700;
+      font-size: 11px;
+      margin: 0 0 1px 0;
+    }
+    .company-sub2 {
+      color: #0b3c6d;
+      font-size: 10px;
+      margin: 0 0 2px 0;
+    }
+    .company-details {
+      font-size: 10.5px;
+      color: #444;
+      line-height: 1.3;
+    }
+    .header-right {
+      text-align: right;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #222;
+    }
+    .top-bar-line {
+      height: 2.5px;
+      background: #0b3c6d;
+      margin: 8px 0 12px 0;
+    }
+    /* Main Banner */
+    .banner {
+      background: #0b3c6d;
+      color: #fff;
+      text-align: center;
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+    .banner h1 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+    .banner-pill {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2px 12px;
+      border-radius: 10px;
+      font-size: 11px;
+      margin-top: 3px;
+    }
+
+    /* Client & Ref Section */
+    .section-grid {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+    .ref-table {
+      width: 240px;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    .ref-table td {
+      padding: 4px 6px;
+      border: 1px solid #e0e0e0;
+    }
+    .ref-table td:first-child {
+      background: #f8f9fa;
+      font-weight: 700;
+      color: #333;
+      width: 44%;
+    }
+    .statut-ok {
+      color: #1b7e41;
+      font-weight: 700;
+    }
+
+    .client-box {
+      flex: 1;
+      border: 1px solid #0b3c6d;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .client-header {
+      background: #0b3c6d;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .client-body {
+      padding: 6px 10px;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    .client-row {
+      display: flex;
+      border-bottom: 1px solid #f0f0f0;
+      padding: 1px 0;
+    }
+    .client-row:last-child {
+      border-bottom: none;
+    }
+    .client-label {
+      width: 130px;
+      color: #555;
+    }
+    .client-val {
+      font-weight: 600;
+      color: #111;
+    }
+
+    /* Items Table */
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+      font-size: 11px;
+    }
+    .items-table th {
+      background: #0b3c6d;
+      color: #fff;
+      padding: 6px 8px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid #0b3c6d;
+    }
+    .items-table td {
+      padding: 6px 8px;
+      border: 1px solid #dcdcdc;
+      vertical-align: top;
+    }
+    .item-desc-sub {
+      font-size: 10.5px;
+      color: #555;
+      margin-top: 2px;
+      line-height: 1.35;
+    }
+
+    .check-badge {
+      display: inline-block;
+      background: #e8f5e9;
+      color: #1b7e41;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-weight: 700;
+      font-size: 10.5px;
+    }
+
+    /* Delivery Conformation Note */
+    .conformation-note {
+      background: #eef6fc;
+      border: 1px solid #b8daff;
+      border-left: 3.5px solid #0b3c6d;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: #004085;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      line-height: 1.35;
+    }
+
+    /* Signatures Section */
+    .signatures-grid {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      margin-top: 10px;
+    }
+    .sig-card {
+      flex: 1;
+      border: 1px solid #dcdcdc;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 11px;
+      background: #fafafa;
+    }
+    .sig-title {
+      font-weight: 700;
+      font-size: 11px;
+      color: #0b3c6d;
+      text-transform: uppercase;
+      border-bottom: 1.5px solid #0b3c6d;
+      padding-bottom: 3px;
+      margin-bottom: 6px;
+    }
+    .sig-field {
+      margin-bottom: 4px;
+    }
+    .sig-field label {
+      color: #555;
+      display: inline-block;
+      width: 115px;
+    }
+    .sig-dots {
+      color: #888;
+    }
+    .stamp-img {
+      max-width: 140px;
+      height: auto;
+      margin-top: 2px;
+    }
+
+    /* Footer Bar */
+    .footer-bar {
+      background: #0b3c6d;
+      color: #fff;
+      text-align: center;
+      padding: 6px 10px;
+      font-size: 9.5px;
+      line-height: 1.35;
+      margin-top: 15px;
+      border-radius: 3px;
+    }
+
+    /* Print Controls */
+    .no-print {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .btn-print {
+      background: #0b3c6d;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 5px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+    .btn-print:hover { background: #082a4d; }
+
+    @media print {
+      html, body {
+        width: 210mm;
+        height: 297mm;
+        background: #fff;
+        padding: 0;
+        margin: 0;
+      }
+      .invoice-card {
+        box-shadow: none;
+        padding: 15px 20px;
+        width: 100%;
+        max-width: 100%;
+        border-radius: 0;
+      }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="no-print">
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimer le Bordereau de Livraison A4 (PDF)</button>
+  </div>
+
+  <div class="invoice-card">
+    <div class="watermark-bg">LIVRAISON</div>
+
+    <div class="content">
+      <!-- Top Header -->
+      <table class="header-table">
+        <tr>
+          <td style="width: 55%;">
+            <img src="../logo-Optinet-sokode.png" alt="OptiNet SARL" class="logo-img" onerror="this.style.display='none'">
+            <div class="company-title">OPTINET SARL U</div>
+            <div class="company-sub">Solutions Informatiques – Réseaux – Télécommunications</div>
+            <div class="company-sub2">Fournitures & Services Techniques</div>
+            <div class="company-details">
+              Siège social : Lomé – Agoè Cacavéli, Derrière la CEET<br>
+              Tél : +228 90 74 84 65 / +228 99 05 84 71 | optinetsarl@gmail.com
+            </div>
+          </td>
+          <td class="header-right">
+            <div><strong>N° Bordereau :</strong> BL/MK/2026/07/001</div>
+            <div><strong>Date de livraison :</strong> 30 Juillet 2026</div>
+            <div><strong>N° Facture liée :</strong> FAC/MK/2026/07/001</div>
+            <div style="margin-top: 3px;"><strong>NIF :</strong> 1002114979</div>
+            <div><strong>RCCM :</strong> TG-LFW-01-2026-B13-00831</div>
+          </td>
+        </tr>
+      </table>
+
+      <div class="top-bar-line"></div>
+
+      <!-- Main Banner -->
+      <div class="banner">
+        <h1>BORDEREAU DE LIVRAISON</h1>
+        <div class="banner-pill">Objet : Déploiement, Installation & Remise du Logiciel de Gestion Bar-Resto</div>
+      </div>
+
+      <!-- Client & Reference Info -->
+      <div class="section-grid">
+        <table class="ref-table">
+          <tr>
+            <td>N° Bordereau :</td>
+            <td>BL/MK/2026/07/001</td>
+          </tr>
+          <tr>
+            <td>Date Livraison :</td>
+            <td>30/07/2026</td>
+          </tr>
+          <tr>
+            <td>N° Facture :</td>
+            <td>FAC/MK/2026/07/001</td>
+          </tr>
+          <tr>
+            <td>État Matériel :</td>
+            <td class="statut-ok">✓ CONFORME & TESTÉ</td>
+          </tr>
+        </table>
+
+        <div class="client-box">
+          <div class="client-header">INFORMATIONS DESTINATAIRE / CLIENT</div>
+          <div class="client-body">
+            <div class="client-row">
+              <span class="client-label">Nom / Raison sociale :</span>
+              <span class="client-val">LA MARMITE DU KLOTO (Bar-Restaurant)</span>
+            </div>
+            <div class="client-row">
+              <span class="client-label">Adresse de livraison :</span>
+              <span class="client-val">Lomé – Avédji, non loin de la Côte d'Or, Togo</span>
+            </div>
+            <div class="client-row">
+              <span class="client-label">Contact / Direction :</span>
+              <span class="client-val">+228 91 04 27 02 / La Responsable</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delivered Items Table -->
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th style="width: 6%; text-align: center;">N°</th>
+            <th style="width: 62%;">DÉSIGNATION DES ÉLÉMENTS ET SERVICES LIVRÉS</th>
+            <th style="width: 14%; text-align: center;">QUANTITÉ</th>
+            <th style="width: 18%; text-align: center;">CONFORMITÉ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="text-align: center; font-weight: 700;">1</td>
+            <td>
+              <strong>Application Tactile de Gestion Bar-Restaurant (Marmite du Kloto)</strong>
+              <div class="item-desc-sub">
+                • Module Caisse & Ventes (Sur place, À emporter, Livraison)<br>
+                • Module Cuisine (Bons de commande en direct & gestion disponibilité)<br>
+                • Module Stock Bar & Boissons + alertes de rupture<br>
+                • Module Dépenses, Clôtures de caisse et Rapports financiers
+              </div>
+            </td>
+            <td style="text-align: center; vertical-align: middle; font-weight: 700;">1 Ensemble</td>
+            <td style="text-align: center; vertical-align: middle;"><span class="check-badge">✔ Conforme</span></td>
+          </tr>
+
+          <tr>
+            <td style="text-align: center; font-weight: 700;">2</td>
+            <td>
+              <strong>Infrastructure Base de Données & Synchronisation Cloud</strong>
+              <div class="item-desc-sub">
+                • MongoDB Local (mode hors-ligne haute vitesse)<br>
+                • Module de synchronisation automatique vers le Cloud MongoDB Atlas<br>
+                • Lanceurs exécutables autonomes (.exe) et raccourcis Bureau
+              </div>
+            </td>
+            <td style="text-align: center; vertical-align: middle; font-weight: 700;">1 Ensemble</td>
+            <td style="text-align: center; vertical-align: middle;"><span class="check-badge">✔ Conforme</span></td>
+          </tr>
+
+          <tr>
+            <td style="text-align: center; font-weight: 700;">3</td>
+            <td>
+              <strong>Formation du Personnel & Support Technique</strong>
+              <div class="item-desc-sub">
+                • Formation prise en main du responsable et des serveurs/caissiers<br>
+                • Remise du guide de démarrage et des accès administrateur · Garantie 6 Mois
+              </div>
+            </td>
+            <td style="text-align: center; vertical-align: middle; font-weight: 700;">1 Lot</td>
+            <td style="text-align: center; vertical-align: middle;"><span class="check-badge">✔ Conforme</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Conformation Note -->
+      <div class="conformation-note">
+        <strong>Attestation de Livraison :</strong> Le client reconnaît avoir reçu l'application et les services mentionnés ci-dessus en parfait état de fonctionnement, d'installation et de conformité après tests d'exploitation sur le site.
+      </div>
+
+      <!-- Signatures Grid -->
+      <div class="signatures-grid">
+        <div class="sig-card">
+          <div class="sig-title">RÉCEPTIONNÉ PAR LE CLIENT</div>
+          <div class="sig-field"><label>Nom & Prénom :</label> <span class="sig-dots">...................................................</span></div>
+          <div class="sig-field"><label>Fonction :</label> <span class="sig-dots">. Direction / Responsable ........</span></div>
+          <div class="sig-field"><label>Date de réception :</label> <span class="sig-dots">30 / 07 / 2026</span></div>
+          <div class="sig-field" style="margin-top: 6px;"><label>Signature & Cachet :</label></div>
+          <br>
+          <div style="border-bottom: 1.5px dashed #aaa; width: 100%;"></div>
+        </div>
+
+        <div class="sig-card" style="text-align: right;">
+          <div class="sig-title" style="text-align: right;">LIVRÉ PAR (OPTINET SARL U)</div>
+          <div class="sig-field"><label style="text-align: right; width: auto;">Intervenant :</label> <strong>M. NABINE Tassounti</strong></div>
+          <div class="sig-field"><label style="text-align: right; width: auto;">Fonction :</label> Directeur Général</div>
+          <div>
+            <img src="Cachet Directeur OPTINET.png" alt="Cachet & Signature" class="stamp-img" onerror="this.style.display='none'">
+          </div>
+          <div style="font-weight: 700; color: #0b3c6d; margin-top: 2px;">M. NABINE Tassounti</div>
+          <div style="font-size: 10px; color: #555;">Directeur Général – OPTINET SARL U</div>
+        </div>
+      </div>
+
+      <!-- Footer Bar -->
+      <div class="footer-bar">
+        OPTINET SARL U | RCCM : TG-LFW-01-2026-B13-00831 | NIF : 1002114979 | CNSS : 215409 | Régime : RÉEL AVEC TVA<br>
+        Lomé – Agoè Cacavéli, Derrière la CEET, Togo | Tél : +228 90 74 84 65 / +228 99 05 84 71 | optinetsarl@gmail.com
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

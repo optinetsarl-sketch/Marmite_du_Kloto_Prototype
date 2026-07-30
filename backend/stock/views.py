@@ -31,13 +31,14 @@ class MouvementStockViewSet(viewsets.ReadOnlyModelViewSet):
         entree.is_valid(raise_exception=True)
         donnees = entree.validated_data
 
+        fournisseur_nom = donnees.get("fournisseur")
         fournisseur = None
-        if donnees["fournisseur"]:
-            fournisseur, _ = Fournisseur.objects.get_or_create(nom=donnees["fournisseur"].strip())
+        if fournisseur_nom and isinstance(fournisseur_nom, str) and fournisseur_nom.strip():
+            fournisseur, _ = Fournisseur.objects.get_or_create(nom=fournisseur_nom.strip())
 
         produit = donnees["produit"]
         prix = donnees.get("prix_unitaire")
-        if donnees["maj_prix_vente"] and prix:
+        if donnees.get("maj_prix_vente") and prix:
             produit.prix_standard = prix
             produit.save(update_fields=["prix_standard"])
 

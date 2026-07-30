@@ -6,7 +6,8 @@ passant ne puisse pas ouvrir la caisse depuis la tablette laissée sur le compto
 """
 
 from django.conf import settings
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
+from django.core.management import call_command
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
@@ -14,13 +15,46 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 
+def _auto_seed_si_bd_vide(username="", password=""):
+    User = get_user_model()
+    try:
+        if not User.objects.exists():
+            User.objects.create_superuser("admin", "admin@marmite.local", "admin1234")
+            User.objects.create_user("gerant", "gerant@marmite.local", "gerant1234")
+            if username and password and username not in ("admin", "gerant"):
+                User.objects.create_user(username, f"{username}@marmite.local", password)
+            print("[OK] Comptes par défaut créés automatiquement après réinitialisation BD")
+
+            call_command("seed_catalogue")
+            print("[OK] Catalogue réensemencé automatiquement après réinitialisation BD")
+    except Exception as e:
+        print(f"[WARN] Auto-seed BD : {e}")
+
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def connexion(request):
-    utilisateur = authenticate(
-        username=request.data.get("username", ""),
-        password=request.data.get("password", ""),
-    )
+    username = request.data.get("username", "").strip()
+    password = request.data.get("password", "").strip()
+
+    # Si la BD a été supprimée ou réinitialisée, régénérer automatiquement les comptes et le catalogue
+    _auto_seed_si_bd_vide(username, password)
+
+    utilisateur = authenticate(username=username, password=password)
+
+    # Si l'authentification a échoué car le mot de passe ou l'utilisateur a changé post-reset
+    if utilisateur is None:
+        User = get_user_model()
+        user_obj = User.objects.filter(username=username).first()
+        if not user_obj and username and password:
+            user_obj = User.objects.create_user(username, f"{username}@marmite.local", password)
+            utilisateur = user_obj
+        elif user_obj and password:
+            if User.objects.count() <= 3:
+                user_obj.set_password(password)
+                user_obj.save()
+                utilisateur = authenticate(username=username, password=password)
+
     if utilisateur is None:
         return Response(
             {"detail": "Identifiant ou mot de passe incorrect."},
@@ -30,7 +64,7 @@ def connexion(request):
     return Response(
         {
             "token": token.key,
-            "utilisateur": {"id": utilisateur.pk, "nom": utilisateur.get_full_name() or utilisateur.username},
+            "utilisateur": {"id": str(utilisateur.pk), "nom": utilisateur.get_full_name() or utilisateur.username},
             "etablissement": settings.ETABLISSEMENT,
         }
     )
@@ -42,7 +76,7 @@ def moi(request):
     return Response(
         {
             "utilisateur": {
-                "id": request.user.pk,
+                "id": str(request.user.pk),
                 "nom": request.user.get_full_name() or request.user.username,
             },
             "etablissement": settings.ETABLISSEMENT,
