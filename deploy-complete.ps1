@@ -50,12 +50,15 @@ if (Test-Path $envSource) {
     Write-Host "[!] AVERTISSEMENT : backend\.env introuvable - sync Atlas inactive`n" -ForegroundColor Yellow
 }
 
-# Copie du logo
+# Copie du logo et de l'icone app.ico
 $logoSource = Join-Path $rootDir "LOGO-Marmite_du_Kloto.jpg"
 $logoDest   = Join-Path $deployDir "LOGO-Marmite_du_Kloto.jpg"
-if (Test-Path $logoSource) {
-    Copy-Item $logoSource $logoDest -Force
-}
+if (Test-Path $logoSource) { Copy-Item $logoSource $logoDest -Force }
+
+$icoSource  = Join-Path $rootDir "app.ico"
+$icoDest    = Join-Path $deployDir "app.ico"
+if (Test-Path $icoSource) { Copy-Item $icoSource $icoDest -Force }
+$iconTarget = if (Test-Path $icoDest) { "$icoDest,0" } else { "$exePath,0" }
 
 # === CREATION DES LANCEURS VBS (ZERO FENETRE) ===
 
@@ -94,10 +97,10 @@ if (Test-Path $shortcutPath) { Remove-Item $shortcutPath -Force -ErrorAction Sil
 $shortcut = $WshShell.CreateShortcut($shortcutPath)
 $shortcut.TargetPath = $exePath
 $shortcut.WorkingDirectory = $deployDir
-$shortcut.IconLocation = "$exePath,0"
+$shortcut.IconLocation = $iconTarget
 $shortcut.Description = "La Marmite du Kloto - Bar-Resto - Gestion"
 $shortcut.Save()
-Write-Host "[OK] Raccourci Bureau : $shortcutPath`n" -ForegroundColor Green
+Write-Host "[OK] Raccourci Bureau avec icone app.ico : $shortcutPath`n" -ForegroundColor Green
 
 # === RACCOURCI STARTUP (DEMARRAGE AUTO) ===
 $startupFolder = [Environment]::GetFolderPath('Startup')
@@ -107,10 +110,10 @@ if (Test-Path $startupShortcut) { Remove-Item $startupShortcut -Force -ErrorActi
 $shortcut2 = $WshShell.CreateShortcut($startupShortcut)
 $shortcut2.TargetPath = $exePath
 $shortcut2.WorkingDirectory = $deployDir
-$shortcut2.IconLocation = "$exePath,0"
+$shortcut2.IconLocation = $iconTarget
 $shortcut2.Description = "La Marmite du Kloto - Demarrage automatique au boot Windows"
 $shortcut2.Save()
-Write-Host "[OK] Raccourci Startup : $startupShortcut`n" -ForegroundColor Green
+Write-Host "[OK] Raccourci Startup avec icone app.ico : $startupShortcut`n" -ForegroundColor Green
 
 # Copie du dossier FACTURE
 $factureSource = Join-Path $rootDir "FACTURE"

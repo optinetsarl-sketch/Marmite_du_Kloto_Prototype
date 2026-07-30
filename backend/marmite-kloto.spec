@@ -140,7 +140,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,  # Exécution silencieuse sans console noire
-    icon=None,
+    icon=os.path.join(PROJECT, "app.ico"),
 )
 
 coll = COLLECT(

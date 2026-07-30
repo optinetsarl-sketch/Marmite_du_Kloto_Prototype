@@ -89,3 +89,19 @@ cd ../backend
 # Génération package client
 cd ..
 .\deploy-complete.ps1
+
+
+# 1. Récupérer les dernières mises à jour du code
+git pull origin main
+
+# 2. Reconstruire le frontend React
+cd frontend
+npm run build
+
+# 3. Recompiler l'exécutable Python silencieux
+cd ../backend
+.\compile.bat
+
+# 4. Générer le dossier de déploiement et l'archive ZIP finale
+cd ..
+.\deploy-complete.ps1
