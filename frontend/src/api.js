@@ -74,3 +74,12 @@ export async function liste(chemin) {
 export function fcfa(montant) {
   return `${Number(montant || 0).toLocaleString('fr-FR').replace(/ /g, ' ')} F`
 }
+
+export function referenceCommande(commande) {
+  if (!commande || !commande.id) return ''
+  const idStr = String(commande.id).slice(-4).toUpperCase()
+  const type = commande.type || (commande.table_numero ? 'place' : 'place')
+  const prefixe = type === 'livraison' ? 'LIV' : type === 'emporter' ? 'EMP' : 'PLC'
+  return `${prefixe}-${idStr}`
+}
+

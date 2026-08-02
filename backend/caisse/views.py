@@ -12,6 +12,19 @@ class DepenseViewSet(viewsets.ModelViewSet):
     serializer_class = DepenseSerializer
     filterset_fields = ["categorie", "mode", "session"]
 
+    def get_queryset(self):
+        # On n'affiche que les dépenses actives (non supprimées) dans les listes normales
+        return Depense.objects.filter(supprime_le__isnull=True)
+
+    def destroy(self, request, *args, **kwargs):
+        """Soft-delete : on marque supprime_le plutôt que d'effacer la ligne.
+        La dépense reste visible dans l'historique avec le statut 'Supprimée'."""
+        depense = self.get_object()
+        depense.supprime_le = timezone.now()
+        depense.supprime_par = getattr(request.user, 'username', '') or 'inconnu'
+        depense.save(update_fields=["supprime_le", "supprime_par"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class SessionCaisseViewSet(viewsets.ModelViewSet):
     queryset = SessionCaisse.objects.prefetch_related("depenses")

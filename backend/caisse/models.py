@@ -101,12 +101,21 @@ class Depense(models.Model):
     montant = models.PositiveIntegerField()
     mode = models.CharField(max_length=10, choices=MODES, default=MODE_ESPECES)
     cree_le = models.DateTimeField(auto_now_add=True)
+    supprime_le = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Renseigné lors d'une suppression (soft-delete). La dépense reste traçable dans l'historique."
+    )
+    supprime_par = models.CharField(max_length=100, blank=True, default='')
 
     class Meta:
         ordering = ["-cree_le"]
         verbose_name = "dépense"
         verbose_name_plural = "dépenses"
-        indexes = [models.Index(fields=["cree_le"])]
+        indexes = [models.Index(fields=["cree_le"]), models.Index(fields=["supprime_le"])]
 
     def __str__(self):
         return f"{self.get_categorie_display()} · {self.montant} F"
+
+    @property
+    def est_supprimee(self):
+        return self.supprime_le is not None

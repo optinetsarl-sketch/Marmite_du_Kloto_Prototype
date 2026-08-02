@@ -3,6 +3,57 @@ import { useEffect, useState } from 'react'
 import { api, fcfa } from '../api'
 import FeuilleGestion from '../composants/FeuilleGestion'
 
+/* ─── Couleur de l'écart de caisse ─────────────────────────────────────── */
+function couleurEcart(ecart) {
+  if (ecart === null || ecart === 0) return 'var(--vert)'
+  return ecart < 0 ? 'var(--rouge)' : 'var(--jaune)'
+}
+
+/* ─── Ligne de tableau simple ──────────────────────────────────────────── */
+function Ligne({ libelle, valeur, fort, rouge }) {
+  return (
+    <tr>
+      <td style={fort ? { fontWeight: 700 } : undefined}>{libelle}</td>
+      <td style={{
+        textAlign: 'right',
+        fontWeight: fort ? 700 : undefined,
+        color: rouge ? 'var(--rouge)' : fort ? 'var(--orange-dk)' : undefined,
+      }}>
+        {fcfa(valeur)}
+      </td>
+    </tr>
+  )
+}
+
+/* ─── Mini KPI card ────────────────────────────────────────────────────── */
+function KpiCard({ label, valeur, accent, sub, brut }) {
+  return (
+    <div style={{
+      background: accent
+        ? 'linear-gradient(135deg,var(--orange) 0%,var(--orange-dk) 100%)'
+        : '#fff',
+      border: accent ? 'none' : '1px solid var(--bord)',
+      borderRadius: 'var(--radius)',
+      padding: '16px 20px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 6,
+      boxShadow: accent ? 'var(--shadow-orange)' : 'var(--shadow-sm)',
+      flex: 1,
+      minWidth: 140,
+    }}>
+      <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: accent ? 'rgba(255,255,255,.7)' : 'var(--mut)' }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: accent ? '#fff' : 'var(--noir)', lineHeight: 1.1 }}>
+        {brut ? valeur : fcfa(valeur)}
+      </div>
+      {sub && <div style={{ fontSize: 12, color: accent ? 'rgba(255,255,255,.65)' : 'var(--mut)' }}>{sub}</div>}
+    </div>
+  )
+}
+
+/* ─── Composant principal ──────────────────────────────────────────────── */
 export default function Cloture() {
   const [feuille, setFeuille] = useState(null)
   const [fondInitial, setFondInitial] = useState('')
@@ -10,6 +61,7 @@ export default function Cloture() {
   const [erreur, setErreur] = useState('')
   const [envoi, setEnvoi] = useState(false)
   const [document, setDocument] = useState(null)
+  const [confirmer, setConfirmer] = useState(false)
 
   async function charger() {
     try {
@@ -19,12 +71,10 @@ export default function Cloture() {
     }
   }
 
-  useEffect(() => {
-    charger()
-  }, [])
+  useEffect(() => { charger() }, [])
 
-  async function ouvrirCaisse(evenement) {
-    evenement.preventDefault()
+  async function ouvrirCaisse(e) {
+    e.preventDefault()
     setErreur('')
     try {
       await api.post('/sessions-caisse/', { fond_initial: Number(fondInitial) || 0 })
@@ -38,6 +88,7 @@ export default function Cloture() {
   async function cloturer() {
     setErreur('')
     setEnvoi(true)
+    setConfirmer(false)
     try {
       const session = await api.post(`/sessions-caisse/${feuille.caisse.id}/cloturer/`, {
         montant_reel: Number(reel),
@@ -52,7 +103,12 @@ export default function Cloture() {
     }
   }
 
-  if (!feuille) return <div className="etat">Chargement…</div>
+  if (!feuille) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 12, color: 'var(--mut)' }}>
+      <div className="spinner" />
+      Chargement de la caisse…
+    </div>
+  )
 
   const { caisse, revenus } = feuille
   const theorique = caisse?.montant_theorique ?? 0
@@ -60,136 +116,261 @@ export default function Cloture() {
 
   return (
     <>
-      <div className="top">
+      {/* ── En-tête ─────────────────────────────────────────────────────── */}
+      <div className="top" style={{ marginBottom: 24 }}>
         <div>
           <h1>Clôture du jour</h1>
           <div className="sub">{feuille.periode}</div>
         </div>
-        <div className={`pill ${caisse ? 'vert' : 'alerte'}`}>
-          {caisse ? 'Caisse ouverte' : 'Aucune caisse ouverte'}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className={`pill ${caisse ? 'vert' : 'alerte'}`}>
+            {caisse ? 'Caisse ouverte' : 'Aucune caisse ouverte'}
+          </div>
+          {caisse && (
+            <div className="pill" style={{ background: 'var(--tint)', color: 'var(--tint-tx)', border: '1px solid var(--tint-bd)' }}>
+              Session #{String(caisse.id).slice(-6).toUpperCase()}
+            </div>
+          )}
         </div>
       </div>
 
-      {erreur && <div className="erreur">{erreur}</div>}
+      {erreur && (
+        <div className="erreur" style={{ marginBottom: 18 }}>{erreur}</div>
+      )}
 
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/*  ÉTAT : Aucune caisse ouverte → formulaire d'ouverture             */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
       {!caisse ? (
-        <form className="card" onSubmit={ouvrirCaisse} style={{ maxWidth: 420 }}>
-          <h3>Ouvrir la caisse</h3>
-          <label className="lbl">Fond de caisse initial (FCFA)</label>
-          <input
-            className="champ"
-            type="number"
-            min="0"
-            step="1"
-            placeholder="ex. 50000"
-            value={fondInitial}
-            onChange={(e) => setFondInitial(e.target.value)}
-            required
-          />
-          <button className="btn btn-o" style={{ width: '100%', marginTop: 16 }}>
-            Ouvrir la journée
-          </button>
-          <div className="note">
-            Sans caisse ouverte, les ventes et dépenses sont bien enregistrées, mais l'arrêté
-            d'espèces n'a pas de point de départ.
+        <div style={{ maxWidth: 480, margin: '0 auto' }}>
+          <div className="card" style={{ padding: '36px 32px' }}>
+            <h2 style={{ marginBottom: 6, fontSize: 22 }}>Ouvrir la caisse</h2>
+            <p style={{ color: 'var(--mut)', fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>
+              Saisissez le fond de départ. Il servira de référence pour l'arrêté des espèces en fin de journée.
+            </p>
+            <form onSubmit={ouvrirCaisse}>
+              <label className="lbl">Fond de caisse initial (FCFA)</label>
+              <input
+                id="fond-initial"
+                className="champ"
+                type="number"
+                min="0"
+                step="500"
+                placeholder="ex. 50 000"
+                value={fondInitial}
+                onChange={(e) => setFondInitial(e.target.value)}
+                required
+                style={{ fontSize: 20, fontWeight: 700, textAlign: 'center', marginBottom: 8 }}
+              />
+              <div className="note" style={{ marginBottom: 20 }}>
+                Sans caisse ouverte, les ventes et dépenses sont bien enregistrées, mais l'arrêté d'espèces n'a pas de point de départ.
+              </div>
+              <button id="btn-ouvrir-caisse" className="btn btn-o" style={{ width: '100%', height: 48, fontSize: 16 }}>
+                Ouvrir la journée
+              </button>
+            </form>
           </div>
-        </form>
+        </div>
       ) : (
-        <div className="pos" style={{ gridTemplateColumns: '1fr 340px' }}>
-          <div>
+        /* ─────────────────────────────────────────────────────────────────── */
+        /*  ÉTAT : Caisse ouverte → tableau de bord + clôture                  */
+        /* ─────────────────────────────────────────────────────────────────── */
+        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+
+          {/* ── Colonne principale (gauche) ─────────────────────────────── */}
+          <div style={{ flex: '1 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* KPIs */}
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <KpiCard label="Chiffre d'affaires" valeur={revenus.total} />
+              <KpiCard label="Dépenses" valeur={feuille.total_depenses} />
+              <KpiCard label="Résultat net" valeur={feuille.resultat_net} accent
+                sub={feuille.resultat_net >= 0 ? 'Bénéfice' : 'Déficit'} />
+              <KpiCard label="Commandes" valeur={feuille.nb_commandes} brut sub="réalisées" />
+            </div>
+
+            {/* Recettes par source */}
             <div className="card">
-              <h3>Ce que chaque compartiment a rapporté</h3>
+              <h3 style={{ margin: '0 0 14px 0' }}>Recettes par source</h3>
               <table className="grid">
                 <tbody>
-                  <Ligne libelle="Ventes bar" valeur={revenus.bar} />
-                  <Ligne libelle="Ventes cuisine" valeur={revenus.cuisine} />
-                  <Ligne libelle="Livraisons" valeur={revenus.livraison} />
-                  <Ligne libelle="Chiffre d'affaires" valeur={revenus.total} fort />
+                  <Ligne libelle="Ventes bar"      valeur={revenus.bar} />
+                  <Ligne libelle="Ventes cuisine"  valeur={revenus.cuisine} />
+                  <Ligne libelle="Livraisons"      valeur={revenus.livraison} />
+                  <Ligne libelle="Chiffre d'affaires"  valeur={revenus.total} fort />
                 </tbody>
               </table>
             </div>
 
+            {/* Dépenses par catégorie */}
             <div className="card">
-              <h3>Recettes par mode de paiement</h3>
-              <table className="grid">
-                <tbody>
-                  {feuille.recettes_par_mode.map((ligne) => (
-                    <Ligne key={ligne.mode} libelle={ligne.libelle} valeur={ligne.montant} />
-                  ))}
-                </tbody>
-              </table>
-              {feuille.recettes_par_mode.length === 0 && (
-                <div className="etat">Aucun encaissement sur la période.</div>
+              <h3 style={{ margin: '0 0 14px 0' }}>Dépenses par catégorie</h3>
+              {feuille.depenses_par_categorie.length === 0 ? (
+                <div className="etat">Aucune dépense enregistrée aujourd'hui.</div>
+              ) : (
+                <table className="grid">
+                  <tbody>
+                    {feuille.depenses_par_categorie.map((l) => (
+                      <Ligne key={l.categorie} libelle={l.libelle} valeur={l.montant} />
+                    ))}
+                    <Ligne libelle="Total dépenses" valeur={feuille.total_depenses} fort rouge />
+                  </tbody>
+                </table>
               )}
             </div>
 
+            {/* Recettes par mode de paiement */}
             <div className="card">
-              <h3>Dépenses par catégorie</h3>
-              <table className="grid">
-                <tbody>
-                  {feuille.depenses_par_categorie.map((ligne) => (
-                    <Ligne key={ligne.categorie} libelle={ligne.libelle} valeur={ligne.montant} />
-                  ))}
-                  <Ligne libelle="Total dépenses" valeur={feuille.total_depenses} fort />
-                </tbody>
-              </table>
+              <h3 style={{ margin: '0 0 14px 0' }}>Recettes par mode de paiement</h3>
+              {feuille.recettes_par_mode.length === 0 ? (
+                <div className="etat">Aucun encaissement sur la période.</div>
+              ) : (
+                <table className="grid">
+                  <tbody>
+                    {feuille.recettes_par_mode.map((l) => (
+                      <Ligne key={l.mode} libelle={l.libelle} valeur={l.montant} />
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
 
-            <div className="rep-net">
-              <span>Résultat net de la journée</span>
-              <span>{fcfa(feuille.resultat_net)}</span>
-            </div>
-
-            <div className="card">
-              <h3>Arrêté de caisse (espèces)</h3>
+            {/* Arrêté de caisse */}
+            <div className="card" style={{ borderLeft: '4px solid var(--orange)' }}>
+              <h3 style={{ margin: '0 0 14px 0' }}>Arrêté de caisse (espèces)</h3>
               <table className="grid">
                 <tbody>
-                  <Ligne libelle="Fond de caisse initial" valeur={caisse.fond_initial} />
-                  <Ligne libelle="+ Recettes en espèces" valeur={caisse.recettes_especes} />
-                  <Ligne libelle="− Dépenses en espèces" valeur={caisse.depenses_especes} />
+                  <Ligne libelle="Fond de caisse initial"       valeur={caisse.fond_initial} />
+                  <Ligne libelle="+ Recettes en espèces"        valeur={caisse.recettes_especes} />
+                  <Ligne libelle="− Dépenses en espèces"        valeur={caisse.depenses_especes} rouge />
                   <Ligne libelle="= Montant théorique en caisse" valeur={theorique} fort />
                 </tbody>
               </table>
-              <div className="note">
-                Seules les espèces figurent ici : TMoney, Flooz et carte n'entrent pas dans le tiroir.
+              <div className="note" style={{ marginTop: 12 }}>
+                Seules les espèces figurent ici : TMoney, Flooz et banque n'entrent pas dans le tiroir.
               </div>
             </div>
-          </div>
 
-          <div className="card">
-            <h3>Comptage &amp; clôture</h3>
-            <label className="lbl">Montant réel compté en caisse (FCFA)</label>
-            <input
-              className="champ"
-              type="number"
-              min="0"
-              step="1"
-              placeholder={`ex. ${theorique}`}
-              value={reel}
-              onChange={(e) => setReel(e.target.value)}
-            />
-            <div className="tot" style={{ fontSize: 15 }}>
-              <span>Écart (réel − théorique)</span>
-              <span style={{ color: couleurEcart(ecart) }}>
-                {ecart === null ? '—' : `${ecart > 0 ? '+' : ''}${fcfa(ecart)}`}
-              </span>
+          </div>{/* fin colonne gauche */}
+
+          {/* ── Colonne droite : panneau de clôture ──────────────────────── */}
+          <div style={{ width: 340, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* Récap rapide session */}
+            <div className="card" style={{ background: '#1e1b1a', color: '#fff', border: 'none' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,.45)', marginBottom: 14 }}>
+                Session en cours
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: 'rgba(255,255,255,.55)', fontSize: 13 }}>Fond initial</span>
+                <span style={{ fontWeight: 700 }}>{fcfa(caisse.fond_initial)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: 'rgba(255,255,255,.55)', fontSize: 13 }}>Espèces attendues</span>
+                <span style={{ fontWeight: 700, color: 'var(--orange-lt)' }}>{fcfa(theorique)}</span>
+              </div>
+              <div style={{ borderTop: '1px solid rgba(255,255,255,.1)', marginTop: 8, paddingTop: 12, display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'rgba(255,255,255,.55)', fontSize: 13 }}>CA du jour</span>
+                <span style={{ fontWeight: 800, color: 'var(--orange)', fontSize: 18 }}>{fcfa(revenus.total)}</span>
+              </div>
             </div>
-            <button
-              className="btn btn-o"
-              style={{ width: '100%', marginTop: 16 }}
-              disabled={reel === '' || envoi}
-              onClick={cloturer}
-            >
-              {envoi ? 'Clôture…' : 'Clôturer & imprimer'}
-            </button>
-            <div className="note">
-              La clôture arrête la journée, fige l'écart de caisse et édite le document à signer.
-              Elle est définitive.
+
+            {/* Formulaire de comptage */}
+            <div className="card" style={{ position: 'sticky', top: 20 }}>
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>Comptage & clôture</div>
+                <div style={{ fontSize: 12, color: 'var(--mut)' }}>Opération définitive</div>
+              </div>
+
+              {/* Montant théorique de référence */}
+              <div style={{
+                background: 'var(--tint)', border: '1px solid var(--tint-bd)',
+                borderRadius: 'var(--radius-sm)', padding: '12px 16px',
+                marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <span style={{ fontSize: 13, color: 'var(--tint-tx)', fontWeight: 600 }}>Montant théorique</span>
+                <span style={{ fontWeight: 800, color: 'var(--orange-dk)', fontSize: 18 }}>{fcfa(theorique)}</span>
+              </div>
+
+              {/* Saisie du réel */}
+              <label className="lbl" htmlFor="montant-reel">Montant réel compté (FCFA)</label>
+              <input
+                id="montant-reel"
+                className="champ"
+                type="number"
+                min="0"
+                step="500"
+                placeholder={`ex. ${theorique}`}
+                value={reel}
+                onChange={(e) => { setReel(e.target.value); setConfirmer(false) }}
+                style={{ fontSize: 20, fontWeight: 700, textAlign: 'center', marginBottom: 12 }}
+              />
+
+              {/* Écart */}
+              {reel !== '' && (
+                <div style={{
+                  background: ecart === 0 ? 'var(--vert-bg)' : ecart < 0 ? 'var(--rouge-bg)' : 'var(--jaune-bg)',
+                  border: `1px solid ${ecart === 0 ? 'rgba(63,125,78,.25)' : ecart < 0 ? 'rgba(163,45,45,.25)' : 'rgba(122,84,16,.25)'}`,
+                  borderRadius: 'var(--radius-sm)', padding: '12px 16px',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  marginBottom: 16,
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: couleurEcart(ecart) }}>
+                    {ecart === 0 ? 'Caisse équilibrée' : ecart < 0 ? 'Déficit caisse' : 'Excédent caisse'}
+                  </span>
+                  <span style={{ fontWeight: 800, color: couleurEcart(ecart), fontSize: 18 }}>
+                    {ecart > 0 ? '+' : ''}{fcfa(ecart)}
+                  </span>
+                </div>
+              )}
+
+              {/* Bouton clôture (avec confirmation si écart important) */}
+              {!confirmer ? (
+                <button
+                  id="btn-cloturer"
+                  className="btn btn-o"
+                  style={{ width: '100%', height: 48, fontSize: 15, fontWeight: 700 }}
+                  disabled={reel === '' || envoi}
+                  onClick={() => {
+                    const e = ecart ?? 0
+                    if (Math.abs(e) > 10000) { setConfirmer(true) }
+                    else { cloturer() }
+                  }}
+                >
+                  {envoi ? 'Clôture en cours…' : 'Clôturer & imprimer'}
+                </button>
+              ) : (
+                <div style={{
+                  background: 'var(--rouge-bg)', border: '1px solid rgba(163,45,45,.3)',
+                  borderRadius: 'var(--radius-sm)', padding: 16, textAlign: 'center',
+                }}>
+                  <div style={{ fontWeight: 700, color: 'var(--rouge)', marginBottom: 8 }}>
+                    Écart important : {ecart > 0 ? '+' : ''}{fcfa(ecart)}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--mut)', marginBottom: 14 }}>
+                    Confirmez-vous la clôture malgré cet écart ?
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn" style={{ flex: 1 }} onClick={() => setConfirmer(false)}>
+                      Annuler
+                    </button>
+                    <button className="btn btn-o" style={{ flex: 1 }} onClick={cloturer} disabled={envoi}>
+                      Confirmer
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="note" style={{ marginTop: 12 }}>
+                La clôture arrête la journée, fige l'écart de caisse et édite le document à signer. Elle est définitive.
+              </div>
             </div>
-          </div>
+
+          </div>{/* fin colonne droite */}
         </div>
       )}
 
+      {/* ── Document imprimable (modal) ───────────────────────────────────── */}
       {document && (
         <FeuilleGestion
           titre="Clôture de journée"
@@ -215,10 +396,7 @@ export default function Cloture() {
             {
               titre: 'Dépenses par catégorie',
               lignes: [
-                ...document.depenses_par_categorie.map((ligne) => ({
-                  libelle: ligne.libelle,
-                  valeur: ligne.montant,
-                })),
+                ...document.depenses_par_categorie.map((l) => ({ libelle: l.libelle, valeur: l.montant })),
                 { libelle: 'Total dépenses', valeur: document.total_depenses, total: true },
               ],
             },
@@ -230,45 +408,16 @@ export default function Cloture() {
                 { libelle: '− Dépenses espèces', valeur: document.caisse.depenses_especes },
                 { libelle: 'Montant théorique', valeur: document.caisse.montant_theorique, total: true },
                 { libelle: 'Montant réel compté', valeur: document.session.montant_reel },
-                {
-                  libelle: 'Écart',
-                  valeur: `${document.session.ecart > 0 ? '+' : ''}${fcfa(document.session.ecart)}`,
-                  brut: true,
-                  total: true,
-                },
+                { libelle: 'Écart', valeur: `${document.session.ecart > 0 ? '+' : ''}${fcfa(document.session.ecart)}`, brut: true, total: true },
               ],
             },
             {
               titre: 'Recettes par mode de paiement',
-              lignes: document.recettes_par_mode.map((ligne) => ({
-                libelle: ligne.libelle,
-                valeur: ligne.montant,
-              })),
+              lignes: document.recettes_par_mode.map((l) => ({ libelle: l.libelle, valeur: l.montant })),
             },
           ]}
         />
       )}
     </>
   )
-}
-
-function Ligne({ libelle, valeur, fort }) {
-  return (
-    <tr>
-      <td style={fort ? { fontWeight: 700 } : undefined}>{libelle}</td>
-      <td
-        style={{
-          textAlign: 'right',
-          ...(fort ? { fontWeight: 700, color: 'var(--orange-dk)' } : {}),
-        }}
-      >
-        {fcfa(valeur)}
-      </td>
-    </tr>
-  )
-}
-
-function couleurEcart(ecart) {
-  if (ecart === null || ecart === 0) return 'var(--vert)'
-  return ecart < 0 ? 'var(--rouge)' : 'var(--jaune)'
 }

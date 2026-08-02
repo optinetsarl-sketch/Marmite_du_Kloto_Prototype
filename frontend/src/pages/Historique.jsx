@@ -5,6 +5,7 @@ import { api, fcfa } from '../api'
 const TYPE_LABELS = {
   commande: 'Commande',
   depense: 'Dépense',
+  depense_supprimee: 'Dépense supprimée',
   mouvement_stock: 'Stock',
 }
 
@@ -47,6 +48,13 @@ export default function Historique() {
     })
   }
 
+  // Couleur de fond par type d'événement
+  function rowStyle(evenement) {
+    if (evenement.type === 'depense_supprimee') return { background: 'rgba(239,68,68,0.06)' }
+    if (evenement.type === 'depense' && evenement.supprimee) return { background: 'rgba(239,68,68,0.03)' }
+    return {}
+  }
+
   function renderEvenement(evenement) {
     if (evenement.type === 'commande') {
       return (
@@ -68,11 +76,49 @@ export default function Historique() {
     if (evenement.type === 'depense') {
       return (
         <>
-          <div>
-            <strong>{TYPE_LABELS[evenement.type]}</strong> · {evenement.categorie_libelle}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <strong style={{ textDecoration: evenement.supprimee ? 'line-through' : 'none' }}>
+              {TYPE_LABELS[evenement.type]}
+            </strong>
+            &nbsp;· {evenement.categorie_libelle}
+            {evenement.supprimee && (
+              <span style={{
+                fontSize: '0.7rem',
+                background: 'rgba(239,68,68,0.15)',
+                color: '#ef4444',
+                border: '1px solid rgba(239,68,68,0.3)',
+                borderRadius: 4,
+                padding: '1px 6px',
+                fontWeight: 700,
+              }}>SUPPRIMÉE</span>
+            )}
+          </div>
+          <div style={{ color: 'var(--mut)', textDecoration: evenement.supprimee ? 'line-through' : 'none' }}>
+            {evenement.description || 'Sans description'} · {fcfa(evenement.montant)} · {evenement.mode}
+          </div>
+        </>
+      )
+    }
+
+    if (evenement.type === 'depense_supprimee') {
+      return (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{
+              fontSize: '0.75rem',
+              background: 'rgba(239,68,68,0.15)',
+              color: '#ef4444',
+              border: '1px solid rgba(239,68,68,0.4)',
+              borderRadius: 4,
+              padding: '2px 7px',
+              fontWeight: 700,
+            }}>🗑 SUPPRESSION</span>
+            <strong style={{ color: '#ef4444' }}>Dépense annulée</strong>
+            &nbsp;· {evenement.categorie_libelle}
           </div>
           <div style={{ color: 'var(--mut)' }}>
             {evenement.description || 'Sans description'} · {fcfa(evenement.montant)} · {evenement.mode}
+            {evenement.supprime_par ? ` · par ${evenement.supprime_par}` : ''}
           </div>
         </>
       )
@@ -96,6 +142,30 @@ export default function Historique() {
     return <div>{JSON.stringify(evenement)}</div>
   }
 
+  // Montant à afficher dans la colonne droite
+  function renderMontant(evenement) {
+    if (evenement.type === 'depense') {
+      return (
+        <span style={{
+          color: evenement.supprimee ? '#9ca3af' : '#ef4444',
+          textDecoration: evenement.supprimee ? 'line-through' : 'none',
+        }}>
+          -{fcfa(evenement.montant)}
+        </span>
+      )
+    }
+    if (evenement.type === 'depense_supprimee') {
+      return <span style={{ color: '#ef4444', fontWeight: 700 }}>⊘ -{fcfa(evenement.montant)}</span>
+    }
+    if (evenement.type === 'commande' && evenement.total != null) {
+      return fcfa(evenement.total)
+    }
+    return ''
+  }
+
+  // Nombre de dépenses supprimées du jour
+  const nbSupprimees = historique?.depenses?.filter(d => d.supprimee).length ?? 0
+
   return (
     <>
       <div className="top" style={{ gap: '10px', flexWrap: 'wrap' }}>
@@ -117,6 +187,15 @@ export default function Historique() {
           />
         </div>
         <div className="pill">{historique?.evenements?.length ?? 0} événements</div>
+        {nbSupprimees > 0 && (
+          <div className="pill" style={{
+            background: 'rgba(239,68,68,0.12)',
+            color: '#ef4444',
+            border: '1px solid rgba(239,68,68,0.3)',
+          }}>
+            ⚠ {nbSupprimees} dépense{nbSupprimees > 1 ? 's' : ''} supprimée{nbSupprimees > 1 ? 's' : ''}
+          </div>
+        )}
       </div>
 
       {erreur && <div className="erreur">{erreur}</div>}
@@ -131,8 +210,14 @@ export default function Historique() {
             </div>
             <div className="stat wht">
               <div className="l">Dépenses</div>
-              <div className="v">{historique.depenses.length}</div>
+              <div className="v">{historique.depenses.filter(d => !d.supprimee).length}</div>
             </div>
+            {nbSupprimees > 0 && (
+              <div className="stat wht" style={{ borderColor: 'rgba(239,68,68,0.3)' }}>
+                <div className="l" style={{ color: '#ef4444' }}>Supprimées</div>
+                <div className="v" style={{ color: '#ef4444' }}>{nbSupprimees}</div>
+              </div>
+            )}
             <div className="stat wht">
               <div className="l">Mouvements</div>
               <div className="v">{historique.mouvements_stock.length}</div>
@@ -156,15 +241,11 @@ export default function Historique() {
                 </thead>
                 <tbody>
                   {historique.evenements.map((evenement) => (
-                    <tr key={`${evenement.type}-${evenement.id}`}>
+                    <tr key={`${evenement.type}-${evenement.id}`} style={rowStyle(evenement)}>
                       <td data-titre>{formatTime(evenement.timestamp)}</td>
                       <td data-label="Détail">{renderEvenement(evenement)}</td>
                       <td data-label="Montant" style={{ textAlign: 'right', fontWeight: 600 }}>
-                        {evenement.type === 'depense'
-                          ? `-${fcfa(evenement.montant)}`
-                          : evenement.type === 'commande' && evenement.total != null
-                          ? fcfa(evenement.total)
-                          : ''}
+                        {renderMontant(evenement)}
                       </td>
                     </tr>
                   ))}

@@ -27,6 +27,8 @@ class ProduitSerializer(serializers.ModelSerializer):
     rayon = serializers.CharField(source="categorie.rayon", read_only=True)
     stock = serializers.SerializerMethodField()
     etat_stock = serializers.SerializerMethodField()
+    # PositiveIntegerField rejette null par défaut même si le modèle le permet.
+    prix_standard = serializers.IntegerField(allow_null=True, required=False, min_value=0)
 
     class Meta:
         model = Produit

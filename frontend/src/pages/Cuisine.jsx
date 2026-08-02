@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { api, liste } from '../api'
+import { api, fcfa, liste, referenceCommande } from '../api'
 import BonCuisine from '../composants/BonCuisine'
 import Modale from '../composants/Modale'
 
@@ -57,7 +57,7 @@ export default function Cuisine() {
         <div>
           <h1>Cuisine — Bons de commande</h1>
           <div className="sub">
-            Les bons ne portent pas de prix : ils servent à préparer, pas à facturer.
+            Les prix indiqués permettent aux cuisiniers d'adapter les portions et mesures lors de la préparation.
           </div>
         </div>
         <div className="pill">{enPreparation.length} en préparation</div>
@@ -131,18 +131,89 @@ export default function Cuisine() {
           <div className="etat">Aucun repas clôturé aujourd'hui.</div>
         ) : (
           <div className="historique-liste">
-            {historique.map((commande) => (
-              <div className="hist-item" key={`hist-${commande.id}`}>
-                <div className="hist-entete">
-                  <span>{commande.table_numero ? `Table ${commande.table_numero}` : commande.client_nom || 'Sans table'}</span>
-                  <span>{new Date(commande.cloturee_le).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+            {historique.map((commande) => {
+              const ref = referenceCommande(commande)
+              const t = commande.type || (commande.table_numero ? 'place' : 'emporter')
+              const isLivraison = t === 'livraison'
+              const isEmporter = t === 'emporter'
+
+              const labelType = isLivraison
+                ? 'Livraison'
+                : isEmporter
+                ? 'À emporter'
+                : commande.table_numero
+                ? `Sur place (Table ${commande.table_numero})`
+                : 'Sur place'
+
+              const bgType = isLivraison
+                ? 'rgba(21,101,192,0.1)'
+                : isEmporter
+                ? 'rgba(230,81,0,0.1)'
+                : 'rgba(46,125,50,0.1)'
+
+              const colorType = isLivraison ? '#1565c0' : isEmporter ? '#e65100' : '#2e7d32'
+              const borderType = isLivraison
+                ? '1px solid rgba(21,101,192,0.3)'
+                : isEmporter
+                ? '1px solid rgba(230,81,0,0.3)'
+                : '1px solid rgba(46,125,50,0.3)'
+
+              const nomCible = commande.table_numero
+                ? `Table ${commande.table_numero}`
+                : commande.client_nom || (isLivraison ? 'Client Livraison' : 'Client À emporter')
+
+              const nbPlats = commande.lignes
+                ? commande.lignes
+                    .filter((l) => l.rayon === 'cuisine')
+                    .reduce((somme, l) => somme + l.quantite, 0)
+                : 0
+
+              return (
+                <div className="hist-item" key={`hist-${commande.id}`}>
+                  <div className="hist-entete">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      {ref && (
+                        <strong style={{ color: 'var(--orange-dk)', fontSize: 13 }}>
+                          {ref}
+                        </strong>
+                      )}
+                      <span style={{ fontWeight: 700, color: 'var(--noir)' }}>{nomCible}</span>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: '2px 9px',
+                          borderRadius: 12,
+                          background: bgType,
+                          color: colorType,
+                          border: borderType,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {labelType}
+                      </span>
+                    </div>
+                    <span style={{ color: 'var(--mut)', fontSize: 12, fontWeight: 500 }}>
+                      {commande.cloturee_le
+                        ? new Date(commande.cloturee_le).toLocaleTimeString('fr-FR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : '—'}
+                    </span>
+                  </div>
+                  <div className="hist-corps">
+                    <span>
+                      {nbPlats} plat{nbPlats > 1 ? 's' : ''}
+                    </span>
+                    <span style={{ fontWeight: 800, color: 'var(--noir)' }}>
+                      {commande.total ? `${commande.total.toLocaleString('fr-FR')} F` : '—'}
+                    </span>
+                  </div>
                 </div>
-                <div className="hist-corps">
-                  <span>{commande.lignes.filter((ligne) => ligne.rayon === 'cuisine').reduce((somme, ligne) => somme + ligne.quantite, 0)} plats</span>
-                  <span>{commande.total ? `${commande.total.toLocaleString('fr-FR')} F` : '—'}</span>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
@@ -401,6 +472,7 @@ function Bon({ commande, onImprimer, onTermine, onAnnuler }) {
     <div className={`kt ${termine ? 'kt-prete' : ''}`}>
       <div className="kh">
         <span>
+          <strong style={{ color: 'var(--orange-dk)', marginRight: 6 }}>{referenceCommande(commande)}</strong>
           {cible}
           {commande.origine === 'whatsapp' && ' · WhatsApp'}
         </span>
@@ -409,14 +481,29 @@ function Bon({ commande, onImprimer, onTermine, onAnnuler }) {
       <div className="kt-t">{commande.client_nom || cible}</div>
 
       <div className="kt-corps">
-        {plats.map((ligne) => (
-          <div className="kl" key={ligne.id}>
-            <span>
-              {ligne.quantite} × {ligne.libelle}
-            </span>
-            {ligne.note && <em className="bon-note">{ligne.note}</em>}
-          </div>
-        ))}
+        {plats.map((ligne) => {
+          const prixU =
+            ligne.prix_unitaire ||
+            (ligne.montant && ligne.quantite ? Math.round(ligne.montant / ligne.quantite) : 0)
+
+          return (
+            <div
+              className="kl"
+              key={ligne.id}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+            >
+              <span>
+                {ligne.quantite} × {ligne.libelle}
+                {prixU > 0 && (
+                  <strong style={{ marginLeft: 8, color: 'var(--orange-dk)', fontSize: 13 }}>
+                    ({fcfa(prixU)})
+                  </strong>
+                )}
+              </span>
+              {ligne.note && <em className="bon-note">{ligne.note}</em>}
+            </div>
+          )
+        })}
         {commande.note && <div className="note">Note : {commande.note}</div>}
       </div>
 

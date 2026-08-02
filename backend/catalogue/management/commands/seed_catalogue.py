@@ -76,7 +76,7 @@ PLATS = [
     "Attiéké", "Riz blanc", "Riz au gras", "Pomme sauté", "Khom", "Sifio",
 ]
 
-LIVREURS = ["Kofi", "Kossi", "Mensah"]
+LIVREURS = []
 
 NB_TABLES = 30
 

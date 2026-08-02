@@ -41,6 +41,40 @@ export default function Bar() {
     charger()
   }, [])
 
+  const [groupesOuverts, setGroupesOuverts] = useState({})
+
+  const mouvementsGroupes = useMemo(() => {
+    const map = {}
+    mouvements.forEach((mvt) => {
+      const nom = mvt.produit_nom || 'Autre'
+      if (!map[nom]) {
+        map[nom] = {
+          nom,
+          liste: [],
+          totalVariation: 0,
+        }
+      }
+      map[nom].liste.push(mvt)
+      map[nom].totalVariation += Number(mvt.quantite || 0)
+    })
+    return Object.values(map)
+  }, [mouvements])
+
+  function basculerGroupe(nom) {
+    setGroupesOuverts((prev) => ({
+      ...prev,
+      [nom]: !prev[nom],
+    }))
+  }
+
+  function toutBasculer(ouvrir) {
+    const nv = {}
+    mouvementsGroupes.forEach((grp) => {
+      nv[grp.nom] = ouvrir
+    })
+    setGroupesOuverts(nv)
+  }
+
   const filtres = useMemo(() => {
     const terme = recherche.trim().toLowerCase()
     return produits
@@ -159,55 +193,171 @@ export default function Bar() {
       </div>
 
       <div className="card">
-        <h3>Derniers mouvements</h3>
-        {mouvements.length === 0 ? (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div>
+            <h3 style={{ margin: 0 }}>Derniers mouvements</h3>
+            <div style={{ fontSize: 12, color: 'var(--mut)', marginTop: 2 }}>
+              Groupés par boisson · Cliquez sur un produit pour voir ou masquer ses détails
+            </div>
+          </div>
+          {mouvementsGroupes.length > 0 && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                className="btn btn-g"
+                style={{ padding: '4px 10px', fontSize: 12 }}
+                onClick={() => toutBasculer(true)}
+              >
+                Développer tout
+              </button>
+              <button
+                type="button"
+                className="btn btn-g"
+                style={{ padding: '4px 10px', fontSize: 12 }}
+                onClick={() => toutBasculer(false)}
+              >
+                Réduire tout
+              </button>
+            </div>
+          )}
+        </div>
+
+        {mouvementsGroupes.length === 0 ? (
           <div className="etat">Aucun mouvement enregistré.</div>
         ) : (
-          <div className="tableau-defilant">
-            <table className="grid cartes">
-              <thead>
-                <tr>
-                  <th>Produit</th>
-                  <th>Motif</th>
-                  <th style={{ textAlign: 'right' }}>Quantité</th>
-                  <th>Fournisseur / note</th>
-                  <th style={{ textAlign: 'right' }}>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mouvements.map((mouvement) => (
-                  <tr key={mouvement.id}>
-                    <td data-titre style={{ fontWeight: 600 }}>{mouvement.produit_nom}</td>
-                    <td data-label="Motif" style={{ color: 'var(--mut)' }}>{mouvement.motif_libelle}</td>
-                    <td
-                      data-label="Quantité"
-                      style={{
-                        textAlign: 'right',
-                        fontWeight: 700,
-                        color: mouvement.quantite < 0 ? 'var(--rouge)' : 'var(--vert)',
-                      }}
-                    >
-                      {mouvement.quantite > 0 ? '+' : ''}
-                      {mouvement.quantite}
-                    </td>
-                    <td data-label="Fournisseur / note" style={{ color: 'var(--mut)' }}>
-                      {mouvement.fournisseur_nom || mouvement.commentaire || '—'}
-                    </td>
-                    <td
-                      data-label="Date"
-                      style={{ textAlign: 'right', color: 'var(--mut)', whiteSpace: 'nowrap' }}
-                    >
-                      {new Date(mouvement.cree_le).toLocaleString('fr-FR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {mouvementsGroupes.map((grp) => {
+              const estOuvert = !!groupesOuverts[grp.nom]
+              return (
+                <div
+                  key={grp.nom}
+                  style={{
+                    border: '1px solid var(--bord)',
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    background: 'var(--bg-app, #fff)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {/* En-tête cliquable du groupe de produit */}
+                  <div
+                    onClick={() => basculerGroupe(grp.nom)}
+                    style={{
+                      padding: '14px 18px',
+                      background: estOuvert ? 'var(--tint)' : 'var(--bg-app, #fff)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      userSelect: 'none',
+                      borderBottom: estOuvert ? '1px solid var(--tint-bd)' : 'none',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span
+                        style={{
+                          fontSize: 15,
+                          fontWeight: 800,
+                          color: 'var(--noir)',
+                        }}
+                      >
+                        {grp.nom}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: 12,
+                          background: 'var(--bg-app, #fff)',
+                          border: '1px solid var(--bord)',
+                          color: 'var(--mut)',
+                        }}
+                      >
+                        {grp.liste.length} mouvement{grp.liste.length > 1 ? 's' : ''}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                      <span
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: grp.totalVariation >= 0 ? 'var(--vert)' : 'var(--rouge)',
+                        }}
+                      >
+                        Total : {grp.totalVariation > 0 ? '+' : ''}
+                        {grp.totalVariation}
+                      </span>
+
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: 'var(--orange-dk)',
+                          background: 'rgba(244,124,32,0.1)',
+                          padding: '4px 10px',
+                          borderRadius: 8,
+                        }}
+                      >
+                        {estOuvert ? 'Masquer ▲' : 'Voir détails ▼'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Liste déroulante des détails du produit */}
+                  {estOuvert && (
+                    <div className="tableau-defilant" style={{ padding: '4px 8px 8px' }}>
+                      <table className="grid cartes compacte">
+                        <thead>
+                          <tr>
+                            <th>Date &amp; heure</th>
+                            <th>Motif</th>
+                            <th style={{ textAlign: 'right' }}>Quantité</th>
+                            <th>Fournisseur / Note</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {grp.liste.map((mouvement) => (
+                            <tr key={mouvement.id}>
+                              <td
+                                data-label="Date"
+                                style={{ fontWeight: 600, color: 'var(--noir)', whiteSpace: 'nowrap' }}
+                              >
+                                {new Date(mouvement.cree_le).toLocaleString('fr-FR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </td>
+                              <td data-label="Motif" style={{ color: 'var(--mut)' }}>
+                                {mouvement.motif_libelle}
+                              </td>
+                              <td
+                                data-label="Quantité"
+                                style={{
+                                  textAlign: 'right',
+                                  fontWeight: 700,
+                                  color: mouvement.quantite < 0 ? 'var(--rouge)' : 'var(--vert)',
+                                }}
+                              >
+                                {mouvement.quantite > 0 ? '+' : ''}
+                                {mouvement.quantite}
+                              </td>
+                              <td data-label="Fournisseur / note" style={{ color: 'var(--mut)' }}>
+                                {mouvement.fournisseur_nom || mouvement.commentaire || '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
@@ -234,10 +384,6 @@ const TITRES = {
 }
 
 function OperationStock({ type, produits, onFerme, onEnregistre }) {
-  if (type === 'inventaire') {
-    return <InventaireGlobal produits={produits} onFerme={onFerme} onEnregistre={onEnregistre} />
-  }
-
   const [produit, setProduit] = useState('')
   const [quantite, setQuantite] = useState('')
   const [prix, setPrix] = useState('')
@@ -247,6 +393,10 @@ function OperationStock({ type, produits, onFerme, onEnregistre }) {
   const [majPrix, setMajPrix] = useState(false)
   const [erreur, setErreur] = useState('')
   const [envoi, setEnvoi] = useState(false)
+
+  if (type === 'inventaire') {
+    return <InventaireGlobal produits={produits} onFerme={onFerme} onEnregistre={onEnregistre} />
+  }
 
   const choisi = produits.find((entree) => String(entree.id) === String(produit))
 

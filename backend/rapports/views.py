@@ -310,10 +310,16 @@ def historique(request):
     else:
         date = timezone.localdate()
 
+    dt_start, dt_end = date_range(date)
     commandes = Commande.objects.filter(
         Q(ouverte_le__range=date_range(date)) | Q(cloturee_le__range=date_range(date))
     ).select_related("table", "livreur").order_by("-ouverte_le")[:100]
-    depenses = Depense.objects.filter(cree_le__range=date_range(date)).order_by("-cree_le")[:100]
+
+    # On inclut toutes les dépenses du jour : créées ou supprimées ce jour-là
+    depenses = Depense.objects.filter(
+        Q(cree_le__range=(dt_start, dt_end)) | Q(supprime_le__range=(dt_start, dt_end))
+    ).order_by("-cree_le")[:100]
+
     mouvements = MouvementStock.objects.filter(cree_le__range=date_range(date)).select_related(
         "produit", "fournisseur"
     ).order_by("-cree_le")[:100]
@@ -344,6 +350,23 @@ def historique(request):
             "mode": depense.mode,
             "montant": depense.montant,
             "description": depense.description,
+            "supprimee": depense.supprime_le is not None,
+            "supprime_le": depense.supprime_le,
+            "supprime_par": depense.supprime_par or '',
+        }
+
+    def depense_suppression_data(depense):
+        """Génère un événement distinct pour la suppression d'une dépense."""
+        return {
+            "id": f"{to_str(depense.pk)}_sup",
+            "type": "depense_supprimee",
+            "timestamp": depense.supprime_le,
+            "categorie": depense.categorie,
+            "categorie_libelle": depense.get_categorie_display(),
+            "mode": depense.mode,
+            "montant": depense.montant,
+            "description": depense.description,
+            "supprime_par": depense.supprime_par or '',
         }
 
     def mouvement_data(mouvement):
@@ -359,9 +382,17 @@ def historique(request):
             "commentaire": mouvement.commentaire,
         }
 
+    # Ajout d'un event "suppression" séparé pour les dépenses supprimées ce jour
+    suppressions = [
+        depense_suppression_data(d)
+        for d in depenses
+        if d.supprime_le is not None and dt_start <= d.supprime_le <= dt_end
+    ]
+
     evenements = [
         *map(commande_data, commandes),
         *map(depense_data, depenses),
+        *suppressions,
         *map(mouvement_data, mouvements),
     ]
     evenements.sort(key=lambda item: item["timestamp"], reverse=True)

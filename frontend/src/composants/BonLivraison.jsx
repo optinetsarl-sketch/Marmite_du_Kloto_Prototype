@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 
-import { fcfa } from '../api'
+import { fcfa, referenceCommande } from '../api'
 
 /** Bon de livraison (§6) — avec les prix, l'adresse, le client, le livreur,
  *  et surtout le MONTANT À ENCAISSER, mis en avant : c'est la seule chose que
@@ -17,13 +17,16 @@ export default function BonLivraison({ commande, onFerme }) {
             <div className="rc-nm">Bon de livraison</div>
             <div className="rc-sb">La Marmite du Kloto · Bar-Resto</div>
             <div className="rc-sb">Tél. +228 91 04 27 02</div>
+            <div style={{ fontWeight: 700, fontSize: 13, marginTop: 4, color: 'var(--orange-dk)' }}>
+              N° Réf : {referenceCommande(commande)}
+            </div>
           </div>
 
           <div className="bon-champs">
-            <Champ libelle="Client" valeur={commande.client_nom || '—'} />
-            <Champ libelle="Téléphone" valeur={commande.client_telephone || '—'} />
-            <Champ libelle="Adresse" valeur={commande.client_adresse || '—'} />
-            <Champ libelle="Livreur" valeur={commande.livreur_nom || '—'} />
+            <Champ libelle="Client" valeur={commande.client_nom || 'Non spécifié'} />
+            <Champ libelle="Téléphone" valeur={commande.client_telephone || 'Non renseigné'} />
+            <Champ libelle="Adresse" valeur={commande.client_adresse || 'Non renseignée'} />
+            <Champ libelle="Livreur" valeur={commande.livreur_nom || 'Non assigné'} />
             <Champ
               libelle="Heure de commande"
               valeur={ouverte.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}

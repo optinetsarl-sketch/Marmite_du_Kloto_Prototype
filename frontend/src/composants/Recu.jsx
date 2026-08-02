@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 
-import { fcfa } from '../api'
+import { fcfa, referenceCommande } from '../api'
 
 const LIBELLES_MODE = {
   especes: 'espèces',
@@ -34,7 +34,7 @@ export default function Recu({ commande, typeDocument = 'Reçu', onFerme }) {
           <div className="rc-doc">{typeDocument}</div>
           <div className="rc-meta">
             <span style={{ fontWeight: 700 }}>
-              N° Réf : {typeDocument === 'Addition' ? 'ADD' : 'REC'}-{commande.numero_recu || (commande.id ? String(commande.id).slice(-4) : '001')}
+              N° Réf : {referenceCommande(commande)}
             </span>
             <span>
               {horodatage.toLocaleDateString('fr-FR')} ·{' '}
@@ -43,8 +43,16 @@ export default function Recu({ commande, typeDocument = 'Reçu', onFerme }) {
           </div>
           <div className="rc-meta">
             <span>{cible}</span>
-            <span>{commande.client_nom}</span>
+            {commande.client_nom && <span>Client : {commande.client_nom}</span>}
           </div>
+
+          {(commande.client_telephone || commande.client_adresse || (commande.type === 'livraison' && commande.livreur_nom)) && (
+            <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px dashed var(--bord)', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {commande.client_telephone && <div><strong>Tél :</strong> {commande.client_telephone}</div>}
+              {commande.client_adresse && <div><strong>Adresse :</strong> {commande.client_adresse}</div>}
+              {commande.type === 'livraison' && commande.livreur_nom && <div><strong>Livreur :</strong> {commande.livreur_nom}</div>}
+            </div>
+          )}
 
           <div className="rc-items">
             {commande.lignes.map((ligne) => (

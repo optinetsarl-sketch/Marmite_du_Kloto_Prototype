@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { api, fcfa, liste } from '../api'
 import BonCuisine from '../composants/BonCuisine'
+import BonLivraison from '../composants/BonLivraison'
+import ModaleConfirmation from '../composants/ModaleConfirmation'
 import ModalePaiement from '../composants/ModalePaiement'
 import ModalePrix from '../composants/ModalePrix'
 import Recu from '../composants/Recu'
@@ -31,9 +33,9 @@ export default function Ventes() {
   const [nouveauLivreur, setNouveauLivreur] = useState('')
   const [modeNouveauLivreur, setModeNouveauLivreur] = useState(false)
   const [client, setClient] = useState('')
+  const [clientTelephone, setClientTelephone] = useState('')
+  const [clientAdresse, setClientAdresse] = useState('')
 
-  // commande = ce qui est persisté au serveur (null tant qu'on n'a pas validé).
-  // panier  = le brouillon en cours, modifiable librement avant validation.
   const [commande, setCommande] = useState(null)
   const [panier, setPanier] = useState([])
   const [erreur, setErreur] = useState('')
@@ -42,6 +44,9 @@ export default function Ventes() {
   const [paiementOuvert, setPaiementOuvert] = useState(false)
   const [documentOuvert, setDocumentOuvert] = useState(null)
   const [bonCuisineOuvert, setBonCuisineOuvert] = useState(null)
+  const [modaleConfirm, setModaleConfirm] = useState(null) // { manquants, resolve }
+  const resolveConfirmRef = useRef(null)
+  const [champsEnErreur, setChampsEnErreur] = useState(new Set())
 
   useEffect(() => {
     Promise.all([
@@ -113,11 +118,23 @@ export default function Ventes() {
         setCommande(reprise)
         chargerPanier(reprise)
         setType(reprise.type)
-        setClient(reprise.client_nom)
+        setClient(reprise.client_nom || '')
+        setClientTelephone(reprise.client_telephone || '')
+        setClientAdresse(reprise.client_adresse || '')
         if (reprise.livreur) setLivreurId(String(reprise.livreur))
       })
       .catch((echec) => setErreur(echec.message))
   }, [commandeReprise, chargerPanier])
+
+  const reinitialiserFormulaire = () => {
+    setCommande(null)
+    setPanier([])
+    setTableId('')
+    setClient('')
+    setClientTelephone('')
+    setClientAdresse('')
+    setParametres({})
+  }
 
   const produitsFiltres = useMemo(() => {
     const q = recherche.trim().toLowerCase()
@@ -178,7 +195,7 @@ export default function Ventes() {
   }
 
   // ---- Persistance : « Valider » attribue enfin la commande ----
-  async function persister() {
+  async function persister(statutOptionnel) {
     let cible = commande
     let idLivreurFinal = Number(livreurId) || null
 
@@ -204,10 +221,19 @@ export default function Ventes() {
       cible = await api.post('/commandes/', {
         type,
         client_nom: client,
+        client_telephone: clientTelephone,
+        client_adresse: clientAdresse,
+        livreur: type === 'livraison' ? idLivreurFinal : null,
+      })
+    } else {
+      cible = await api.patch(`/commandes/${cible.id}/`, {
+        client_nom: client,
+        client_telephone: clientTelephone,
+        client_adresse: clientAdresse,
         livreur: type === 'livraison' ? idLivreurFinal : null,
       })
     }
-    const misAJour = await api.post(`/commandes/${cible.id}/synchroniser/`, {
+    let misAJour = await api.post(`/commandes/${cible.id}/synchroniser/`, {
       lignes: panier.map((item) => ({
         produit: item.produit.id,
         quantite: item.quantite,
@@ -215,6 +241,14 @@ export default function Ventes() {
         note: item.note,
       })),
     })
+
+    if (statutOptionnel && misAJour.statut === 'ouverte') {
+      const aCuisine = misAJour.lignes && misAJour.lignes.some((l) => l.rayon === 'cuisine')
+      if (aCuisine) {
+        misAJour = await api.post(`/commandes/${misAJour.id}/changer_statut/`, { statut: statutOptionnel })
+      }
+    }
+
     setCommande(misAJour)
     return misAJour
   }
@@ -228,41 +262,42 @@ export default function Ventes() {
     }
   }
 
+  function verifierInformationsManquantes() {
+    const manquants = []
+    if (type === 'livraison') {
+      if (!client.trim()) manquants.push('Nom du client')
+      if (!clientTelephone.trim()) manquants.push('Téléphone du client')
+      if (!clientAdresse.trim()) manquants.push('Adresse de livraison')
+    } else if (type === 'emporter') {
+      if (!client.trim()) manquants.push('Nom du client')
+    }
+
+    if (manquants.length > 0) {
+      // Mettre les champs en erreur immédiatement
+      setChampsEnErreur(new Set(manquants))
+      // Afficher la modale — résout toujours false (on ne laisse pas passer)
+      return new Promise((resolve) => {
+        resolveConfirmRef.current = resolve
+        setModaleConfirm({ manquants })
+      })
+    }
+    setChampsEnErreur(new Set())
+    return Promise.resolve(true)
+  }
+
   async function valider() {
+    if (!(await verifierInformationsManquantes())) return
     setOccupe(true)
     setErreur('')
     try {
-      const persistee = await persister()
+      const persistee = await persister('en_cuisine')
       await chargerProduits()
       setTables(await liste('/tables/?page_size=200'))
       if (persistee && persistee.lignes && persistee.lignes.some((l) => l.rayon === 'cuisine')) {
         setBonCuisineOuvert(persistee)
       }
-      // L'ardoise s'efface automatiquement après la validation de la commande
-      setCommande(null)
-      setPanier([])
-      setTableId('')
-      setClient('')
-      setParametres({})
-    } catch (echec) {
-      setErreur(echec.message)
-    } finally {
-      setOccupe(false)
-    }
-  }
-
-  async function imprimerBonCuisine() {
-    setOccupe(true)
-    setErreur('')
-    try {
-      const persistee = await persister()
-      setBonCuisineOuvert(persistee)
-      // L'ardoise s'efface automatiquement après impression du bon de cuisine
-      setCommande(null)
-      setPanier([])
-      setTableId('')
-      setClient('')
-      setParametres({})
+      // Nettoyer l'ardoise après validation
+      reinitialiserFormulaire()
     } catch (echec) {
       setErreur(echec.message)
     } finally {
@@ -273,14 +308,11 @@ export default function Ventes() {
   function changerType(nouveauType) {
     if (nouveauType === type) return
     setType(nouveauType)
-    setCommande(null)
-    setPanier([])
-    setTableId('')
-    setClient('')
-    setParametres({})
+    reinitialiserFormulaire()
   }
 
   async function ouvrirPaiement() {
+    if (!(await verifierInformationsManquantes())) return
     setOccupe(true)
     setErreur('')
     try {
@@ -298,18 +330,19 @@ export default function Ventes() {
     await chargerProduits()
     setPaiementOuvert(false)
     setDocumentOuvert({ commande: encaissee, type: 'Reçu' })
-    setCommande(null)
-    setPanier([])
-    setTableId('')
-    setParametres({})
+    reinitialiserFormulaire()
     setTables(await liste('/tables/?page_size=200'))
   }
 
   async function imprimerAddition() {
+    if (!verifierInformationsManquantes()) return
     setOccupe(true)
+    setErreur('')
     try {
-      const persistee = await persister()
+      const persistee = await persister('en_cuisine')
       setDocumentOuvert({ commande: persistee, type: 'Addition' })
+      setCommande(persistee)
+      chargerPanier(persistee)
     } catch (echec) {
       setErreur(echec.message)
     } finally {
@@ -349,7 +382,19 @@ export default function Ventes() {
 
       {erreur && <div className="erreur">{erreur}</div>}
 
-      <div className="selbar">
+      <div
+        className="selbar"
+        style={champsEnErreur.size > 0 ? {
+          border: '2px solid #e53e3e',
+          borderRadius: 'var(--radius)',
+          boxShadow: '0 0 0 4px rgba(229,62,62,0.12)',
+          transition: 'border-color 0.3s, box-shadow 0.3s',
+        } : {
+          border: '2px solid transparent',
+          borderRadius: 'var(--radius)',
+          transition: 'border-color 0.3s, box-shadow 0.3s',
+        }}
+      >
         <div className="seg">
           {TYPES.map((entree) => (
             <button
@@ -439,13 +484,74 @@ export default function Ventes() {
           )
         )}
 
+
+
         {type !== 'place' && (
           <input
             className="champ auto"
             placeholder="Nom du client"
             value={client}
-            onChange={(e) => setClient(e.target.value)}
+            onChange={(e) => {
+              setClient(e.target.value)
+              if (e.target.value.trim()) {
+                setChampsEnErreur((prev) => {
+                  const s = new Set(prev)
+                  s.delete('Nom du client')
+                  return s
+                })
+              }
+            }}
+            style={champsEnErreur.has('Nom du client') ? {
+              borderColor: '#e53e3e',
+              boxShadow: '0 0 0 2px rgba(229,62,62,0.2)',
+              outline: 'none',
+            } : undefined}
           />
+        )}
+
+        {type === 'livraison' && (
+          <>
+            <input
+              className="champ auto"
+              placeholder="Téléphone"
+              value={clientTelephone}
+              onChange={(e) => {
+                setClientTelephone(e.target.value)
+                if (e.target.value.trim()) {
+                  setChampsEnErreur((prev) => {
+                    const s = new Set(prev)
+                    s.delete('Téléphone du client')
+                    return s
+                  })
+                }
+              }}
+              style={champsEnErreur.has('Téléphone du client') ? {
+                borderColor: '#e53e3e',
+                boxShadow: '0 0 0 2px rgba(229,62,62,0.2)',
+                outline: 'none',
+              } : undefined}
+            />
+            <input
+              className="champ auto"
+              placeholder="Adresse de livraison"
+              value={clientAdresse}
+              onChange={(e) => {
+                setClientAdresse(e.target.value)
+                if (e.target.value.trim()) {
+                  setChampsEnErreur((prev) => {
+                    const s = new Set(prev)
+                    s.delete('Adresse de livraison')
+                    return s
+                  })
+                }
+              }}
+              style={champsEnErreur.has('Adresse de livraison') ? {
+                borderColor: '#e53e3e',
+                boxShadow: '0 0 0 2px rgba(229,62,62,0.2)',
+                outline: 'none',
+              } : undefined}
+            />
+          </>
         )}
       </div>
 
@@ -549,59 +655,41 @@ export default function Ventes() {
                 : 'Valider la commande'}
           </button>
 
-          {type !== 'livraison' && (
-            <>
-              <button
-                className="btn btn-g"
-                style={{ width: '100%', marginTop: 8 }}
-                disabled={!total || occupe}
-                onClick={ouvrirPaiement}
-              >
-                Encaisser
-              </button>
-              <button
-                className="btn btn-g"
-                style={{ width: '100%', marginTop: 8 }}
-                disabled={!total || occupe}
-                onClick={imprimerAddition}
-              >
-                Imprimer l’addition
-              </button>
-            </>
-          )}
+          <button
+            className="btn btn-g"
+            style={{ width: '100%', marginTop: 8 }}
+            disabled={!total || occupe}
+            onClick={ouvrirPaiement}
+          >
+            Encaisser
+          </button>
 
-          {(panier.some((item) => item.produit.rayon === 'cuisine' || item.produit.categorie_rayon === 'cuisine' || item.produit.categorie?.rayon === 'cuisine') || (commande && commande.lignes && commande.lignes.some((l) => l.rayon === 'cuisine'))) && (
-            <button
-              className="btn btn-g"
-              style={{ width: '100%', marginTop: 8, borderColor: 'var(--orange)', color: 'var(--orange)', fontWeight: 600 }}
-              disabled={!total || occupe}
-              onClick={imprimerBonCuisine}
-            >
-              🔥 Imprimer le bon de cuisine
-            </button>
-          )}
+          <button
+            className="btn btn-g"
+            style={{ width: '100%', marginTop: 8 }}
+            disabled={!total || occupe}
+            onClick={imprimerAddition}
+          >
+            Imprimer l’addition / reçu
+          </button>
+
+
 
           {panier.length > 0 && (
             <button
               className="btn btn-g"
               style={{ width: '100%', marginTop: 8, color: '#777' }}
-              onClick={() => {
-                setCommande(null)
-                setPanier([])
-                setTableId('')
-                setClient('')
-                setParametres({})
-              }}
+              onClick={reinitialiserFormulaire}
             >
-              🗑️ Effacer / Nouveau panier
+              Effacer / Nouveau panier
             </button>
           )}
 
           <div className="note">
             {type === 'livraison'
-              ? 'La commande part en cuisine à la validation. L’encaissement se fait au retour du livreur.'
+              ? 'La commande part en cuisine à la validation. Vous pouvez imprimer le bon de livraison et encaisser sur place ou au retour du livreur.'
               : type === 'emporter'
-                ? 'Validez pour envoyer le bon en cuisine. Imprimez l’addition pour le client et encaissez.'
+                ? 'Validez pour envoyer le bon en cuisine. Imprimez l’addition ou encaissez pour délivrer le reçu client.'
                 : 'Modifiez librement le panier tant que ce n’est pas payé. « Valider » attribue la commande à la table ; « Encaisser » la solde et déstocke le bar.'}
           </div>
         </div>
@@ -623,16 +711,29 @@ export default function Ventes() {
         <ModalePaiement total={total} onEncaisse={encaisser} onFerme={() => setPaiementOuvert(false)} />
       )}
 
-      {documentOuvert && (
+      {documentOuvert && documentOuvert.type === 'BonLivraison' ? (
+        <BonLivraison commande={documentOuvert.commande} onFerme={() => setDocumentOuvert(null)} />
+      ) : documentOuvert ? (
         <Recu
           commande={documentOuvert.commande}
           typeDocument={documentOuvert.type}
           onFerme={() => setDocumentOuvert(null)}
         />
-      )}
+      ) : null}
 
       {bonCuisineOuvert && (
         <BonCuisine commande={bonCuisineOuvert} onFerme={() => setBonCuisineOuvert(null)} />
+      )}
+
+      {modaleConfirm && (
+        <ModaleConfirmation
+          manquants={modaleConfirm.manquants}
+          onConfirme={undefined}
+          onAnnule={() => {
+            setModaleConfirm(null)
+            resolveConfirmRef.current?.(false)
+          }}
+        />
       )}
     </>
   )

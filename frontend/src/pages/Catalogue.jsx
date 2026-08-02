@@ -411,7 +411,6 @@ function Formulaire({ edition, categories, familles, onFerme, onEnregistre, onEr
       const corps = { ...valeur }
       if (type === 'plats' || type === 'boissons') {
         corps.prix_standard = corps.prix_libre ? null : Number(corps.prix_standard) || 0
-        corps.categorie = Number(corps.categorie)
         corps.seuil_alerte = Number(corps.seuil_alerte) || 0
       }
       if (type === 'tables') {

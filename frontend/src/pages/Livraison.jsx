@@ -1,23 +1,20 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import { api, fcfa, liste } from '../api'
+import { api, fcfa, liste, referenceCommande } from '../api'
 import BonLivraison from '../composants/BonLivraison'
 import DetailLivreur from '../composants/DetailLivreur'
 import ModalePaiement from '../composants/ModalePaiement'
 import Recu from '../composants/Recu'
 
-// L'ordre dans lequel une course avance. Le bouton propose toujours l'étape suivante.
 const PARCOURS = [
   { code: 'ouverte', libelle: 'Saisie', suivant: 'en_cuisine', action: 'Envoyer en cuisine' },
-  { code: 'en_cuisine', libelle: 'En préparation', suivant: 'prete', action: 'Marquer prête' },
-  { code: 'prete', libelle: 'Prête', suivant: 'en_route', action: 'Confier au livreur' },
-  { code: 'en_route', libelle: 'En route', suivant: 'livree', action: 'Marquer livrée' },
-  { code: 'livree', libelle: 'Livrée', suivant: null, action: null },
+  { code: 'en_cuisine', libelle: '⏳ En cuisine', suivant: 'prete', action: 'Marquer prête' },
+  { code: 'prete', libelle: '✅ Plat prêt', suivant: 'en_route', action: 'Confier au livreur' },
+  { code: 'en_route', libelle: '🛵 En route', suivant: 'livree', action: 'Marquer livrée' },
+  { code: 'livree', libelle: '🏠 Livrée', suivant: null, action: null },
 ]
 
-// Le rouge est réservé aux anomalies : une course livrée est une étape normale,
-// simplement en attente d'encaissement — d'où le jaune, qui appelle une action.
 const CLASSES_STATUT = {
   ouverte: 'b-neutre',
   en_cuisine: 'b-neutre',
@@ -44,21 +41,21 @@ function FormulaireLivreur({ onFerme, onErreur }) {
   }
 
   return (
-    <form className="card" onSubmit={creer} style={{ marginTop: 10 }}>
-      <h3>Nouveau livreur</h3>
-      <div className="grille-champs">
+    <form className="card" onSubmit={creer} style={{ marginBottom: 20 }}>
+      <h3>👤 Nouveau livreur</h3>
+      <div className="grille-champs" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
         <div>
-          <label className="lbl">Nom</label>
-          <input className="champ" value={nom} onChange={(e) => setNom(e.target.value)} required autoFocus />
+          <label className="lbl">Nom du livreur</label>
+          <input className="champ" value={nom} onChange={(e) => setNom(e.target.value)} required autoFocus placeholder="ex: Kossi Kodjo" />
         </div>
         <div>
-          <label className="lbl">Téléphone</label>
-          <input className="champ" value={telephone} onChange={(e) => setTelephone(e.target.value)} />
+          <label className="lbl">Numéro de téléphone</label>
+          <input className="champ" value={telephone} onChange={(e) => setTelephone(e.target.value)} placeholder="ex: 90 12 34 56" />
         </div>
       </div>
-      <div className="modal-act" style={{ marginTop: 12 }}>
+      <div className="modal-act" style={{ marginTop: 16, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button type="button" className="btn btn-g" onClick={onFerme}>Annuler</button>
-        <button className="btn btn-o" disabled={envoi}>{envoi ? 'Création…' : 'Créer'}</button>
+        <button className="btn btn-o" disabled={envoi}>{envoi ? 'Enregistrement…' : 'Enregistrer le livreur'}</button>
       </div>
     </form>
   )
@@ -68,7 +65,6 @@ export default function Livraison() {
   const naviguer = useNavigate()
   const [courses, setCourses] = useState([])
   const [comptes, setComptes] = useState([])
-  const [livreurs, setLivreurs] = useState([])
   const [showFormLivreur, setShowFormLivreur] = useState(false)
   const [erreur, setErreur] = useState('')
   const [bon, setBon] = useState(null)
@@ -78,24 +74,13 @@ export default function Livraison() {
 
   async function charger() {
     try {
-      const [enCours, tableau, liste_livreurs] = await Promise.all([
+      const [enCours, tableau] = await Promise.all([
         liste('/commandes/?a_livrer=1&page_size=100'),
         api.get('/livreurs/comptes_du_jour/'),
-        liste('/livreurs/?actif=true'),
       ])
       setCourses(enCours)
       setComptes(tableau)
-      setLivreurs(liste_livreurs)
       setErreur('')
-    } catch (echec) {
-      setErreur(echec.message)
-    }
-  }
-
-  async function assignerLivreur(commande, livreurId) {
-    try {
-      await api.patch(`/commandes/${commande.id}/`, { livreur: livreurId || null })
-      await charger()
     } catch (echec) {
       setErreur(echec.message)
     }
@@ -103,6 +88,8 @@ export default function Livraison() {
 
   useEffect(() => {
     charger()
+    const intervalle = setInterval(charger, 10000)
+    return () => clearInterval(intervalle)
   }, [])
 
   async function avancer(commande, statut) {
@@ -124,48 +111,102 @@ export default function Livraison() {
     await charger()
   }
 
+  const enRoute = courses.filter((c) => c.statut === 'en_route').length
+  const pretes = courses.filter((c) => c.statut === 'prete').length
+
   return (
     <>
       <div className="top">
         <div>
           <h1>Livraison</h1>
-          <div className="sub">
-            Suivi des courses et de l'argent des livreurs
-          </div>
+          <div className="sub">Suivi des courses en direct &amp; comptes des livreurs</div>
         </div>
-        <div className="pill">{courses.length} course(s) en cours</div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button className="btn btn-o" onClick={() => naviguer('/ventes?type=livraison')}>
+            ➕ Nouvelle livraison
+          </button>
+          <button className="btn btn-g" onClick={() => setShowFormLivreur(!showFormLivreur)}>
+            👤 {showFormLivreur ? 'Masquer formulaire' : 'Ajouter un livreur'}
+          </button>
+        </div>
       </div>
 
       {erreur && <div className="erreur">{erreur}</div>}
 
+      {showFormLivreur && (
+        <FormulaireLivreur
+          onFerme={() => {
+            setShowFormLivreur(false)
+            charger()
+          }}
+          onErreur={setErreur}
+        />
+      )}
+
+      {/* Résumé des statistiques */}
+      {courses.length > 0 && (
+        <div className="stats stats-3" style={{ marginBottom: 16 }}>
+          <div className="stat wht">
+            <div className="l">Courses en préparation / prêtes</div>
+            <div className="v">{pretes}</div>
+          </div>
+          <div className="stat wht">
+            <div className="l">En cours de livraison</div>
+            <div className="v" style={{ color: 'var(--orange-dk)' }}>{enRoute}</div>
+          </div>
+          <div className="stat dark">
+            <div className="l">Total des courses en cours</div>
+            <div className="v">
+              {fcfa(courses.reduce((s, c) => s + (c.total || 0), 0))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Courses en cours */}
       <div className="card">
-        <h3>Courses en cours</h3>
+        <h3>Courses en cours ({courses.length})</h3>
         {courses.length === 0 ? (
-          <div className="etat">Aucune course en cours.</div>
+          <div className="etat">Aucune course de livraison en cours actuellement.</div>
         ) : (
           <table className="grid cartes">
             <thead>
               <tr>
-                <th>Client</th>
-                <th>Livreur</th>
-                <th style={{ textAlign: 'right' }}>À encaisser</th>
+                <th>Réf, Client &amp; Destination</th>
+                <th>Plats</th>
+                <th style={{ textAlign: 'right' }}>Total</th>
                 <th style={{ textAlign: 'center' }}>Statut</th>
-                <th style={{ textAlign: 'right' }}>Action</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {courses.map((course) => {
                 const etape = PARCOURS.find((e) => e.code === course.statut) ?? PARCOURS[0]
+                const plats = (course.lignes || [])
+                  .map((l) => `${l.libelle}${l.quantite > 1 ? ` ×${l.quantite}` : ''}`)
+                  .join(' · ')
                 return (
                   <tr key={course.id}>
-                    <td data-titre>
-                      <div style={{ fontWeight: 600 }}>{course.client_nom || 'Sans nom'}</div>
+                    <td data-titre style={{ fontWeight: 600 }}>
+                      <div>
+                        <span style={{ color: 'var(--orange-dk)', fontSize: 13, marginRight: 6, fontWeight: 700 }}>
+                          {referenceCommande(course)}
+                        </span>
+                        {course.client_nom || 'Client anonyme'}
+                      </div>
+                      {course.client_telephone && (
+                        <div style={{ fontSize: 12, color: 'var(--mut)', fontWeight: 400 }}>
+                          {course.client_telephone}
+                        </div>
+                      )}
                       <div style={{ fontSize: 12, color: 'var(--mut)', fontWeight: 400 }}>
-                        {course.client_adresse || 'adresse non renseignée'}
+                        {course.client_adresse || 'Adresse non spécifiée'}
                       </div>
                     </td>
-                    <td data-label="Livreur">{course.livreur_nom || '—'}</td>
-                    <td data-label="À encaisser" style={{ textAlign: 'right', fontWeight: 600 }}>
+                    <td data-label="Plats" style={{ fontSize: 13 }}>
+                      {plats || '—'}
+                    </td>
+                    <td data-label="Total" style={{ textAlign: 'right', fontWeight: 700, color: 'var(--orange-dk)' }}>
                       {fcfa(course.total)}
                     </td>
                     <td data-label="Statut" style={{ textAlign: 'center' }}>
@@ -174,21 +215,10 @@ export default function Livraison() {
                       </span>
                     </td>
                     <td data-actions style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-                        <button className="btn btn-g btn-mini" onClick={() => setBon(course)}>
-                          Bon
+                      <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                        <button className="btn btn-g btn-mini" onClick={() => setBon(course)} title="Imprimer le bon de livraison">
+                          📄 Bon
                         </button>
-                        <select
-                          className="champ"
-                          value={course.livreur ?? ''}
-                          onChange={(e) => assignerLivreur(course, e.target.value ? Number(e.target.value) : null)}
-                          style={{ minWidth: 140, padding: '6px 8px' }}
-                        >
-                          <option value="">— aucun —</option>
-                          {livreurs.map((l) => (
-                            <option key={l.id} value={l.id}>{l.nom}</option>
-                          ))}
-                        </select>
                         {etape.suivant ? (
                           <button
                             className="btn btn-o btn-mini"
@@ -198,7 +228,7 @@ export default function Livraison() {
                           </button>
                         ) : (
                           <button className="btn btn-o btn-mini" onClick={() => setAEncaisser(course)}>
-                            Encaisser
+                            💰 Encaisser
                           </button>
                         )}
                       </div>
@@ -211,7 +241,8 @@ export default function Livraison() {
         )}
       </div>
 
-      <div className="card">
+      {/* Comptes des livreurs */}
+      <div className="card" style={{ marginTop: 20 }}>
         <h3>Comptes des livreurs (fin de journée)</h3>
         {comptes.length === 0 ? (
           <div className="etat">Aucune course livrée aujourd'hui.</div>
@@ -220,21 +251,20 @@ export default function Livraison() {
             <thead>
               <tr>
                 <th>Livreur</th>
-                <th style={{ textAlign: 'center' }}>Courses du jour</th>
-                <th style={{ textAlign: 'right' }}>À remettre</th>
-                <th style={{ textAlign: 'right' }}>Déjà remis</th>
+                <th style={{ textAlign: 'center' }}>Courses effectuées</th>
+                <th style={{ textAlign: 'right' }}>À remettre (Espèces)</th>
+                <th style={{ textAlign: 'right' }}>Déjà remis (Encaissement)</th>
+                <th style={{ textAlign: 'right' }}>Détails</th>
               </tr>
             </thead>
             <tbody>
               {comptes.map((compte) => (
                 <tr key={compte.livreur_id}>
                   <td data-titre style={{ fontWeight: 600 }}>
-                    <button className="lien" onClick={() => setDetailLivreur(compte.livreur_id)}>
-                      {compte.livreur_nom}
-                    </button>
+                    {compte.livreur_nom}
                   </td>
-                  <td data-label="Courses du jour" style={{ textAlign: 'center' }}>
-                    {compte.courses_du_jour}
+                  <td data-label="Courses" style={{ textAlign: 'center', fontWeight: 600 }}>
+                    {compte.courses_du_jour} course(s)
                   </td>
                   <td
                     data-label="À remettre"
@@ -249,29 +279,23 @@ export default function Livraison() {
                   <td data-label="Déjà remis" style={{ textAlign: 'right', color: 'var(--mut)' }}>
                     {fcfa(compte.deja_remis)}
                   </td>
+                  <td data-actions style={{ textAlign: 'right' }}>
+                    <button
+                      className="btn btn-g btn-mini"
+                      onClick={() => setDetailLivreur(compte.livreur_id)}
+                    >
+                      Voir le détail
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-        <div className="note">
-          Touchez le nom d'un livreur pour voir le détail de ses courses, plat par plat.
-          « À remettre » est l'argent qu'il a encore en poche : des courses livrées mais pas
-          encore encaissées. L'encaissement les fait basculer en « déjà remis ». Le mobile
-          money n'y figure pas, il arrive directement sur le compte.
+        <div className="note" style={{ marginTop: 12 }}>
+          💡 <strong>« À remettre »</strong> représente les espèces encaissées par le livreur sur le terrain et non encore versées en caisse. Cliquez sur <strong>« Voir le détail »</strong> pour inspecter course par course.
         </div>
       </div>
-
-      {showFormLivreur ? (
-        <FormulaireLivreur
-          onFerme={() => { setShowFormLivreur(false); charger() }}
-          onErreur={setErreur}
-        />
-      ) : (
-        <div style={{ marginTop: 10 }}>
-          <button className="btn btn-o" onClick={() => setShowFormLivreur(true)}>+ Ajouter un livreur</button>
-        </div>
-      )}
 
       {bon && <BonLivraison commande={bon} onFerme={() => setBon(null)} />}
       {aEncaisser && (
@@ -288,5 +312,3 @@ export default function Livraison() {
     </>
   )
 }
-
-

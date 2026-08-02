@@ -8,16 +8,19 @@ import Cloture from './pages/Cloture'
 import Connexion from './pages/Connexion'
 import Cuisine from './pages/Cuisine'
 import Depenses from './pages/Depenses'
+import Emporter from './pages/Emporter'
 import Historique from './pages/Historique'
 import Livraison from './pages/Livraison'
 import Rapports from './pages/Rapports'
 import Tables from './pages/Tables'
 import Ventes from './pages/Ventes'
+import ClocheStock from './composants/ClocheStock'
 
 const MENU = [
   { groupe: "Vue d'ensemble" },
   { to: '/', libelle: 'Accueil' },
   { to: '/ventes', libelle: 'Ventes / Caisse' },
+  { to: '/emporter', libelle: 'À emporter' },
   { to: '/tables', libelle: 'Tables' },
   { groupe: 'Opérations' },
   { to: '/bar', libelle: 'Bar / Stock' },
@@ -79,11 +82,13 @@ export default function App() {
       </aside>
 
       <main className="main">
+        <ClocheStock />
         <Routes>
           <Route path="/" element={<Accueil />} />
           <Route path="/bar" element={<Bar />} />
           <Route path="/catalogue" element={<Catalogue />} />
           <Route path="/ventes" element={<Ventes />} />
+          <Route path="/emporter" element={<Emporter />} />
           <Route path="/tables" element={<Tables />} />
           <Route path="/cuisine" element={<Cuisine />} />
           <Route path="/livraison" element={<Livraison />} />
