@@ -1,32 +1,30 @@
 from django.db import models
 from django.db.models import Sum
+from django.utils import timezone
 
 
 class SessionCaisse(models.Model):
-    """Une journée de caisse : ouverture avec fond, clôture avec écart."""
-
     ouverte_le = models.DateTimeField(auto_now_add=True)
+    cloturee_le = models.DateTimeField(null=True, blank=True)
     fond_initial = models.PositiveIntegerField(default=0)
-
-    fermee_le = models.DateTimeField(null=True, blank=True)
-    montant_reel = models.PositiveIntegerField(
-        null=True, blank=True, help_text="Espèces réellement comptées à la fermeture."
-    )
-    commentaire_cloture = models.CharField(max_length=200, blank=True)
+    montant_reel = models.PositiveIntegerField(null=True, blank=True)
+    remarques = models.TextField(blank=True)
 
     class Meta:
         ordering = ["-ouverte_le"]
         verbose_name = "session de caisse"
         verbose_name_plural = "sessions de caisse"
+        indexes = [models.Index(fields=["ouverte_le"])]
 
     def __str__(self):
-        etat = "clôturée" if self.fermee_le else "ouverte"
-        return f"Caisse du {self.ouverte_le:%d/%m/%Y} ({etat})"
+        statut = "Clôturée" if self.cloturee_le else "En cours"
+        return f"Session du {self.ouverte_le.strftime('%d/%m/%Y')} ({statut})"
 
     @classmethod
     def courante(cls):
-        session = cls.objects.filter(fermee_le__isnull=True).first()
-        if session is None:
+        """Renvoie la session active non clôturée ou en crée une vide si aucune n'existe."""
+        session = cls.objects.filter(cloturee_le__isnull=True).first()
+        if not session:
             session = cls.objects.create(fond_initial=0)
         return session
 
@@ -58,7 +56,8 @@ class SessionCaisse(models.Model):
         return (
             Depense.objects.filter(
                 mode=Depense.MODE_ESPECES,
-                cree_le__range=(dt_start, dt_end)
+                cree_le__range=(dt_start, dt_end),
+                supprime_le__isnull=True,
             ).aggregate(t=Sum("montant"))["t"]
             or 0
         )

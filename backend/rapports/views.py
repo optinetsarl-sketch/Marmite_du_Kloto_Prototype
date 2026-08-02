@@ -87,7 +87,7 @@ def tableau_de_bord(request):
     debut, fin, libelle = _periode(request)
     revenus = _revenus_par_source(debut, fin)
     depenses_total = (
-        Depense.objects.filter(cree_le__range=date_range(debut, fin)).aggregate(t=Sum("montant"))["t"]
+        Depense.objects.filter(cree_le__range=date_range(debut, fin), supprime_le__isnull=True).aggregate(t=Sum("montant"))["t"]
         or 0
     )
 
@@ -204,7 +204,7 @@ def rapport_livraisons(request):
 @api_view(["GET"])
 def rapport_depenses(request):
     debut, fin, libelle = _periode(request)
-    depenses = Depense.objects.filter(cree_le__range=date_range(debut, fin))
+    depenses = Depense.objects.filter(cree_le__range=date_range(debut, fin), supprime_le__isnull=True)
     par_categorie = list(
         depenses.values("categorie").annotate(montant=Sum("montant")).order_by("-montant")
     )
@@ -245,7 +245,7 @@ def rapport_cloture(request):
     debut, fin, libelle = _periode(request)
     revenus = _revenus_par_source(debut, fin)
 
-    depenses = Depense.objects.filter(cree_le__range=date_range(debut, fin))
+    depenses = Depense.objects.filter(cree_le__range=date_range(debut, fin), supprime_le__isnull=True)
     libelles_depense = dict(Depense.CATEGORIES)
     par_categorie = [
         {"categorie": ligne["categorie"], "libelle": libelles_depense.get(ligne["categorie"], ""), "montant": ligne["montant"]}
