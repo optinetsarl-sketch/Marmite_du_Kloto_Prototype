@@ -187,15 +187,6 @@ export default function Historique() {
           />
         </div>
         <div className="pill">{historique?.evenements?.length ?? 0} événements</div>
-        {nbSupprimees > 0 && (
-          <div className="pill" style={{
-            background: 'rgba(239,68,68,0.12)',
-            color: '#ef4444',
-            border: '1px solid rgba(239,68,68,0.3)',
-          }}>
-            ⚠ {nbSupprimees} dépense{nbSupprimees > 1 ? 's' : ''} supprimée{nbSupprimees > 1 ? 's' : ''}
-          </div>
-        )}
       </div>
 
       {erreur && <div className="erreur">{erreur}</div>}
@@ -212,12 +203,6 @@ export default function Historique() {
               <div className="l">Dépenses</div>
               <div className="v">{historique.depenses.filter(d => !d.supprimee).length}</div>
             </div>
-            {nbSupprimees > 0 && (
-              <div className="stat wht" style={{ borderColor: 'rgba(239,68,68,0.3)' }}>
-                <div className="l" style={{ color: '#ef4444' }}>Supprimées</div>
-                <div className="v" style={{ color: '#ef4444' }}>{nbSupprimees}</div>
-              </div>
-            )}
             <div className="stat wht">
               <div className="l">Mouvements</div>
               <div className="v">{historique.mouvements_stock.length}</div>
