@@ -2,12 +2,12 @@ import { useState } from 'react'
 import Modale from './Modale'
 
 const SAUCES_DISPONIBLES = [
-  { id: 'chevre', nom: 'Chèvre', icone: '🐐' },
-  { id: 'boyaux', nom: 'Boyaux', icone: '🍲' },
-  { id: 'boeuf', nom: 'Boeuf', icone: '🥩' },
-  { id: 'poulet', nom: 'Poulet', icone: '🍗' },
-  { id: 'poisson_fume', nom: 'Poisson fumé', icone: '🐟' },
-  { id: 'agouti', nom: 'Agouti', icone: '🦔' },
+  { id: 'chevre', nom: 'Chèvre' },
+  { id: 'boyaux', nom: 'Boyaux' },
+  { id: 'boeuf', nom: 'Boeuf' },
+  { id: 'poulet', nom: 'Poulet' },
+  { id: 'poisson_fume', nom: 'Poisson fumé' },
+  { id: 'agouti', nom: 'Agouti' },
 ]
 
 export default function ModalePrix({ produit, onValide, onFerme }) {
@@ -39,7 +39,7 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
         {/* 1. Saisie du prix du plat */}
         <div style={{ marginBottom: 16 }}>
           <label className="lbl" style={{ marginBottom: 6, display: 'block', fontWeight: 700 }}>
-            💰 Prix du plat (FCFA) *
+            Prix du plat (FCFA) *
           </label>
           <input
             className="champ"
@@ -58,7 +58,7 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
         {/* 2. Sélection de la sauce */}
         <div style={{ marginBottom: 16 }}>
           <label className="lbl" style={{ marginBottom: 8, display: 'block', fontWeight: 700 }}>
-            🥣 Choisir la Sauce (Cuisine)
+            Sauces disponibles (Cuisine)
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 8 }}>
             {SAUCES_DISPONIBLES.map((s) => {
@@ -69,18 +69,14 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
                   type="button"
                   className={`btn ${active ? 'btn-o' : 'btn-g'}`}
                   style={{
-                    padding: '8px 6px',
-                    fontSize: 12.5,
+                    padding: '10px 6px',
+                    fontSize: 13,
                     fontWeight: active ? 800 : 600,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 3,
+                    textAlign: 'center',
                   }}
                   onClick={() => setSauceChoisie(active ? '' : s.nom)}
                 >
-                  <span style={{ fontSize: 16 }}>{s.icone}</span>
-                  <span>{s.nom}</span>
+                  {s.nom}
                 </button>
               )
             })}
@@ -93,7 +89,7 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
               style={{ fontSize: 12, padding: '6px 10px' }}
               onClick={() => setSauceChoisie(sauceChoisie === '__autre__' ? '' : '__autre__')}
             >
-              ✏️ Autre sauce…
+              Autre sauce…
             </button>
             {sauceChoisie && (
               <button
@@ -126,7 +122,7 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
         {Boolean(sauceChoisie) && (
           <div style={{ marginBottom: 16, background: '#fff5ec', border: '1px solid var(--orange)', padding: 12, borderRadius: 8 }}>
             <label className="lbl" style={{ marginBottom: 4, display: 'block', fontWeight: 700, color: 'var(--orange-dk)' }}>
-              💵 Prix de la sauce « {sauceChoisie === '__autre__' ? (autreSauce || 'Autre') : sauceChoisie} » (FCFA)
+              Prix de la sauce « {sauceChoisie === '__autre__' ? (autreSauce || 'Autre') : sauceChoisie} » (FCFA)
             </label>
             <input
               className="champ"
@@ -147,7 +143,7 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
         {/* 4. Note additionnelle */}
         <div style={{ marginBottom: 16 }}>
           <label className="lbl" style={{ marginBottom: 4, display: 'block' }}>
-            📝 Instructions cuisine (Optionnel)
+            Instructions cuisine (Optionnel)
           </label>
           <input
             className="champ"
