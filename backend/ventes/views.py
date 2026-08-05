@@ -143,6 +143,46 @@ class CommandeViewSet(viewsets.ModelViewSet):
         donnees["monnaie_a_rendre"] = services.monnaie_a_rendre(commande)
         return Response(donnees)
 
+    @action(detail=False, methods=["post"])
+    def encaisser_tout(self, request):
+        """Encaisser plusieurs commandes à la fois (par livreur ou globalement pour toutes les livraisons)."""
+        livreur_id = request.data.get("livreur_id")
+        commande_ids = request.data.get("commande_ids")
+        mode_paiement = request.data.get("mode", "especes")
+
+        queryset = Commande.objects.filter(
+            type=Commande.TYPE_LIVRAISON,
+        ).exclude(statut__in=[Commande.STATUT_PAYEE, Commande.STATUT_ANNULEE])
+
+        if commande_ids:
+            queryset = queryset.filter(pk__in=commande_ids)
+        elif livreur_id:
+            if str(livreur_id) in ["__sans__", "sans_attribution", "0", "None"]:
+                queryset = queryset.filter(livreur__isnull=True)
+            else:
+                queryset = queryset.filter(livreur_id=livreur_id)
+
+        commandes = list(queryset)
+        encaissees = []
+        montant_total = 0
+
+        for cmd in commandes:
+            if cmd.statut == Commande.STATUT_PAYEE or not cmd.lignes.exists():
+                continue
+            total = cmd.total
+            if total <= 0:
+                continue
+            paiements = [{"mode": mode_paiement, "montant": total, "montant_recu": total}]
+            services.encaisser(cmd, paiements)
+            encaissees.append(cmd.pk)
+            montant_total += total
+
+        return Response({
+            "nb_encaissees": len(encaissees),
+            "montant_total": montant_total,
+            "commandes_ids": encaissees,
+        })
+
     @action(detail=True, methods=["post"])
     def envoyer_en_cuisine(self, request, pk=None):
         commande = self.get_object()
