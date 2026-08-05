@@ -719,20 +719,8 @@ export default function Ventes() {
                 const infoSauce = `Sauce ${sauceNom}${prixSauce > 0 ? ` (+${fcfa(prixSauce)})` : ''}`
                 noteFinale = noteFinale ? `${infoSauce} · ${noteFinale}` : infoSauce
               }
-              ajouter(produit, prixPlat, noteFinale)
-              if (sauceNom && prixSauce > 0) {
-                const dummySauce = {
-                  id: `sauce_${sauceNom.toLowerCase().replace(/\s+/g, '_')}`,
-                  nom: `Sauce ${sauceNom}`,
-                  prix_standard: prixSauce,
-                  prix_libre: false,
-                  gere_stock: false,
-                }
-                setPanier((actuel) => [
-                  ...actuel,
-                  { produit: dummySauce, quantite: 1, prix_unitaire: prixSauce, note: `Accompagnement ${produit.nom}` },
-                ])
-              }
+              const prixTotalLigne = (Number(prixPlat) || 0) + (Number(prixSauce) || 0)
+              ajouter(produit, prixTotalLigne, noteFinale)
             } else {
               ajouter(produit, res)
             }
