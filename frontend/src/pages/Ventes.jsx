@@ -147,7 +147,7 @@ export default function Ventes() {
   const total = panier.reduce((somme, item) => somme + item.prix_unitaire * item.quantite, 0)
 
   // ---- Édition locale du panier (aucun appel réseau) ----
-  function ajouter(produit, prix) {
+  function ajouter(produit, prix, noteCustom) {
     if (produit.gere_stock && (produit.stock <= 0 || produit.etat_stock === 'rupture')) {
       setErreur(`Le produit « ${produit.nom} » est en rupture de stock.`)
       return
@@ -157,9 +157,10 @@ export default function Ventes() {
       return
     }
     const prixUnitaire = prix === undefined ? produit.prix_standard : prix
+    const noteInit = noteCustom !== undefined ? noteCustom : ''
     setPanier((actuel) => {
       const i = actuel.findIndex(
-        (item) => item.produit.id === produit.id && item.prix_unitaire === prixUnitaire && !item.note,
+        (item) => item.produit.id === produit.id && item.prix_unitaire === prixUnitaire && item.note === noteInit,
       )
       if (i >= 0) {
         if (produit.gere_stock && actuel[i].quantite + 1 > produit.stock) {
@@ -170,7 +171,7 @@ export default function Ventes() {
         copie[i] = { ...copie[i], quantite: copie[i].quantite + 1 }
         return copie
       }
-      return [...actuel, { produit, quantite: 1, prix_unitaire: prixUnitaire, note: '' }]
+      return [...actuel, { produit, quantite: 1, prix_unitaire: prixUnitaire, note: noteInit }]
     })
   }
 
@@ -618,21 +619,28 @@ export default function Ventes() {
             </div>
           ) : (
             panier.map((item, index) => (
-              <div className="line" key={index}>
-                <span>{item.produit.nom}</span>
-                <span className="line-actions">
-                  <button className="qte" onClick={() => changerQuantite(index, -1)} aria-label="Moins">
-                    −
-                  </button>
-                  <b>{item.quantite}</b>
-                  <button className="qte" onClick={() => changerQuantite(index, 1)} aria-label="Plus">
-                    +
-                  </button>
-                  <span className="line-montant">{fcfa(item.prix_unitaire * item.quantite)}</span>
-                  <button className="x" onClick={() => retirer(index)} aria-label="Retirer">
-                    ✕
-                  </button>
-                </span>
+              <div className="line" key={index} style={{ flexDirection: 'column', alignItems: 'stretch', padding: '6px 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                  <span style={{ fontWeight: 600 }}>{item.produit.nom}</span>
+                  <span className="line-actions">
+                    <button className="qte" onClick={() => changerQuantite(index, -1)} aria-label="Moins">
+                      −
+                    </button>
+                    <b>{item.quantite}</b>
+                    <button className="qte" onClick={() => changerQuantite(index, 1)} aria-label="Plus">
+                      +
+                    </button>
+                    <span className="line-montant">{fcfa(item.prix_unitaire * item.quantite)}</span>
+                    <button className="x" onClick={() => retirer(index)} aria-label="Retirer">
+                      ✕
+                    </button>
+                  </span>
+                </div>
+                {item.note && (
+                  <div style={{ fontSize: 12, color: 'var(--orange-dk)', fontWeight: 700, marginTop: 2 }}>
+                    🥣 {item.note}
+                  </div>
+                )}
               </div>
             ))
           )}
@@ -701,10 +709,33 @@ export default function Ventes() {
         <ModalePrix
           produit={platEnAttente}
           onFerme={() => setPlatEnAttente(null)}
-          onValide={(prix) => {
+          onValide={(res) => {
             const produit = platEnAttente
             setPlatEnAttente(null)
-            ajouter(produit, prix)
+            if (typeof res === 'object' && res !== null) {
+              const { prixPlat, sauceNom, prixSauce, note } = res
+              let noteFinale = note || ''
+              if (sauceNom) {
+                const infoSauce = `Sauce ${sauceNom}${prixSauce > 0 ? ` (+${fcfa(prixSauce)})` : ''}`
+                noteFinale = noteFinale ? `${infoSauce} · ${noteFinale}` : infoSauce
+              }
+              ajouter(produit, prixPlat, noteFinale)
+              if (sauceNom && prixSauce > 0) {
+                const dummySauce = {
+                  id: `sauce_${sauceNom.toLowerCase().replace(/\s+/g, '_')}`,
+                  nom: `Sauce ${sauceNom}`,
+                  prix_standard: prixSauce,
+                  prix_libre: false,
+                  gere_stock: false,
+                }
+                setPanier((actuel) => [
+                  ...actuel,
+                  { produit: dummySauce, quantite: 1, prix_unitaire: prixSauce, note: `Accompagnement ${produit.nom}` },
+                ])
+              }
+            } else {
+              ajouter(produit, res)
+            }
           }}
         />
       )}
