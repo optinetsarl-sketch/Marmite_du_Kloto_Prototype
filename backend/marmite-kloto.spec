@@ -53,6 +53,8 @@ hiddenimports = [
     "django.core.management.commands.migrate",
     "django.core.management.commands.collectstatic",
     "django.core.management.commands.runserver",
+    "catalogue.management.commands.sync_atlas",
+    "catalogue.management.commands.seed_catalogue",
     "django.template.backends.django",
     # DRF
     "rest_framework",

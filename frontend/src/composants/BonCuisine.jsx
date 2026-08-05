@@ -31,8 +31,8 @@ export default function BonCuisine({ commande, onFerme }) {
 
           <div className="rc-meta">
             <span style={{ fontWeight: 700, color: 'var(--noir)' }}>{cible}</span>
-            <span>
-              {ouverte.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+            <span style={{ fontWeight: 600 }}>
+              Heure de commande : {ouverte.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
           {commande.origine === 'whatsapp' && <div className="rc-meta">Commande WhatsApp</div>}

@@ -13,8 +13,8 @@ class DepenseViewSet(viewsets.ModelViewSet):
     filterset_fields = ["categorie", "mode", "session"]
 
     def get_queryset(self):
-        # On n'affiche que les dépenses actives (non supprimées) dans les listes normales
-        return Depense.objects.filter(supprime_le__isnull=True)
+        # On n'affiche que les dépenses actives (non supprimées) dans les listes normales, les plus récentes en haut
+        return Depense.objects.filter(supprime_le__isnull=True).order_by("-cree_le", "-id")
 
     def destroy(self, request, *args, **kwargs):
         """Soft-delete : on marque supprime_le plutôt que d'effacer la ligne.
@@ -27,7 +27,7 @@ class DepenseViewSet(viewsets.ModelViewSet):
 
 
 class SessionCaisseViewSet(viewsets.ModelViewSet):
-    queryset = SessionCaisse.objects.prefetch_related("depenses")
+    queryset = SessionCaisse.objects.prefetch_related("depenses").order_by("-ouverte_le", "-id")
     serializer_class = SessionCaisseSerializer
 
     def create(self, request, *args, **kwargs):

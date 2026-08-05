@@ -25,29 +25,26 @@ class LivreurViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def comptes_du_jour(self, request):
-        """« Kofi doit remettre 45 000 FCFA pour 5 livraisons » (§7).
-
-        Deux colonnes bien distinctes, et c'est tout l'intérêt du suivi :
-
-        - « à remettre » : commandes livrées dont l'argent n'est pas encore
-          rentré en caisse. C'est la somme que le livreur a dans la poche.
-        - « déjà remis » : livraisons encaissées en espèces aujourd'hui.
-
-        Le mobile money n'apparaît pas dans « déjà remis » : il arrive
-        directement sur le compte, le livreur n'a rien à rapporter. Il compte
-        en revanche dans les courses du jour, pour qu'un livreur payé
-        uniquement en TMoney ne disparaisse pas du tableau de fin de journée.
-        """
-        jour = request.query_params.get("date") or timezone.localdate()
+        date_param = request.query_params.get("date")
+        if date_param:
+            try:
+                from datetime import datetime
+                jour = datetime.strptime(date_param, "%Y-%m-%d").date()
+            except ValueError:
+                jour = timezone.localdate()
+        else:
+            jour = timezone.localdate()
 
         comptes = {}
 
         def ligne(livreur_id, nom):
+            key = livreur_id if livreur_id is not None else "__sans__"
+            nom_final = nom if livreur_id is not None else "⚠ Non attribué"
             return comptes.setdefault(
-                livreur_id,
+                key,
                 {
-                    "livreur_id": livreur_id,
-                    "livreur_nom": nom,
+                    "livreur_id": key,
+                    "livreur_nom": nom_final,
                     "courses_du_jour": 0,
                     "courses_en_attente": 0,
                     "a_remettre": 0,
@@ -60,8 +57,8 @@ class LivreurViewSet(viewsets.ModelViewSet):
             Commande.objects.filter(
                 type=Commande.TYPE_LIVRAISON,
                 statut__in=[Commande.STATUT_LIVREE, Commande.STATUT_PAYEE],
-                livreur__isnull=False,
             )
+            .filter(Q(cloturee_le__range=date_range(jour)) | Q(ouverte_le__range=date_range(jour)))
             .values("livreur_id", nom=F("livreur__nom"))
             .annotate(total=Count("id", distinct=True))
         )
@@ -72,8 +69,8 @@ class LivreurViewSet(viewsets.ModelViewSet):
             Commande.objects.filter(
                 type=Commande.TYPE_LIVRAISON,
                 statut=Commande.STATUT_LIVREE,
-                livreur__isnull=False,
             )
+            .filter(Q(cloturee_le__range=date_range(jour)) | Q(ouverte_le__range=date_range(jour)))
             .values("livreur_id", nom=F("livreur__nom"))
             .annotate(
                 courses=Count("id", distinct=True),
@@ -90,9 +87,8 @@ class LivreurViewSet(viewsets.ModelViewSet):
                 mode=Paiement.MODE_ESPECES,
                 commande__type=Commande.TYPE_LIVRAISON,
                 commande__statut=Commande.STATUT_PAYEE,
-                commande__livreur__isnull=False,
-                commande__cloturee_le__range=date_range(jour),
             )
+            .filter(Q(commande__cloturee_le__range=date_range(jour)) | Q(cree_le__range=date_range(jour)))
             .values(livreur_id=F("commande__livreur_id"), nom=F("commande__livreur__nom"))
             .annotate(courses=Count("commande", distinct=True), montant=Sum("montant"))
         )
@@ -102,26 +98,47 @@ class LivreurViewSet(viewsets.ModelViewSet):
             compte["deja_remis"] = entree["montant"] or 0
 
         return Response(
-            sorted(comptes.values(), key=lambda c: (-c["a_remettre"], -c["deja_remis"]))
+            sorted(comptes.values(), key=lambda c: (c["livreur_id"] == "__sans__", -c["a_remettre"], -c["deja_remis"]))
         )
 
     @action(detail=True, methods=["get"])
     def detail_du_jour(self, request, pk=None):
-        """Ce que ce livreur a transporté aujourd'hui, course par course et plat
-        par plat. Sert à vérifier une contestation : « je n'ai jamais eu ce poulet »."""
-        livreur = self.get_object()
-        jour = request.query_params.get("date") or timezone.localdate()
+        """Ce que ce livreur (ou les courses non attribuées) a transporté à la date sélectionnée."""
+        date_param = request.query_params.get("date")
+        if date_param:
+            try:
+                from datetime import datetime
+                jour = datetime.strptime(date_param, "%Y-%m-%d").date()
+            except ValueError:
+                jour = timezone.localdate()
+        else:
+            jour = timezone.localdate()
 
-        courses = (
-            Commande.objects.filter(
-                livreur=livreur,
-                type=Commande.TYPE_LIVRAISON,
-                statut__in=[Commande.STATUT_LIVREE, Commande.STATUT_PAYEE],
+        if str(pk) in ["__sans__", "sans_attribution", "0", "None"]:
+            livreur_nom = "⚠ Non attribué"
+            courses = (
+                Commande.objects.filter(
+                    livreur__isnull=True,
+                    type=Commande.TYPE_LIVRAISON,
+                    statut__in=[Commande.STATUT_LIVREE, Commande.STATUT_PAYEE],
+                )
+                .filter(Q(cloturee_le__range=date_range(jour)) | Q(ouverte_le__range=date_range(jour)))
+                .prefetch_related("lignes__produit__categorie")
+                .order_by("-cloturee_le", "-ouverte_le")
             )
-            .filter(Q(cloturee_le__range=date_range(jour)) | Q(cloturee_le__isnull=True))
-            .prefetch_related("lignes__produit__categorie")
-            .order_by("ouverte_le")
-        )
+        else:
+            livreur = self.get_object()
+            livreur_nom = livreur.nom
+            courses = (
+                Commande.objects.filter(
+                    livreur=livreur,
+                    type=Commande.TYPE_LIVRAISON,
+                    statut__in=[Commande.STATUT_LIVREE, Commande.STATUT_PAYEE],
+                )
+                .filter(Q(cloturee_le__range=date_range(jour)) | Q(ouverte_le__range=date_range(jour)))
+                .prefetch_related("lignes__produit__categorie")
+                .order_by("-cloturee_le", "-ouverte_le")
+            )
 
         detail = []
         plats = {}
@@ -133,7 +150,7 @@ class LivreurViewSet(viewsets.ModelViewSet):
                         "libelle": ligne.libelle,
                         "quantite": ligne.quantite,
                         "montant": ligne.montant,
-                        "rayon": ligne.produit.categorie.rayon,
+                        "rayon": ligne.produit.categorie.rayon if ligne.produit and ligne.produit.categorie else "cuisine",
                     }
                 )
                 cumul = plats.setdefault(ligne.libelle, {"libelle": ligne.libelle, "quantite": 0, "montant": 0})
@@ -155,7 +172,7 @@ class LivreurViewSet(viewsets.ModelViewSet):
 
         return Response(
             {
-                "livreur": livreur.nom,
+                "livreur": livreur_nom,
                 "courses": detail,
                 "recapitulatif": sorted(plats.values(), key=lambda p: -p["quantite"]),
                 "total": sum(course["total"] for course in detail),

@@ -197,7 +197,7 @@ export default function Ventes() {
   // ---- Persistance : « Valider » attribue enfin la commande ----
   async function persister(statutOptionnel) {
     let cible = commande
-    let idLivreurFinal = Number(livreurId) || null
+    let idLivreurFinal = livreurId || null
 
     // Si un nouveau nom de livreur est saisi, le créer automatiquement en base
     if (type === 'livraison' && modeNouveauLivreur && nouveauLivreur.trim()) {
@@ -206,7 +206,7 @@ export default function Ventes() {
         const misAJour = await liste('/livreurs/?actif=true')
         setLivreurs(misAJour)
         setLivreurId(String(cree.id))
-        idLivreurFinal = Number(cree.id)
+        idLivreurFinal = String(cree.id)
         setModeNouveauLivreur(false)
         setNouveauLivreur('')
       } catch (e) {
@@ -292,9 +292,11 @@ export default function Ventes() {
     try {
       const persistee = await persister('en_cuisine')
       await chargerProduits()
-      setTables(await liste('/tables/?page_size=200'))
-      if (persistee && persistee.lignes && persistee.lignes.some((l) => l.rayon === 'cuisine')) {
+      const aPlatsCuisine = persistee && persistee.lignes && persistee.lignes.some((l) => l.rayon === 'cuisine')
+      if (aPlatsCuisine) {
         setBonCuisineOuvert(persistee)
+      } else if (type === 'livraison') {
+        setDocumentOuvert({ type: 'BonLivraison', commande: persistee })
       }
       // Nettoyer l'ardoise après validation
       reinitialiserFormulaire()

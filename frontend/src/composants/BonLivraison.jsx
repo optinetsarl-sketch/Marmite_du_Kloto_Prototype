@@ -17,7 +17,10 @@ export default function BonLivraison({ commande, onFerme }) {
             <div className="rc-nm">Bon de livraison</div>
             <div className="rc-sb">La Marmite du Kloto · Bar-Resto</div>
             <div className="rc-sb">Tél. +228 91 04 27 02</div>
-            <div style={{ fontWeight: 700, fontSize: 13, marginTop: 4, color: 'var(--orange-dk)' }}>
+            <div style={{ fontSize: 13, color: 'var(--mut)', marginTop: 4, fontWeight: 600 }}>
+              Heure de commande : {ouverte.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+            <div style={{ fontWeight: 700, fontSize: 13, marginTop: 2, color: 'var(--orange-dk)' }}>
               N° Réf : {referenceCommande(commande)}
             </div>
           </div>
@@ -27,10 +30,6 @@ export default function BonLivraison({ commande, onFerme }) {
             <Champ libelle="Téléphone" valeur={commande.client_telephone || 'Non renseigné'} />
             <Champ libelle="Adresse" valeur={commande.client_adresse || 'Non renseignée'} />
             <Champ libelle="Livreur" valeur={commande.livreur_nom || 'Non assigné'} />
-            <Champ
-              libelle="Heure de commande"
-              valeur={ouverte.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-            />
           </div>
 
           <div className="rc-items">

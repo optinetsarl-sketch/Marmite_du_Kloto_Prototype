@@ -5,16 +5,19 @@ import Modale from './Modale'
 
 /** Ce qu'un livreur a transporté aujourd'hui, course par course et plat par plat.
  *  Sert à trancher une contestation au moment de faire les comptes. */
-export default function DetailLivreur({ livreurId, onFerme }) {
+export default function DetailLivreur({ livreurId, date, onFerme }) {
   const [detail, setDetail] = useState(null)
   const [erreur, setErreur] = useState('')
 
   useEffect(() => {
+    const url = date
+      ? `/livreurs/${livreurId}/detail_du_jour/?date=${date}`
+      : `/livreurs/${livreurId}/detail_du_jour/`
     api
-      .get(`/livreurs/${livreurId}/detail_du_jour/`)
+      .get(url)
       .then(setDetail)
       .catch((echec) => setErreur(echec.message))
-  }, [livreurId])
+  }, [livreurId, date])
 
   return (
     <Modale

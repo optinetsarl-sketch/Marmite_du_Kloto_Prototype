@@ -25,6 +25,15 @@ export default function Historique() {
   const [erreur, setErreur] = useState('')
   const [chargement, setChargement] = useState(false)
 
+  const dateAujourd = new Date().toISOString().slice(0, 10)
+
+  function naviguerDate(delta) {
+    const d = new Date(date + 'T12:00:00')
+    d.setDate(d.getDate() + delta)
+    const nouvelleDate = d.toISOString().slice(0, 10)
+    if (nouvelleDate <= dateAujourd) setDate(nouvelleDate)
+  }
+
   useEffect(() => {
     charger()
   }, [date])
@@ -179,12 +188,42 @@ export default function Historique() {
           <label style={{ display: 'block', marginBottom: 6, color: 'var(--mut)' }}>
             Date
           </label>
-          <input
-            className="champ auto"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              className="btn btn-g"
+              style={{ padding: '5px 10px', fontSize: 16, lineHeight: 1 }}
+              onClick={() => naviguerDate(-1)}
+              title="Jour précédent"
+            >
+              ‹
+            </button>
+            <input
+              className="champ auto"
+              type="date"
+              value={date}
+              max={dateAujourd}
+              onChange={(e) => setDate(e.target.value)}
+              style={{ flex: 1, minWidth: 140 }}
+            />
+            <button
+              className="btn btn-g"
+              style={{ padding: '5px 10px', fontSize: 16, lineHeight: 1 }}
+              onClick={() => naviguerDate(1)}
+              disabled={date >= dateAujourd}
+              title="Jour suivant"
+            >
+              ›
+            </button>
+          </div>
+          {date !== dateAujourd && (
+            <button
+              className="btn btn-g"
+              style={{ marginTop: 6, fontSize: 12, padding: '3px 10px', width: '100%' }}
+              onClick={() => setDate(dateAujourd)}
+            >
+              ↩ Aujourd'hui
+            </button>
+          )}
         </div>
         <div className="pill">{historique?.evenements?.length ?? 0} événements</div>
       </div>
@@ -215,7 +254,15 @@ export default function Historique() {
             </div>
           ) : (
             <div className="card">
-              <h3>Événements</h3>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span>Événements</span>
+                <span style={{ fontWeight: 400, fontSize: 14, color: 'var(--mut)' }}>
+                  {new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+                <span className="pill" style={{ marginLeft: 'auto', fontSize: 12 }}>
+                  {historique.evenements.length} événement{historique.evenements.length > 1 ? 's' : ''}
+                </span>
+              </h3>
               <table className="grid cartes">
                 <thead>
                   <tr>

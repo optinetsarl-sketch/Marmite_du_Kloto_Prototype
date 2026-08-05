@@ -20,7 +20,7 @@ class FournisseurViewSet(viewsets.ModelViewSet):
 
 
 class MouvementStockViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = MouvementStock.objects.select_related("produit", "fournisseur")
+    queryset = MouvementStock.objects.select_related("produit", "fournisseur").order_by("-cree_le", "-id")
     serializer_class = MouvementStockSerializer
     filterset_fields = ["produit", "motif"]
 

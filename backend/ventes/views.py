@@ -76,10 +76,35 @@ class CommandeViewSet(viewsets.ModelViewSet):
                 statut=Commande.STATUT_PAYEE,
                 lignes__produit__categorie__rayon=Categorie.RAYON_CUISINE,
             ).distinct()
+            date_param = self.request.query_params.get("date")
             if self.request.query_params.get("aujourdhui") == "1":
                 queryset = queryset.filter(cloturee_le__range=date_range(timezone.localdate()))
+            elif date_param:
+                from datetime import date as date_type
+                try:
+                    from datetime import datetime
+                    jour = datetime.strptime(date_param, "%Y-%m-%d").date()
+                    queryset = queryset.filter(cloturee_le__range=date_range(jour))
+                except ValueError:
+                    pass  # date invalide → on renvoie tout
             return queryset.order_by("-cloturee_le")
-        return queryset.order_by("ouverte_le")
+        if self.request.query_params.get("historique_emporter") == "1":
+            queryset = queryset.filter(
+                type=Commande.TYPE_EMPORTER,
+                statut=Commande.STATUT_PAYEE,
+            )
+            date_param = self.request.query_params.get("date")
+            if self.request.query_params.get("aujourdhui") == "1":
+                queryset = queryset.filter(cloturee_le__range=date_range(timezone.localdate()))
+            elif date_param:
+                try:
+                    from datetime import datetime
+                    jour = datetime.strptime(date_param, "%Y-%m-%d").date()
+                    queryset = queryset.filter(cloturee_le__range=date_range(jour))
+                except ValueError:
+                    pass
+            return queryset.order_by("-cloturee_le")
+        return queryset.order_by("-ouverte_le", "-id")
 
     @action(detail=True, methods=["post"])
     def lignes(self, request, pk=None):
@@ -145,7 +170,14 @@ class CommandeViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         commande.statut = nouveau
-        commande.save(update_fields=["statut"])
+        update_fields = ["statut"]
+        # Quand on confie la commande à un livreur, on enregistre son identifiant
+        if nouveau == Commande.STATUT_EN_ROUTE:
+            livreur_id = request.data.get("livreur_id")
+            if livreur_id:
+                commande.livreur_id = livreur_id
+                update_fields.append("livreur")
+        commande.save(update_fields=update_fields)
         return Response(CommandeSerializer(commande).data)
 
 

@@ -24,10 +24,29 @@ export default function Emporter() {
   const [recherche, setRecherche] = useState('')
   const [derniereMaj, setDerniereMaj] = useState(new Date())
 
+  function dateAujourd() {
+    return new Date().toLocaleDateString('fr-CA')
+  }
+
+  const [dateHistorique, setDateHistorique] = useState(dateAujourd())
+  const [historique, setHistorique] = useState([])
+
+  async function chargerHistorique(date) {
+    try {
+      const url = date === dateAujourd()
+        ? '/commandes/?historique_emporter=1&aujourdhui=1&page_size=100'
+        : `/commandes/?historique_emporter=1&date=${date}&page_size=100`
+      setHistorique(await liste(url))
+    } catch (e) {
+      console.error('Erreur chargement historique emporter', e)
+    }
+  }
+
   async function charger() {
     try {
       const ouvertes = await liste('/commandes/?type=emporter&ouvertes=1&page_size=100')
       setCommandes(ouvertes)
+      await chargerHistorique(dateHistorique)
       setErreur('')
       setDerniereMaj(new Date())
     } catch (e) {
@@ -35,11 +54,29 @@ export default function Emporter() {
     }
   }
 
+  function naviguerDate(delta) {
+    const d = new Date(dateHistorique + 'T12:00:00')
+    d.setDate(d.getDate() + delta)
+    const nouvelleDate = d.toLocaleDateString('fr-CA')
+    if (nouvelleDate <= dateAujourd()) {
+      setDateHistorique(nouvelleDate)
+    }
+  }
+
+  useEffect(() => {
+    chargerHistorique(dateHistorique)
+  }, [dateHistorique])
+
   useEffect(() => {
     charger()
-    const intervalle = setInterval(charger, 10000)
+    const intervalle = setInterval(() => {
+      liste('/commandes/?type=emporter&ouvertes=1&page_size=100').then(setCommandes).catch(() => {})
+      if (dateHistorique === dateAujourd()) {
+        chargerHistorique(dateHistorique)
+      }
+    }, 10000)
     return () => clearInterval(intervalle)
-  }, [])
+  }, [dateHistorique])
 
   async function encaisser(paiements) {
     try {
@@ -509,6 +546,123 @@ export default function Emporter() {
           </button>
         </div>
       )}
+
+      {/* Historique des commandes à emporter par date */}
+      <div className="card" style={{ marginTop: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span>🛍️ Historique des commandes à emporter</span>
+            <span style={{ fontWeight: 400, fontSize: 14, color: 'var(--mut)' }}>
+              {dateHistorique === dateAujourd() ? "(Aujourd'hui)" : `du ${new Date(dateHistorique + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`}
+            </span>
+            <span className="pill" style={{ fontSize: 12 }}>
+              {historique.length} clôturée{historique.length > 1 ? 's' : ''}
+            </span>
+          </h3>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              className="btn btn-g"
+              style={{ padding: '4px 10px', fontSize: 16, lineHeight: 1 }}
+              onClick={() => naviguerDate(-1)}
+              title="Jour précédent"
+            >
+              ‹
+            </button>
+            <input
+              type="date"
+              className="champ auto"
+              value={dateHistorique}
+              max={dateAujourd()}
+              onChange={(e) => setDateHistorique(e.target.value)}
+              style={{ fontSize: 13, padding: '4px 10px', cursor: 'pointer' }}
+              title="Choisir une date pour consulter l'historique à emporter"
+            />
+            <button
+              className="btn btn-g"
+              style={{ padding: '4px 10px', fontSize: 16, lineHeight: 1 }}
+              onClick={() => naviguerDate(1)}
+              disabled={dateHistorique >= dateAujourd()}
+              title="Jour suivant"
+            >
+              ›
+            </button>
+            {dateHistorique !== dateAujourd() && (
+              <button
+                className="btn btn-g"
+                style={{ fontSize: 12, padding: '4px 10px' }}
+                onClick={() => setDateHistorique(dateAujourd())}
+              >
+                ↩ Aujourd'hui
+              </button>
+            )}
+          </div>
+        </div>
+
+        {historique.length === 0 ? (
+          <div className="etat">Aucune commande à emporter clôturée {dateHistorique === dateAujourd() ? "aujourd'hui" : 'à cette date'}.</div>
+        ) : (
+          <table className="grid cartes">
+            <thead>
+              <tr>
+                <th>Référence &amp; Client</th>
+                <th>Heure clôture</th>
+                <th>Articles commandés</th>
+                <th style={{ textAlign: 'right' }}>Total encaissé</th>
+                <th style={{ textAlign: 'right' }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {historique.map((cmd) => {
+                const ref = referenceCommande(cmd)
+                const nbPlats = (cmd.lignes || []).reduce((s, l) => s + l.quantite, 0)
+                const articles = (cmd.lignes || [])
+                  .map((l) => `${l.libelle}${l.quantite > 1 ? ` ×${l.quantite}` : ''}`)
+                  .join(' · ')
+
+                return (
+                  <tr key={`hist-${cmd.id}`}>
+                    <td data-titre style={{ fontWeight: 600 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ color: 'var(--orange-dk)', fontSize: 13, fontWeight: 700 }}>
+                          {ref}
+                        </span>
+                        <span>{cmd.client_nom || 'Client à emporter'}</span>
+                      </div>
+                      {cmd.client_telephone && (
+                        <div style={{ fontSize: 12, color: 'var(--mut)', fontWeight: 400 }}>
+                          {cmd.client_telephone}
+                        </div>
+                      )}
+                    </td>
+                    <td data-label="Heure" style={{ color: 'var(--mut)', fontSize: 13 }}>
+                      {cmd.cloturee_le
+                        ? new Date(cmd.cloturee_le).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                        : '—'}
+                    </td>
+                    <td data-label="Articles" style={{ fontSize: 13 }}>
+                      <div>{articles || '—'}</div>
+                      <div style={{ fontSize: 11, color: 'var(--mut)' }}>{nbPlats} article(s)</div>
+                    </td>
+                    <td data-label="Total" style={{ textAlign: 'right', fontWeight: 800, color: 'var(--noir)' }}>
+                      {fcfa(cmd.total)}
+                    </td>
+                    <td data-actions style={{ textAlign: 'right' }}>
+                      <button
+                        className="btn btn-g btn-mini"
+                        onClick={() => setRecu(cmd)}
+                        title="Imprimer le reçu de cette vente"
+                      >
+                        📄 Reçu
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
 
       {/* Modale d'encaissement */}
       {aEncaisser && (

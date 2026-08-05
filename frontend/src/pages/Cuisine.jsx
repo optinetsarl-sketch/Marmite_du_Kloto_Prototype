@@ -4,17 +4,34 @@ import { api, fcfa, liste, referenceCommande } from '../api'
 import BonCuisine from '../composants/BonCuisine'
 import Modale from '../composants/Modale'
 
+  // Formate une date en yyyy-mm-dd pour l'input[type=date]
+  function dateAujourd() {
+    return new Date().toLocaleDateString('fr-CA') // format YYYY-MM-DD
+  }
+
 export default function Cuisine() {
   const [commandes, setCommandes] = useState([])
   const [historique, setHistorique] = useState([])
   const [erreur, setErreur] = useState('')
   const [bon, setBon] = useState(null)
   const [modalMenu, setModalMenu] = useState(false)
+  const [dateHistorique, setDateHistorique] = useState(dateAujourd())
+
+  async function chargerHistorique(date) {
+    try {
+      const url = date === dateAujourd()
+        ? '/commandes/?historique_cuisine=1&aujourdhui=1&page_size=100'
+        : `/commandes/?historique_cuisine=1&date=${date}&page_size=100`
+      setHistorique(await liste(url))
+    } catch (echec) {
+      setErreur(echec.message)
+    }
+  }
 
   async function charger() {
     try {
       setCommandes(await liste('/commandes/?pour_cuisine=1&page_size=100'))
-      setHistorique(await liste('/commandes/?historique_cuisine=1&aujourdhui=1&page_size=50'))
+      await chargerHistorique(dateHistorique)
       setErreur('')
     } catch (echec) {
       setErreur(echec.message)
@@ -24,9 +41,21 @@ export default function Cuisine() {
   useEffect(() => {
     charger()
     // Le poste cuisine reste affiché en permanence : il se rafraîchit seul.
-    const minuteur = setInterval(charger, 20000)
+    const minuteur = setInterval(() => {
+      // On ne rafraîchit les bons actifs que ; l'historique d'une date passée ne change pas
+      liste('/commandes/?pour_cuisine=1&page_size=100').then(setCommandes).catch(() => {})
+      if (dateHistorique === dateAujourd()) {
+        chargerHistorique(dateHistorique)
+      }
+    }, 20000)
     return () => clearInterval(minuteur)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    chargerHistorique(dateHistorique)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateHistorique])
 
   async function marquerTermine(commande) {
     try {
@@ -122,13 +151,34 @@ export default function Cuisine() {
       )}
 
       <div className="cuis-historique">
-        <div className="cuis-sec">
+        <div className="cuis-sec" style={{ flexWrap: 'wrap', gap: 10 }}>
           <span className="cuis-point historique" />
-          Historique des repas clôturés aujourd'hui
+          <span>
+            Historique des repas clôturés
+            {dateHistorique === dateAujourd() ? <> aujourd'hui</> : <> du {new Date(dateHistorique + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</>}
+          </span>
           <span className="cuis-compte">{historique.length}</span>
+          <input
+            type="date"
+            className="champ"
+            value={dateHistorique}
+            max={dateAujourd()}
+            onChange={(e) => setDateHistorique(e.target.value)}
+            style={{ marginLeft: 'auto', width: 'auto', fontSize: 13, padding: '4px 10px', cursor: 'pointer' }}
+            title="Choisir une date pour consulter l'historique"
+          />
+          {dateHistorique !== dateAujourd() && (
+            <button
+              className="btn btn-g"
+              style={{ fontSize: 12, padding: '4px 10px' }}
+              onClick={() => setDateHistorique(dateAujourd())}
+            >
+              ↩ Aujourd'hui
+            </button>
+          )}
         </div>
         {historique.length === 0 ? (
-          <div className="etat">Aucun repas clôturé aujourd'hui.</div>
+          <div className="etat">Aucun repas clôturé {dateHistorique === dateAujourd() ? "aujourd'hui" : 'à cette date'}.</div>
         ) : (
           <div className="historique-liste">
             {historique.map((commande) => {
@@ -168,6 +218,8 @@ export default function Cuisine() {
                     .reduce((somme, l) => somme + l.quantite, 0)
                 : 0
 
+              const estAujourdHui = dateHistorique === dateAujourd()
+
               return (
                 <div className="hist-item" key={`hist-${commande.id}`}>
                   <div className="hist-entete">
@@ -196,10 +248,9 @@ export default function Cuisine() {
                     </div>
                     <span style={{ color: 'var(--mut)', fontSize: 12, fontWeight: 500 }}>
                       {commande.cloturee_le
-                        ? new Date(commande.cloturee_le).toLocaleTimeString('fr-FR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })
+                        ? estAujourdHui
+                          ? new Date(commande.cloturee_le).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                          : new Date(commande.cloturee_le).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
                         : '—'}
                     </span>
                   </div>

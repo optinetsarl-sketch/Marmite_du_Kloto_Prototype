@@ -10,7 +10,7 @@ import Recu from '../composants/Recu'
 const PARCOURS = [
   { code: 'ouverte', libelle: 'Saisie', suivant: 'en_cuisine', action: 'Envoyer en cuisine' },
   { code: 'en_cuisine', libelle: '⏳ En cuisine', suivant: 'prete', action: 'Marquer prête' },
-  { code: 'prete', libelle: '✅ Plat prêt', suivant: 'en_route', action: 'Confier au livreur' },
+  { code: 'prete', libelle: '✅ Plat prêt', suivant: 'en_route', action: '🛵 En route' },
   { code: 'en_route', libelle: '🛵 En route', suivant: 'livree', action: 'Marquer livrée' },
   { code: 'livree', libelle: '🏠 Livrée', suivant: null, action: null },
 ]
@@ -61,6 +61,91 @@ function FormulaireLivreur({ onFerme, onErreur }) {
   )
 }
 
+/* ─── Modal de sélection du livreur ─────────────────────────────── */
+function ModaleConfierLivreur({ commande, livreurs, onConfirme, onFerme, onErreur }) {
+  const [livreurId, setLivreurId] = useState(livreurs[0]?.id ?? '')
+  const [nouveauNom, setNouveauNom] = useState('')
+  const [nouveauTel, setNouveauTel] = useState('')
+  const [creerNouveau, setCreerNouveau] = useState(livreurs.length === 0)
+  const [envoi, setEnvoi] = useState(false)
+
+  async function confirmer(e) {
+    e.preventDefault()
+    setEnvoi(true)
+    try {
+      let idFinal = livreurId
+      if (creerNouveau) {
+        const res = await api.post('/livreurs/', { nom: nouveauNom, telephone: nouveauTel, actif: true })
+        idFinal = res.id
+      }
+      await onConfirme(commande, idFinal)
+    } catch (err) {
+      onErreur(err.message)
+      setEnvoi(false)
+    }
+  }
+
+  return (
+    <div className="modal-bg" onClick={onFerme}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440 }}>
+        <div className="modal-hd">
+          <span>🛵 Confier au livreur</span>
+          <button className="btn btn-g btn-mini" onClick={onFerme}>✕</button>
+        </div>
+        <form onSubmit={confirmer}>
+          <div style={{ padding: '12px 0', fontSize: 14, color: 'var(--mut)' }}>
+            Commande <strong style={{ color: 'var(--orange-dk)' }}>{commande.client_nom || 'sans nom'}</strong>
+            {' — '}{fcfa(commande.total)}
+          </div>
+
+          {livreurs.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <label className="lbl" style={{ marginBottom: 8, display: 'block' }}>Choisir un livreur</label>
+              <select
+                className="champ"
+                value={creerNouveau ? '__nouveau__' : livreurId}
+                onChange={(e) => {
+                  if (e.target.value === '__nouveau__') {
+                    setCreerNouveau(true)
+                  } else {
+                    setCreerNouveau(false)
+                    setLivreurId(e.target.value)
+                  }
+                }}
+              >
+                {livreurs.map((l) => (
+                  <option key={l.id} value={l.id}>{l.nom}{l.telephone ? ` · ${l.telephone}` : ''}</option>
+                ))}
+                <option value="__nouveau__">➕ Nouveau livreur…</option>
+              </select>
+            </div>
+          )}
+
+          {creerNouveau && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+              <div>
+                <label className="lbl">Nom du livreur *</label>
+                <input className="champ" required value={nouveauNom} onChange={(e) => setNouveauNom(e.target.value)} placeholder="ex: Kossi Kodjo" autoFocus />
+              </div>
+              <div>
+                <label className="lbl">Téléphone</label>
+                <input className="champ" value={nouveauTel} onChange={(e) => setNouveauTel(e.target.value)} placeholder="ex: 90 12 34 56" />
+              </div>
+            </div>
+          )}
+
+          <div className="modal-act">
+            <button type="button" className="btn btn-g" onClick={onFerme}>Annuler</button>
+            <button className="btn btn-o" disabled={envoi || (creerNouveau && !nouveauNom.trim())}>
+              {envoi ? 'En cours…' : '🛵 Confier la course'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export default function Livraison() {
   const naviguer = useNavigate()
   const [courses, setCourses] = useState([])
@@ -72,25 +157,57 @@ export default function Livraison() {
   const [recu, setRecu] = useState(null)
   const [detailLivreur, setDetailLivreur] = useState(null)
 
+  function dateAujourd() {
+    return new Date().toLocaleDateString('fr-CA')
+  }
+
+  const [dateComptes, setDateComptes] = useState(dateAujourd())
+
+  async function chargerComptes(dateC) {
+    try {
+      const tableau = await api.get(`/livreurs/comptes_du_jour/?date=${dateC}`)
+      setComptes(tableau)
+    } catch (echec) {
+      console.error('Erreur chargement comptes livreurs', echec)
+    }
+  }
+
   async function charger() {
     try {
-      const [enCours, tableau] = await Promise.all([
+      const [enCours] = await Promise.all([
         liste('/commandes/?a_livrer=1&page_size=100'),
-        api.get('/livreurs/comptes_du_jour/'),
       ])
       setCourses(enCours)
-      setComptes(tableau)
+      await chargerComptes(dateComptes)
       setErreur('')
     } catch (echec) {
       setErreur(echec.message)
     }
   }
 
+  function naviguerDateComptes(delta) {
+    const d = new Date(dateComptes + 'T12:00:00')
+    d.setDate(d.getDate() + delta)
+    const nouvelleDate = d.toLocaleDateString('fr-CA')
+    if (nouvelleDate <= dateAujourd()) {
+      setDateComptes(nouvelleDate)
+    }
+  }
+
+  useEffect(() => {
+    chargerComptes(dateComptes)
+  }, [dateComptes])
+
   useEffect(() => {
     charger()
-    const intervalle = setInterval(charger, 10000)
+    const intervalle = setInterval(() => {
+      liste('/commandes/?a_livrer=1&page_size=100').then(setCourses).catch(() => {})
+      if (dateComptes === dateAujourd()) {
+        chargerComptes(dateComptes)
+      }
+    }, 10000)
     return () => clearInterval(intervalle)
-  }, [])
+  }, [dateComptes])
 
   async function avancer(commande, statut) {
     try {
@@ -199,6 +316,11 @@ export default function Livraison() {
                           {course.client_telephone}
                         </div>
                       )}
+                      {course.livreur_nom && (
+                        <div style={{ fontSize: 12, color: 'var(--orange-dk)', fontWeight: 500 }}>
+                          🛵 {course.livreur_nom}
+                        </div>
+                      )}
                       <div style={{ fontSize: 12, color: 'var(--mut)', fontWeight: 400 }}>
                         {course.client_adresse || 'Adresse non spécifiée'}
                       </div>
@@ -224,7 +346,9 @@ export default function Livraison() {
                             className="btn btn-o btn-mini"
                             onClick={() => avancer(course, etape.suivant)}
                           >
-                            {etape.action}
+                            {etape.suivant === 'en_route' && course.livreur_nom
+                              ? `🛵 ${course.livreur_nom}`
+                              : etape.action}
                           </button>
                         ) : (
                           <button className="btn btn-o btn-mini" onClick={() => setAEncaisser(course)}>
@@ -243,9 +367,55 @@ export default function Livraison() {
 
       {/* Comptes des livreurs */}
       <div className="card" style={{ marginTop: 20 }}>
-        <h3>Comptes des livreurs (fin de journée)</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+          <h3 style={{ margin: 0 }}>
+            Comptes des livreurs
+            <span style={{ fontWeight: 400, fontSize: 14, color: 'var(--mut)', marginLeft: 8 }}>
+              {dateComptes === dateAujourd() ? "(Aujourd'hui)" : `du ${new Date(dateComptes + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`}
+            </span>
+          </h3>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              className="btn btn-g"
+              style={{ padding: '4px 10px', fontSize: 16, lineHeight: 1 }}
+              onClick={() => naviguerDateComptes(-1)}
+              title="Jour précédent"
+            >
+              ‹
+            </button>
+            <input
+              type="date"
+              className="champ auto"
+              value={dateComptes}
+              max={dateAujourd()}
+              onChange={(e) => setDateComptes(e.target.value)}
+              style={{ fontSize: 13, padding: '4px 10px', cursor: 'pointer' }}
+              title="Choisir une date pour consulter les comptes livreurs"
+            />
+            <button
+              className="btn btn-g"
+              style={{ padding: '4px 10px', fontSize: 16, lineHeight: 1 }}
+              onClick={() => naviguerDateComptes(1)}
+              disabled={dateComptes >= dateAujourd()}
+              title="Jour suivant"
+            >
+              ›
+            </button>
+            {dateComptes !== dateAujourd() && (
+              <button
+                className="btn btn-g"
+                style={{ fontSize: 12, padding: '4px 10px' }}
+                onClick={() => setDateComptes(dateAujourd())}
+              >
+                ↩ Aujourd'hui
+              </button>
+            )}
+          </div>
+        </div>
+
         {comptes.length === 0 ? (
-          <div className="etat">Aucune course livrée aujourd'hui.</div>
+          <div className="etat">Aucune course livrée {dateComptes === dateAujourd() ? "aujourd'hui" : 'à cette date'}.</div>
         ) : (
           <table className="grid cartes">
             <thead>
@@ -259,7 +429,7 @@ export default function Livraison() {
             </thead>
             <tbody>
               {comptes.map((compte) => (
-                <tr key={compte.livreur_id}>
+                <tr key={compte.livreur_id ?? '__sans__'}>
                   <td data-titre style={{ fontWeight: 600 }}>
                     {compte.livreur_nom}
                   </td>
@@ -282,7 +452,7 @@ export default function Livraison() {
                   <td data-actions style={{ textAlign: 'right' }}>
                     <button
                       className="btn btn-g btn-mini"
-                      onClick={() => setDetailLivreur(compte.livreur_id)}
+                      onClick={() => setDetailLivreur(compte.livreur_id || '__sans__')}
                     >
                       Voir le détail
                     </button>
@@ -307,7 +477,7 @@ export default function Livraison() {
       )}
       {recu && <Recu commande={recu} onFerme={() => setRecu(null)} />}
       {detailLivreur && (
-        <DetailLivreur livreurId={detailLivreur} onFerme={() => setDetailLivreur(null)} />
+        <DetailLivreur livreurId={detailLivreur} date={dateComptes} onFerme={() => setDetailLivreur(null)} />
       )}
     </>
   )
