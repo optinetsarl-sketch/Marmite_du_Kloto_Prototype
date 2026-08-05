@@ -52,6 +52,27 @@ class SessionCaisseViewSet(viewsets.ModelViewSet):
             return Response(
                 {"detail": "Cette session est déjà clôturée."}, status=status.HTTP_400_BAD_REQUEST
             )
+
+        # RÈGLE DE SÉCURITÉ COMPTABLE :
+        # Empêcher la clôture de la caisse s'il reste des commandes non encaissées en livraison ou à emporter
+        from ventes.models import Commande
+        n_livraison = Commande.objects.filter(
+            type=Commande.TYPE_LIVRAISON
+        ).exclude(statut__in=[Commande.STATUT_PAYEE, Commande.STATUT_ANNULEE]).count()
+
+        n_emporter = Commande.objects.filter(
+            type=Commande.TYPE_EMPORTER
+        ).exclude(statut__in=[Commande.STATUT_PAYEE, Commande.STATUT_ANNULEE]).count()
+
+        if n_livraison > 0 or n_emporter > 0:
+            details = []
+            if n_livraison > 0:
+                details.append(f"{n_livraison} livraison(s)")
+            if n_emporter > 0:
+                details.append(f"{n_emporter} commande(s) à emporter")
+            msg = f"Impossible de clôturer la caisse : il reste {' et '.join(details)} non encaissée(s). Veuillez effectuer tous les encaissements avant de clôturer la journée."
+            return Response({"detail": msg}, status=status.HTTP_400_BAD_REQUEST)
+
         entree = ClotureSerializer(data=request.data)
         entree.is_valid(raise_exception=True)
         session.montant_reel = entree.validated_data["montant_reel"]

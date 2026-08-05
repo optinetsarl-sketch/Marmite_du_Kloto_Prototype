@@ -145,22 +145,27 @@ class CommandeViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"])
     def encaisser_tout(self, request):
-        """Encaisser plusieurs commandes à la fois (par livreur ou globalement pour toutes les livraisons)."""
+        """Encaisser plusieurs commandes à la fois (livraison, emporter ou sélection spécifique)."""
         livreur_id = request.data.get("livreur_id")
         commande_ids = request.data.get("commande_ids")
         mode_paiement = request.data.get("mode", "especes")
+        type_cmd = request.data.get("type")
 
-        queryset = Commande.objects.filter(
-            type=Commande.TYPE_LIVRAISON,
-        ).exclude(statut__in=[Commande.STATUT_PAYEE, Commande.STATUT_ANNULEE])
+        queryset = Commande.objects.exclude(statut__in=[Commande.STATUT_PAYEE, Commande.STATUT_ANNULEE])
 
         if commande_ids:
             queryset = queryset.filter(pk__in=commande_ids)
-        elif livreur_id:
-            if str(livreur_id) in ["__sans__", "sans_attribution", "0", "None"]:
-                queryset = queryset.filter(livreur__isnull=True)
+        else:
+            if type_cmd:
+                queryset = queryset.filter(type=type_cmd)
             else:
-                queryset = queryset.filter(livreur_id=livreur_id)
+                queryset = queryset.filter(type=Commande.TYPE_LIVRAISON)
+
+            if livreur_id:
+                if str(livreur_id) in ["__sans__", "sans_attribution", "0", "None"]:
+                    queryset = queryset.filter(livreur__isnull=True)
+                else:
+                    queryset = queryset.filter(livreur_id=livreur_id)
 
         commandes = list(queryset)
         encaissees = []

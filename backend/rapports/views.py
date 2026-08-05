@@ -278,6 +278,15 @@ def rapport_cloture(request):
             "montant_theorique": session.montant_theorique,
         }
 
+    from ventes.models import Commande
+    nb_livraison_ouvertes = Commande.objects.filter(
+        type=Commande.TYPE_LIVRAISON
+    ).exclude(statut__in=[Commande.STATUT_PAYEE, Commande.STATUT_ANNULEE]).count()
+
+    nb_emporter_ouvertes = Commande.objects.filter(
+        type=Commande.TYPE_EMPORTER
+    ).exclude(statut__in=[Commande.STATUT_PAYEE, Commande.STATUT_ANNULEE]).count()
+
     return Response(
         {
             "periode": libelle,
@@ -288,6 +297,8 @@ def rapport_cloture(request):
             "recettes_par_mode": recettes_par_mode,
             "nb_commandes": _commandes_payees(debut, fin).count(),
             "caisse": caisse,
+            "commandes_non_encaissees_livraison": nb_livraison_ouvertes,
+            "commandes_non_encaissees_emporter": nb_emporter_ouvertes,
         }
     )
 

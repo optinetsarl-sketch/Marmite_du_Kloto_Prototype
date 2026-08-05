@@ -138,6 +138,48 @@ export default function Cloture() {
         <div className="erreur" style={{ marginBottom: 18 }}>{erreur}</div>
       )}
 
+      {/* Bannière d'avertissement si des encaissements sont en attente */}
+      {((feuille?.commandes_non_encaissees_livraison || 0) > 0 || (feuille?.commandes_non_encaissees_emporter || 0) > 0) && (
+        <div
+          style={{
+            background: 'rgba(230,81,0,0.08)',
+            border: '2px solid var(--orange-dk)',
+            borderRadius: 12,
+            padding: '16px 20px',
+            marginBottom: 20,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 14,
+          }}
+        >
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--orange-dk)', marginBottom: 4 }}>
+              ⛔ Clôture impossible : Encaissements en attente
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--noir)' }}>
+              Vous devez obligatoirement encaisser toutes les commandes de <strong>Livraison</strong> et <strong>À emporter</strong> avant de clôturer la caisse du jour.
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--orange-dk)', marginTop: 4 }}>
+              En attente : {feuille.commandes_non_encaissees_livraison || 0} livraison(s) · {feuille.commandes_non_encaissees_emporter || 0} commande(s) à emporter
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {(feuille.commandes_non_encaissees_livraison || 0) > 0 && (
+              <a href="/livraison" className="btn btn-o" style={{ fontSize: 13, padding: '8px 14px' }}>
+                🛵 Terminer les livraisons ({feuille.commandes_non_encaissees_livraison})
+              </a>
+            )}
+            {(feuille.commandes_non_encaissees_emporter || 0) > 0 && (
+              <a href="/emporter" className="btn btn-o" style={{ fontSize: 13, padding: '8px 14px' }}>
+                🛍️ Terminer à emporter ({feuille.commandes_non_encaissees_emporter})
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ─────────────────────────────────────────────────────────────────── */}
       {/*  ÉTAT : Aucune caisse ouverte → formulaire d'ouverture             */}
       {/* ─────────────────────────────────────────────────────────────────── */}
@@ -330,14 +372,23 @@ export default function Cloture() {
                   id="btn-cloturer"
                   className="btn btn-o"
                   style={{ width: '100%', height: 48, fontSize: 15, fontWeight: 700 }}
-                  disabled={reel === '' || envoi}
+                  disabled={
+                    reel === '' ||
+                    envoi ||
+                    (feuille?.commandes_non_encaissees_livraison || 0) > 0 ||
+                    (feuille?.commandes_non_encaissees_emporter || 0) > 0
+                  }
                   onClick={() => {
                     const e = ecart ?? 0
                     if (Math.abs(e) > 10000) { setConfirmer(true) }
                     else { cloturer() }
                   }}
                 >
-                  {envoi ? 'Clôture en cours…' : 'Clôturer & imprimer'}
+                  {envoi
+                    ? 'Clôture en cours…'
+                    : ((feuille?.commandes_non_encaissees_livraison || 0) > 0 || (feuille?.commandes_non_encaissees_emporter || 0) > 0)
+                      ? 'Encaissements en attente ⛔'
+                      : 'Clôturer & imprimer'}
                 </button>
               ) : (
                 <div style={{

@@ -13,11 +13,93 @@ const STATUTS = {
   annulee: { libelle: 'Annulée', classe: 'b-rup', couleur: '#e53e3e', fond: 'rgba(229,62,62,0.1)' },
 }
 
+function ModaleEncaissementGroupeEmporter({ cibles, onConfirme, onFerme }) {
+  const [mode, setMode] = useState('especes')
+  const [envoi, setEnvoi] = useState(false)
+  const totalCumule = cibles.reduce((sum, c) => sum + (c.total || 0), 0)
+
+  async function valider(e) {
+    e.preventDefault()
+    setEnvoi(true)
+    try {
+      await onConfirme({
+        commande_ids: cibles.map((c) => c.id),
+        mode,
+      })
+      onFerme()
+    } catch (err) {
+      alert(err.message)
+      setEnvoi(false)
+    }
+  }
+
+  return (
+    <div className="modal-bg" onClick={onFerme}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
+        <div className="modal-hd">
+          <span>🛍️ Encaissement groupé des commandes à emporter</span>
+          <button className="btn btn-g btn-mini" onClick={onFerme}>✕</button>
+        </div>
+        <form onSubmit={valider}>
+          <div style={{ padding: '10px 0 14px', fontSize: 14 }}>
+            Encaissement simultané de <strong style={{ color: 'var(--orange-dk)' }}>{cibles.length} commande(s) à emporter</strong>.
+          </div>
+
+          <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid var(--bord)', borderRadius: 8, padding: 8, marginBottom: 14, background: '#fafafa' }}>
+            {cibles.map((c) => (
+              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', borderBottom: '1px solid #eee', fontSize: 13 }}>
+                <div>
+                  <strong style={{ color: 'var(--orange-dk)' }}>{referenceCommande(c)}</strong> · {c.client_nom || 'Client à emporter'}
+                </div>
+                <strong style={{ color: '#000' }}>{fcfa(c.total)}</strong>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--noir)', color: '#fff', padding: '12px 16px', borderRadius: 8, marginBottom: 16 }}>
+            <span style={{ fontWeight: 600 }}>TOTAL À ENCAISSER</span>
+            <strong style={{ fontSize: 20, color: 'var(--orange)' }}>{fcfa(totalCumule)}</strong>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label className="lbl" style={{ marginBottom: 6, display: 'block' }}>Mode de règlement</label>
+            <div style={{ display: 'flex', gap: 10 }}>
+              {[
+                { code: 'especes', label: '💵 Espèces' },
+                { code: 'mobile_money', label: '📱 Mobile Money' },
+                { code: 'carte', label: '💳 Carte' },
+              ].map((m) => (
+                <button
+                  key={m.code}
+                  type="button"
+                  className={`btn ${mode === m.code ? 'btn-o' : 'btn-g'}`}
+                  style={{ flex: 1, padding: '8px 12px', fontSize: 13 }}
+                  onClick={() => setMode(m.code)}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="modal-act">
+            <button type="button" className="btn btn-g" onClick={onFerme}>Annuler</button>
+            <button className="btn btn-o" disabled={envoi} style={{ fontWeight: 800 }}>
+              {envoi ? 'Encaissement en cours…' : `Valider l'encaissement (${fcfa(totalCumule)})`}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export default function Emporter() {
   const naviguer = useNavigate()
   const [commandes, setCommandes] = useState([])
   const [erreur, setErreur] = useState('')
   const [aEncaisser, setAEncaisser] = useState(null)
+  const [groupeAEncaisser, setGroupeAEncaisser] = useState(null)
   const [recu, setRecu] = useState(null)
   const [vue, setVue] = useState('cartes')
   const [filtreStatut, setFiltreStatut] = useState('tous')
@@ -89,6 +171,20 @@ export default function Emporter() {
     }
   }
 
+  async function encaisserGroupe({ commande_ids, mode }) {
+    try {
+      await api.post('/commandes/encaisser_tout/', {
+        type: 'emporter',
+        commande_ids,
+        mode,
+      })
+      setGroupeAEncaisser(null)
+      await charger()
+    } catch (err) {
+      setErreur(err.message)
+    }
+  }
+
   async function marquerPrete(commande) {
     try {
       await api.post(`/commandes/${commande.id}/changer_statut/`, { statut: 'prete' })
@@ -124,7 +220,7 @@ export default function Emporter() {
           <h1>Commandes À Emporter</h1>
           <div className="sub">Suivi des commandes à emporter — en temps réel</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div
             style={{
               display: 'flex',
@@ -151,6 +247,16 @@ export default function Emporter() {
               MAJ à {derniereMaj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           </div>
+
+          {commandes.length > 0 && (
+            <button
+              className="btn btn-o"
+              style={{ fontWeight: 800, padding: '8px 16px', fontSize: 13 }}
+              onClick={() => setGroupeAEncaisser(commandes)}
+            >
+              ⚡ Tout encaisser ({commandes.length} commandes · {fcfa(totalCumule)})
+            </button>
+          )}
 
           <button className="btn btn-o" onClick={() => naviguer('/ventes?type=emporter')}>
             + Nouvelle commande
@@ -664,12 +770,21 @@ export default function Emporter() {
         )}
       </div>
 
-      {/* Modale d'encaissement */}
+      {/* Modale d'encaissement individuel */}
       {aEncaisser && (
         <ModalePaiement
           total={aEncaisser.total}
           onEncaisse={encaisser}
           onFerme={() => setAEncaisser(null)}
+        />
+      )}
+
+      {/* Modale d'encaissement groupé */}
+      {groupeAEncaisser && (
+        <ModaleEncaissementGroupeEmporter
+          cibles={groupeAEncaisser}
+          onConfirme={encaisserGroupe}
+          onFerme={() => setGroupeAEncaisser(null)}
         />
       )}
 
