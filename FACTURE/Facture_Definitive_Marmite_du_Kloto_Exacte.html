@@ -321,8 +321,27 @@
     .btn-print:hover { background: #146132; }
 
     @media print {
-      body { background: #fff; padding: 0; }
-      .invoice-card { box-shadow: none; padding: 0; }
+      body {
+        background: #fff !important;
+        color: #000 !important;
+        padding: 0;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .invoice-card {
+        box-shadow: none;
+        padding: 0;
+        color: #000 !important;
+      }
+      .items-table td, .items-table th, .total-table td, .total-table th, .meta-label, .meta-val {
+        color: #000 !important;
+        font-weight: 800 !important;
+        border-color: #000 !important;
+      }
+      .grand-total, .grand-total td, .amount-val {
+        color: #000 !important;
+        font-weight: 900 !important;
+      }
       .no-print { display: none; }
     }
   </style>

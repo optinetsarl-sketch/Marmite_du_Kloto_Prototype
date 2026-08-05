@@ -65,9 +65,9 @@ export default function BonCuisine({ commande, onFerme }) {
                   </div>
                   <span
                     style={{
-                      fontWeight: 800,
-                      color: 'var(--orange-dk)',
-                      fontSize: 13,
+                      fontWeight: 900,
+                      color: '#000',
+                      fontSize: 14,
                       whiteSpace: 'nowrap',
                       marginLeft: 12,
                     }}

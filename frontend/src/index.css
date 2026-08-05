@@ -1091,26 +1091,41 @@ table.grid tbody tr:hover td {
 .rc-line {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
-  padding: 4px 0;
+  font-size: 13.5px;
+  padding: 5px 0;
+  color: #000;
+}
+.rc-line span:first-child {
+  font-weight: 600;
+  color: #000;
+}
+.rc-line span:last-child {
+  font-weight: 800;
+  color: #000;
+  font-size: 14px;
 }
 .rc-total {
   display: flex;
   justify-content: space-between;
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 19px;
+  font-weight: 900;
+  color: #000;
   margin-top: 8px;
+  border-top: 2px solid #000;
+  padding-top: 6px;
 }
 .rc-pay {
-  font-size: 12px;
-  color: var(--mut);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #000;
   margin-top: 9px;
   text-align: center;
 }
 .rc-thanks {
   text-align: center;
-  font-size: 13px;
-  color: var(--orange-dk);
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #000;
   font-style: italic;
   margin: 14px 0 2px;
 }
@@ -1328,12 +1343,18 @@ table.grid tbody tr:hover td {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-size: 12.5px;
+  font-size: 13px;
   padding: 4px 0;
-  border-bottom: 1px dotted var(--bord);
+  border-bottom: 1px dashed #333;
 }
 .bon-champ span {
-  color: var(--mut);
+  color: #111;
+  font-weight: 600;
+}
+.bon-champ strong {
+  color: #000;
+  font-weight: 800;
+  font-size: 13.5px;
 }
 .bon-encaisser {
   display: flex;
@@ -1344,15 +1365,18 @@ table.grid tbody tr:hover td {
   border-radius: 10px;
   padding: 13px 15px;
   margin-top: 12px;
-  font-weight: 700;
-  font-size: 13px;
+  font-weight: 900;
+  font-size: 14px;
 }
 .bon-encaisser span:last-child {
-  font-size: 20px;
+  font-size: 22px;
+  font-weight: 900;
+  color: #000;
 }
 .bon-signature {
-  font-size: 12px;
-  color: var(--mut);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #000;
   margin-top: 22px;
   padding-bottom: 6px;
 }
@@ -1568,8 +1592,67 @@ table.grid tbody tr:hover td {
 
 @media print {
   body {
-    background: #fff;
+    background: #fff !important;
+    color: #000 !important;
     padding: 0;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  /* Reçus & bons thermiques/carbone : TOUT en noir pur très lisible et très gras */
+  .rc-paper, .rc-bx, #recu, .bon-paper {
+    color: #000 !important;
+    font-weight: 700 !important;
+    background: #fff !important;
+  }
+  .rc-paper *, .rc-bx *, #recu *, .bon-paper * {
+    color: #000 !important;
+    text-shadow: none !important;
+  }
+  .rc-line span, .rc-line span:last-child {
+    color: #000 !important;
+    font-weight: 800 !important;
+    font-size: 14px !important;
+  }
+  .rc-total, .rc-total span {
+    color: #000 !important;
+    font-weight: 900 !important;
+    font-size: 20px !important;
+    border-top: 2px solid #000 !important;
+    border-bottom: 2px solid #000 !important;
+  }
+  .bon-champ, .bon-champ span, .bon-champ strong {
+    color: #000 !important;
+    font-weight: 800 !important;
+    font-size: 13.5px !important;
+    border-bottom: 1px solid #000 !important;
+  }
+  .bon-line span, .bon-line strong {
+    color: #000 !important;
+    font-weight: 800 !important;
+  }
+  .bon-qte {
+    background: #000 !important;
+    color: #fff !important;
+    font-weight: 900 !important;
+    border: 1px solid #000 !important;
+  }
+  .bon-encaisser {
+    background: #fff !important;
+    color: #000 !important;
+    border: 2px solid #000 !important;
+    font-weight: 900 !important;
+  }
+  .bon-encaisser span {
+    color: #000 !important;
+    font-weight: 900 !important;
+  }
+  .rc-doc, .rc-nm, .rc-sb, .rc-meta, .rc-pay, .rc-thanks {
+    color: #000 !important;
+    font-weight: 800 !important;
+  }
+  .rc-items {
+    border-top: 2px solid #000 !important;
+    border-bottom: 2px solid #000 !important;
   }
   .feuille-bx {
     width: 100%;
@@ -1602,7 +1685,7 @@ table.grid tbody tr:hover td {
     display: none !important;
   }
   @page {
-    margin: 14mm;
+    margin: 10mm;
   }
 }
 
