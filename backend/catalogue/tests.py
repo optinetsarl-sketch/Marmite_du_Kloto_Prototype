@@ -12,7 +12,7 @@ class CatalogueTest(APITestCase):
         call_command("seed_catalogue")
 
     def setUp(self):
-        self.client.force_authenticate(User.objects.create_user("gerant", password="x"))
+        self.client.force_authenticate(User.objects.create_superuser("admin", password="x"))
         self.castel = Produit.objects.get(nom="Castel")
 
     def test_creation_dun_plat(self):
@@ -60,7 +60,7 @@ class FamilleTest(APITestCase):
         call_command("seed_catalogue")
 
     def setUp(self):
-        self.client.force_authenticate(User.objects.create_user("gerant", password="x"))
+        self.client.force_authenticate(User.objects.create_superuser("admin", password="x"))
 
     def test_le_seed_relie_les_categories_a_leur_famille(self):
         self.assertEqual(Categorie.objects.get(nom="Bière").famille.nom, "Alcools")

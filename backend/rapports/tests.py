@@ -14,9 +14,16 @@ class RapportsTest(APITestCase):
         call_command("seed_catalogue")
 
     def setUp(self):
-        self.client.force_authenticate(User.objects.create_user("gerant", password="x"))
+        self.client.force_authenticate(User.objects.create_superuser("admin", password="x"))
         self.castel = Produit.objects.get(nom="Castel")
         self.poulet = Produit.objects.get(nom="Poulet braisé")
+
+    def test_gerant_ne_peut_pas_acceder_aux_rapports_financiers(self):
+        client_gerant = self.client_class()
+        client_gerant.force_authenticate(User.objects.create_user("simple_gerant", password="x"))
+        self.assertEqual(client_gerant.get("/api/rapports/tableau-de-bord/").status_code, 403)
+        self.assertEqual(client_gerant.get("/api/rapports/revenus/").status_code, 403)
+        self.assertEqual(client_gerant.get("/api/rapports/cloture/").status_code, 403)
 
     def _vendre(self, type_commande, castel=0, poulet=0):
         commande = Commande.objects.create(

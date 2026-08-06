@@ -14,8 +14,23 @@ class StockTest(APITestCase):
         call_command("seed_catalogue")
 
     def setUp(self):
-        self.client.force_authenticate(User.objects.create_user("gerant", password="x"))
+        self.client.force_authenticate(User.objects.create_superuser("admin", password="x"))
         self.castel = Produit.objects.get(nom="Castel")
+
+    def test_gerant_ne_peut_pas_faire_dinventaire_ou_reception(self):
+        client_gerant = self.client_class()
+        client_gerant.force_authenticate(User.objects.create_user("simple_gerant", password="x"))
+        reponse = client_gerant.post(
+            "/api/mouvements-stock/inventaire/",
+            {"produit": self.castel.pk, "stock_reel": 10}, format="json",
+        )
+        self.assertEqual(reponse.status_code, 403)
+
+        reponse_rec = client_gerant.post(
+            "/api/mouvements-stock/reception/",
+            {"produit": self.castel.pk, "quantite": 10}, format="json",
+        )
+        self.assertEqual(reponse_rec.status_code, 403)
 
     def _reception(self, quantite):
         return self.client.post(

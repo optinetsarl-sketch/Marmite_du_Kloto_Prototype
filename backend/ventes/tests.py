@@ -17,7 +17,7 @@ class ParcoursVenteTest(APITestCase):
         call_command("seed_catalogue")
 
     def setUp(self):
-        self.client.force_authenticate(User.objects.create_user("gerant", password="x"))
+        self.client.force_authenticate(User.objects.create_superuser("admin", password="x"))
         self.castel = Produit.objects.get(nom="Castel")
         self.poulet = Produit.objects.get(nom="Poulet braisé")
 

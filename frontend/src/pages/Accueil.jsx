@@ -1,14 +1,175 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { api, fcfa } from '../api'
+import { useAuth } from '../auth-contexte'
 
 export default function Accueil() {
+  const { utilisateur } = useAuth()
+  const estAdmin = Boolean(utilisateur?.is_admin || utilisateur?.role === 'admin')
+
   const [bord, setBord] = useState(null)
+  const [activite, setActivite] = useState(null)
   const [erreur, setErreur] = useState('')
 
   useEffect(() => {
-    api.get('/rapports/tableau-de-bord/').then(setBord).catch((e) => setErreur(e.message))
-  }, [])
+    if (estAdmin) {
+      api.get('/rapports/tableau-de-bord/').then(setBord).catch((e) => setErreur(e.message))
+    } else {
+      api.get('/rapports/activite-gerant/').then(setActivite).catch((e) => setErreur(e.message))
+    }
+  }, [estAdmin])
+
+  if (!estAdmin) {
+    if (erreur) return <div className="erreur">{erreur}</div>
+    if (!activite) return <div className="etat">Chargement de l'activité du jour…</div>
+
+    const totalArticles = Math.max(activite.sections.total, 1)
+    const sectionItems = [
+      { key: 'cuisine', libelle: 'Cuisine', quantite: activite.sections.cuisine, couleur: '#d9661a', pct: Math.round((activite.sections.cuisine / totalArticles) * 100) },
+      { key: 'bar', libelle: 'Bar', quantite: activite.sections.bar, couleur: '#f47c20', pct: Math.round((activite.sections.bar / totalArticles) * 100) },
+      { key: 'livraison', libelle: 'Livraison', quantite: activite.sections.livraison, couleur: '#9a5716', pct: Math.round((activite.sections.livraison / totalArticles) * 100) },
+    ]
+
+    const maxVendu = activite.top_produits.length > 0 ? Math.max(...activite.top_produits.map((p) => p.vendu)) : 1
+
+    return (
+      <div style={{ paddingBottom: 30 }}>
+        {/* En-tête Espace Gérant */}
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #1e1b1a 0%, #2b2523 100%)',
+            padding: '24px 28px',
+            borderRadius: 20,
+            color: '#fff',
+            boxShadow: '0 10px 25px rgba(30, 27, 26, 0.25)',
+            borderLeft: '5px solid var(--orange)',
+            marginBottom: 24,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 12,
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                color: 'var(--orange)',
+                marginBottom: 4,
+              }}
+            >
+              Bienvenue, {utilisateur?.nom} · {activite.periode}
+            </div>
+            <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, color: '#fff' }}>
+              La Marmite du Kloto
+            </h1>
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.1)', padding: '10px 18px', borderRadius: 12, textAlign: 'center' }}>
+            <div style={{ fontSize: 11, textTransform: 'uppercase', color: '#B7ADA6', fontWeight: 600 }}>Commandes aujourd'hui</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--orange)' }}>{activite.nb_commandes}</div>
+          </div>
+        </div>
+
+        {/* Raccourcis Opérationnels */}
+        <div className="card" style={{ marginBottom: 24 }}>
+          <h3 style={{ fontSize: 16, marginBottom: 16 }}>⚡ Raccourcis Rapides</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
+            <Link to="/ventes" className="btn btn-o" style={{ display: 'flex', justifyContent: 'center', padding: '14px 18px', fontSize: 14, fontWeight: 700, borderRadius: 12 }}>
+              🛒 Ventes / Caisse
+            </Link>
+            <Link to="/tables" className="btn btn-g" style={{ display: 'flex', justifyContent: 'center', padding: '14px 18px', fontSize: 14, fontWeight: 700, borderRadius: 12 }}>
+              🪑 Plan de Salle
+            </Link>
+            <Link to="/cuisine" className="btn btn-g" style={{ display: 'flex', justifyContent: 'center', padding: '14px 18px', fontSize: 14, fontWeight: 700, borderRadius: 12 }}>
+              🍳 Poste Cuisine
+            </Link>
+            <Link to="/livraison" className="btn btn-g" style={{ display: 'flex', justifyContent: 'center', padding: '14px 18px', fontSize: 14, fontWeight: 700, borderRadius: 12 }}>
+              🛵 Livraisons
+            </Link>
+          </div>
+        </div>
+
+        {/* Graphiques d'Activité Opérationnelle */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+          
+          {/* GRAPHE 1 : Sections les plus actives (Volume d'articles vendus) */}
+          <div className="card">
+            <h3 style={{ fontSize: 16, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+              📊 Activité par Section
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {sectionItems.map((sec) => (
+                <div key={sec.key}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>
+                    <span>{sec.libelle}</span>
+                    <span style={{ color: sec.couleur, fontWeight: 700 }}>
+                      {sec.quantite} article{sec.quantite > 1 ? 's' : ''} ({sec.pct}%)
+                    </span>
+                  </div>
+                  <div style={{ width: '100%', height: 12, background: 'var(--tint)', borderRadius: 10, overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        width: `${sec.pct}%`,
+                        height: '100%',
+                        background: sec.couleur,
+                        borderRadius: 10,
+                        transition: 'width 0.6s ease',
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--bord)', display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--mut)' }}>
+              <span>Total articles servis aujourd'hui :</span>
+              <strong style={{ color: 'var(--noir)' }}>{activite.sections.total} articles</strong>
+            </div>
+          </div>
+
+          {/* GRAPHE 2 : Plats & Boissons les plus commandés */}
+          <div className="card">
+            <h3 style={{ fontSize: 16, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+              🔥 Plats & Boissons les plus commandés
+            </h3>
+            {activite.top_produits.length === 0 ? (
+              <div className="etat" style={{ padding: 20 }}>Aucune vente enregistrée pour aujourd'hui.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {activite.top_produits.map((item, index) => {
+                  const pct = Math.round((item.vendu / maxVendu) * 100)
+                  return (
+                    <div key={index}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+                        <span>#{index + 1} {item.libelle}</span>
+                        <span style={{ color: 'var(--orange)', fontWeight: 700 }}>{item.vendu} unité{item.vendu > 1 ? 's' : ''}</span>
+                      </div>
+                      <div style={{ width: '100%', height: 10, background: 'var(--tint)', borderRadius: 8, overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            width: `${pct}%`,
+                            height: '100%',
+                            background: 'linear-gradient(90deg, #f47c20, #d9661a)',
+                            borderRadius: 8,
+                            transition: 'width 0.6s ease',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
+    )
+  }
 
   if (erreur) return <div className="erreur">{erreur}</div>
   if (!bord) return <div className="etat">Chargement du tableau de bord…</div>

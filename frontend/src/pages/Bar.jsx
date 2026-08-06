@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { api, fcfa, liste } from '../api'
+import { useAuth } from '../auth-contexte'
 import Modale from '../composants/Modale'
 
 const LIBELLES_ETAT = { ok: 'En stock', bas: 'Bas', rupture: 'Rupture' }
@@ -13,6 +14,9 @@ const MOTIFS_SORTIE = [
 ]
 
 export default function Bar() {
+  const { utilisateur } = useAuth()
+  const estAdmin = Boolean(utilisateur?.is_admin || utilisateur?.role === 'admin')
+
   const [produits, setProduits] = useState([])
   const [mouvements, setMouvements] = useState([])
   const [recherche, setRecherche] = useState('')
@@ -93,17 +97,19 @@ export default function Bar() {
             Le stock se recalcule à partir des mouvements : réceptions, ventes, casse, inventaire.
           </div>
         </div>
-        <div className="actions-top">
-          <button className="btn btn-g" onClick={() => setOperation('sortie')}>
-            Casse / perte
-          </button>
-          <button className="btn btn-g" onClick={() => setOperation('inventaire')}>
-            Inventaire
-          </button>
-          <button className="btn btn-o" onClick={() => setOperation('reception')}>
-            + Charger du stock
-          </button>
-        </div>
+        {estAdmin && (
+          <div className="actions-top">
+            <button className="btn btn-g" onClick={() => setOperation('sortie')}>
+              Casse / perte
+            </button>
+            <button className="btn btn-g" onClick={() => setOperation('inventaire')}>
+              Inventaire
+            </button>
+            <button className="btn btn-o" onClick={() => setOperation('reception')}>
+              + Charger du stock
+            </button>
+          </div>
+        )}
       </div>
 
       {erreur && <div className="erreur">{erreur}</div>}
@@ -153,26 +159,30 @@ export default function Bar() {
                 <tr key={produit.id}>
                   <td data-titre style={{ fontWeight: 600 }}>{produit.nom}</td>
                   <td data-label="Catégorie">
-                    <select
-                      className="champ auto"
-                      style={{ padding: '3px 8px', fontSize: 13, minWidth: 120 }}
-                      value={produit.categorie || ''}
-                      onChange={async (e) => {
-                        const nouvelleCatId = e.target.value
-                        try {
-                          await api.patch(`/produits/${produit.id}/`, { categorie: nouvelleCatId })
-                          await charger()
-                        } catch (err) {
-                          setErreur(err.message)
-                        }
-                      }}
-                    >
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.nom}
-                        </option>
-                      ))}
-                    </select>
+                    {estAdmin ? (
+                      <select
+                        className="champ auto"
+                        style={{ padding: '3px 8px', fontSize: 13, minWidth: 120 }}
+                        value={produit.categorie || ''}
+                        onChange={async (e) => {
+                          const nouvelleCatId = e.target.value
+                          try {
+                            await api.patch(`/produits/${produit.id}/`, { categorie: nouvelleCatId })
+                            await charger()
+                          } catch (err) {
+                            setErreur(err.message)
+                          }
+                        }}
+                      >
+                        {categories.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.nom}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span>{categories.find((cat) => String(cat.id) === String(produit.categorie))?.nom || '—'}</span>
+                    )}
                   </td>
                   <td data-label="Prix" style={{ textAlign: 'right' }}>{fcfa(produit.prix_standard)}</td>
                   <td data-label="Stock" style={{ textAlign: 'right', fontWeight: 700 }}>{produit.stock}</td>

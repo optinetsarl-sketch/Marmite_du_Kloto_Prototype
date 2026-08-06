@@ -40,6 +40,16 @@ export default function App() {
   if (!pret) return <div className="etat" style={{ color: '#fff' }}>Chargement…</div>
   if (!utilisateur) return <Connexion />
 
+  const estAdmin = Boolean(utilisateur.is_admin || utilisateur.role === 'admin')
+
+  // Filtrer les menus de gestion réservés à l'admin (Catalogue, Dépenses, Rapports, Clôture)
+  const pagesAdminOnly = ['/catalogue', '/depenses', '/rapports', '/cloture']
+  
+  const menuFiltre = MENU.filter((entree) => {
+    if (entree.to && pagesAdminOnly.includes(entree.to) && !estAdmin) return false
+    return true
+  })
+
   return (
     <div className="app">
       <aside className="side">
@@ -51,7 +61,7 @@ export default function App() {
           </div>
         </div>
 
-        {MENU.map((entree, index) =>
+        {menuFiltre.map((entree, index) =>
           entree.groupe ? (
             <div className="navgrp" key={index}>
               {entree.groupe}
@@ -68,9 +78,16 @@ export default function App() {
           ),
         )}
 
-        <div className="foot">
+        <div className="foot" style={{ flexWrap: 'wrap', gap: 6 }}>
           <div className="av">{utilisateur.nom.slice(0, 2).toUpperCase()}</div>
-          <span>{utilisateur.nom}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
+              {utilisateur.nom}
+            </span>
+            <span style={{ fontSize: 10, color: estAdmin ? '#F47C20' : '#8E8E93', textTransform: 'uppercase', fontWeight: 700 }}>
+              {estAdmin ? '👑 Admin' : '👤 Gérant'}
+            </span>
+          </div>
           <button
             className="nav"
             style={{ marginLeft: 'auto', padding: '6px 8px', fontSize: 12 }}
@@ -86,16 +103,19 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Accueil />} />
           <Route path="/bar" element={<Bar />} />
-          <Route path="/catalogue" element={<Catalogue />} />
           <Route path="/ventes" element={<Ventes />} />
           <Route path="/emporter" element={<Emporter />} />
           <Route path="/tables" element={<Tables />} />
           <Route path="/cuisine" element={<Cuisine />} />
           <Route path="/livraison" element={<Livraison />} />
-          <Route path="/depenses" element={<Depenses />} />
           <Route path="/historique" element={<Historique />} />
-          <Route path="/rapports" element={<Rapports />} />
-          <Route path="/cloture" element={<Cloture />} />
+
+          {/* Routes réservées exclusivement à l'Admin */}
+          <Route path="/catalogue" element={estAdmin ? <Catalogue /> : <Navigate to="/" replace />} />
+          <Route path="/depenses" element={estAdmin ? <Depenses /> : <Navigate to="/" replace />} />
+          <Route path="/rapports" element={estAdmin ? <Rapports /> : <Navigate to="/" replace />} />
+          <Route path="/cloture" element={estAdmin ? <Cloture /> : <Navigate to="/" replace />} />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

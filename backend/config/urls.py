@@ -71,6 +71,7 @@ urlpatterns = [
     path("api/rapports/produits/", rapports.rapport_produits),
     path("api/rapports/cloture/", rapports.rapport_cloture),
     path("api/rapports/historique/", rapports.historique),
+    path("api/rapports/activite-gerant/", rapports.activite_gerant),
 ]
 
 if settings.DEBUG:

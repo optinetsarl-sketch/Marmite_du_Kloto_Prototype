@@ -61,10 +61,16 @@ def connexion(request):
             status=status.HTTP_401_UNAUTHORIZED,
         )
     token, _ = Token.objects.get_or_create(user=utilisateur)
+    is_admin = bool(utilisateur.is_superuser or utilisateur.is_staff or utilisateur.username == "admin")
     return Response(
         {
             "token": token.key,
-            "utilisateur": {"id": str(utilisateur.pk), "nom": utilisateur.get_full_name() or utilisateur.username},
+            "utilisateur": {
+                "id": str(utilisateur.pk),
+                "nom": utilisateur.get_full_name() or utilisateur.username,
+                "role": "admin" if is_admin else "gerant",
+                "is_admin": is_admin,
+            },
             "etablissement": settings.ETABLISSEMENT,
         }
     )
@@ -73,11 +79,14 @@ def connexion(request):
 @api_view(["GET"])
 def moi(request):
     """Permet au frontend de vérifier au démarrage qu'un token stocké est encore valide."""
+    is_admin = bool(request.user.is_superuser or request.user.is_staff or request.user.username == "admin")
     return Response(
         {
             "utilisateur": {
                 "id": str(request.user.pk),
                 "nom": request.user.get_full_name() or request.user.username,
+                "role": "admin" if is_admin else "gerant",
+                "is_admin": is_admin,
             },
             "etablissement": settings.ETABLISSEMENT,
         }

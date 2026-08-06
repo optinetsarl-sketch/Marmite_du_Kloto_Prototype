@@ -1,6 +1,7 @@
+from config.permissions import IsAdminUserRole
 from django.utils import timezone
 from rest_framework import status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
 
 from .models import Depense, SessionCaisse
@@ -16,6 +17,11 @@ class DepenseViewSet(viewsets.ModelViewSet):
         # On n'affiche que les dépenses actives (non supprimées) dans les listes normales, les plus récentes en haut
         return Depense.objects.filter(supprime_le__isnull=True).order_by("-cree_le", "-id")
 
+    def get_permissions(self):
+        if self.action in ["destroy"]:
+            return [IsAdminUserRole()]
+        return super().get_permissions()
+
     def destroy(self, request, *args, **kwargs):
         """Soft-delete : on marque supprime_le plutôt que d'effacer la ligne.
         La dépense reste visible dans l'historique avec le statut 'Supprimée'."""
@@ -29,6 +35,11 @@ class DepenseViewSet(viewsets.ModelViewSet):
 class SessionCaisseViewSet(viewsets.ModelViewSet):
     queryset = SessionCaisse.objects.prefetch_related("depenses").order_by("-ouverte_le", "-id")
     serializer_class = SessionCaisseSerializer
+
+    def get_permissions(self):
+        if self.action in ["create", "cloturer", "destroy"]:
+            return [IsAdminUserRole()]
+        return super().get_permissions()
 
     def create(self, request, *args, **kwargs):
         if SessionCaisse.courante():
@@ -48,7 +59,7 @@ class SessionCaisseViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def cloturer(self, request, pk=None):
         session = self.get_object()
-        if session.fermee_le:
+        if session.cloturee_le:
             return Response(
                 {"detail": "Cette session est déjà clôturée."}, status=status.HTTP_400_BAD_REQUEST
             )
@@ -76,7 +87,7 @@ class SessionCaisseViewSet(viewsets.ModelViewSet):
         entree = ClotureSerializer(data=request.data)
         entree.is_valid(raise_exception=True)
         session.montant_reel = entree.validated_data["montant_reel"]
-        session.commentaire_cloture = entree.validated_data["commentaire"]
-        session.fermee_le = timezone.now()
-        session.save(update_fields=["montant_reel", "commentaire_cloture", "fermee_le"])
+        session.remarques = entree.validated_data["commentaire"]
+        session.cloturee_le = timezone.now()
+        session.save(update_fields=["montant_reel", "remarques", "cloturee_le"])
         return Response(SessionCaisseSerializer(session).data)

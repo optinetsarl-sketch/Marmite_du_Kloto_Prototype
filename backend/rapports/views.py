@@ -9,7 +9,8 @@ from django.utils import timezone
 from django.utils.formats import date_format
 from utils.objectid import to_str
 from utils.dates import date_range
-from rest_framework.decorators import api_view
+from config.permissions import IsAdminUserRole
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
 from stock.models import MouvementStock
@@ -83,6 +84,7 @@ def top_ventes(debut, fin, limite=5):
 
 
 @api_view(["GET"])
+@permission_classes([IsAdminUserRole])
 def tableau_de_bord(request):
     debut, fin, libelle = _periode(request)
     revenus = _revenus_par_source(debut, fin)
@@ -202,6 +204,7 @@ def rapport_livraisons(request):
 
 
 @api_view(["GET"])
+@permission_classes([IsAdminUserRole])
 def rapport_depenses(request):
     debut, fin, libelle = _periode(request)
     depenses = Depense.objects.filter(cree_le__range=date_range(debut, fin), supprime_le__isnull=True)
@@ -222,6 +225,7 @@ def rapport_depenses(request):
 
 
 @api_view(["GET"])
+@permission_classes([IsAdminUserRole])
 def rapport_revenus(request):
     debut, fin, libelle = _periode(request)
     detail_bar = list(
@@ -239,6 +243,7 @@ def rapport_revenus(request):
 
 
 @api_view(["GET"])
+@permission_classes([IsAdminUserRole])
 def rapport_cloture(request):
     """Tout ce qu'il faut pour l'arrêté de fin de journée, en un seul appel :
     recettes, dépenses, résultat et état du tiroir-caisse."""
@@ -418,3 +423,37 @@ def historique(request):
             "evenements": evenements,
         }
     )
+
+
+@api_view(["GET"])
+def activite_gerant(request):
+    """Statistiques d'activité opérationnelle (volumes & articles vendus sans montants FCFA)."""
+    debut, fin, libelle = _periode(request)
+    
+    lignes = LigneCommande.objects.filter(commande__in=_commandes_payees(debut, fin))
+    sur_site = lignes.exclude(commande__type=Commande.TYPE_LIVRAISON)
+    
+    v_bar = sur_site.filter(produit__categorie__rayon=Categorie.RAYON_BAR).aggregate(t=Sum("quantite"))["t"] or 0
+    v_cuisine = sur_site.filter(produit__categorie__rayon=Categorie.RAYON_CUISINE).aggregate(t=Sum("quantite"))["t"] or 0
+    v_livraison = lignes.filter(commande__type=Commande.TYPE_LIVRAISON).aggregate(t=Sum("quantite"))["t"] or 0
+
+    top_produits = list(
+        lignes.values("libelle")
+        .annotate(vendu=Sum("quantite"))
+        .order_by("-vendu")[:6]
+    )
+
+    return Response(
+        {
+            "periode": libelle,
+            "sections": {
+                "bar": v_bar,
+                "cuisine": v_cuisine,
+                "livraison": v_livraison,
+                "total": v_bar + v_cuisine + v_livraison,
+            },
+            "top_produits": top_produits,
+            "nb_commandes": _commandes_payees(debut, fin).count(),
+        }
+    )
+

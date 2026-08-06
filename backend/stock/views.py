@@ -1,6 +1,7 @@
 from django.db import transaction
+from config.permissions import IsAdminUserRole
 from rest_framework import status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
 
 from .models import Fournisseur, MouvementStock
@@ -18,13 +19,18 @@ class FournisseurViewSet(viewsets.ModelViewSet):
     serializer_class = FournisseurSerializer
     search_fields = ["nom"]
 
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [IsAdminUserRole()]
+        return super().get_permissions()
+
 
 class MouvementStockViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = MouvementStock.objects.select_related("produit", "fournisseur").order_by("-cree_le", "-id")
     serializer_class = MouvementStockSerializer
     filterset_fields = ["produit", "motif"]
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post"], permission_classes=[IsAdminUserRole])
     @transaction.atomic
     def reception(self, request):
         entree = ReceptionSerializer(data=request.data)
@@ -53,7 +59,7 @@ class MouvementStockViewSet(viewsets.ReadOnlyModelViewSet):
             MouvementStockSerializer(mouvement).data, status=status.HTTP_201_CREATED
         )
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post"], permission_classes=[IsAdminUserRole])
     def inventaire(self, request):
         entree = InventaireSerializer(data=request.data)
         entree.is_valid(raise_exception=True)
@@ -73,7 +79,7 @@ class MouvementStockViewSet(viewsets.ReadOnlyModelViewSet):
             MouvementStockSerializer(mouvement).data, status=status.HTTP_201_CREATED
         )
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post"], permission_classes=[IsAdminUserRole])
     def sortie(self, request):
         entree = SortieSerializer(data=request.data)
         entree.is_valid(raise_exception=True)

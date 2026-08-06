@@ -14,7 +14,7 @@ class LivraisonTest(APITestCase):
         call_command("seed_catalogue")
 
     def setUp(self):
-        self.client.force_authenticate(User.objects.create_user("gerant", password="x"))
+        self.client.force_authenticate(User.objects.create_superuser("admin", password="x"))
         self.kofi = Livreur.objects.get(nom="Kofi")
         self.kossi = Livreur.objects.get(nom="Kossi")
         self.castel = Produit.objects.get(nom="Castel")

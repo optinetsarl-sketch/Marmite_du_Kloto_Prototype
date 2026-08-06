@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { api, fcfa } from '../api'
+import { useAuth } from '../auth-contexte'
 
 const TYPE_LABELS = {
   commande: 'Commande',
@@ -20,6 +21,9 @@ const STATUTS = {
 }
 
 export default function Historique() {
+  const { utilisateur } = useAuth()
+  const estAdmin = Boolean(utilisateur?.is_admin || utilisateur?.role === 'admin')
+
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [historique, setHistorique] = useState(null)
   const [erreur, setErreur] = useState('')
@@ -76,7 +80,7 @@ export default function Historique() {
           <div style={{ color: 'var(--mut)' }}>
             Statut : {STATUTS[evenement.statut] || evenement.statut}
             {evenement.livreur_nom ? ` · Livreur ${evenement.livreur_nom}` : ''}
-            {evenement.total != null ? ` · ${fcfa(evenement.total)}` : ''}
+            {estAdmin && evenement.total != null ? ` · ${fcfa(evenement.total)}` : ''}
           </div>
         </>
       )
@@ -103,7 +107,7 @@ export default function Historique() {
             )}
           </div>
           <div style={{ color: 'var(--mut)', textDecoration: evenement.supprimee ? 'line-through' : 'none' }}>
-            {evenement.description || 'Sans description'} · {fcfa(evenement.montant)} · {evenement.mode}
+            {evenement.description || 'Sans description'} {estAdmin ? `· ${fcfa(evenement.montant)} ` : ''}· {evenement.mode}
           </div>
         </>
       )
@@ -126,7 +130,7 @@ export default function Historique() {
             &nbsp;· {evenement.categorie_libelle}
           </div>
           <div style={{ color: 'var(--mut)' }}>
-            {evenement.description || 'Sans description'} · {fcfa(evenement.montant)} · {evenement.mode}
+            {evenement.description || 'Sans description'} {estAdmin ? `· ${fcfa(evenement.montant)} ` : ''}· {evenement.mode}
             {evenement.supprime_par ? ` · par ${evenement.supprime_par}` : ''}
           </div>
         </>
@@ -151,8 +155,9 @@ export default function Historique() {
     return <div>{JSON.stringify(evenement)}</div>
   }
 
-  // Montant à afficher dans la colonne droite
+  // Montant à afficher dans la colonne droite (seulement pour Admin)
   function renderMontant(evenement) {
+    if (!estAdmin) return null
     if (evenement.type === 'depense') {
       return (
         <span style={{
