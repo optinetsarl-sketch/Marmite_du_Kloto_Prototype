@@ -26,14 +26,16 @@ export default function Comptes() {
     setChargement(true)
     try {
       const data = await api.get('/auth/utilisateurs/')
-      setUtilisateurs(data)
+      const liste = Array.isArray(data) ? data : []
+      setUtilisateurs(liste)
       const initialNoms = {}
-      data.forEach((u) => {
+      liste.forEach((u) => {
         initialNoms[u.id] = u.nom || u.username
       })
       setNoms(initialNoms)
       setErreur('')
     } catch (e) {
+      setUtilisateurs([])
       setErreur(e.message)
     } finally {
       setChargement(false)
@@ -130,9 +132,9 @@ export default function Comptes() {
         <div className="etat">Chargement des comptes…</div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-          {utilisateurs.map((u) => {
+          {(utilisateurs || []).map((u) => {
             const estCompteAdmin = u.is_admin || u.role === 'admin'
-            const estMoi = String(u.id) === String(utilisateur.id)
+            const estMoi = String(u.id) === String(utilisateur?.id)
 
             return (
               <div
