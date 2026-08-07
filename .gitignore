@@ -27,5 +27,6 @@ frontend/dist/
 backend/dist/
 backend/build/
 backend/frontend_dist/
+backend/mongodb_data/
 deployment_client/
 *.zip
