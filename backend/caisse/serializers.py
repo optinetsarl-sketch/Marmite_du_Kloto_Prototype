@@ -61,11 +61,11 @@ class SessionCaisseSerializer(serializers.ModelSerializer):
     class Meta:
         model = SessionCaisse
         fields = [
-            "id", "ouverte_le", "fond_initial", "fermee_le", "montant_reel",
-            "commentaire_cloture", "recettes_especes", "depenses_especes",
+            "id", "ouverte_le", "cloturee_le", "fond_initial", "montant_reel",
+            "remarques", "recettes_especes", "depenses_especes",
             "montant_theorique", "ecart",
         ]
-        read_only_fields = ["fermee_le", "montant_reel"]
+        read_only_fields = ["cloturee_le", "montant_reel"]
 
 
 class ClotureSerializer(serializers.Serializer):
