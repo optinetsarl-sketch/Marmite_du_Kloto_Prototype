@@ -188,27 +188,11 @@ export default function Cloture() {
           <div className="card" style={{ padding: '36px 32px' }}>
             <h2 style={{ marginBottom: 6, fontSize: 22 }}>Ouvrir la caisse</h2>
             <p style={{ color: 'var(--mut)', fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>
-              Saisissez le fond de départ. Il servira de référence pour l'arrêté des espèces en fin de journée.
+              Cliquez ci-dessous pour ouvrir la journée de caisse et démarrer l'enregistrement des opérations.
             </p>
             <form onSubmit={ouvrirCaisse}>
-              <label className="lbl">Fond de caisse initial (FCFA)</label>
-              <input
-                id="fond-initial"
-                className="champ"
-                type="number"
-                min="0"
-                step="500"
-                placeholder="ex. 50 000"
-                value={fondInitial}
-                onChange={(e) => setFondInitial(e.target.value)}
-                required
-                style={{ fontSize: 20, fontWeight: 700, textAlign: 'center', marginBottom: 8 }}
-              />
-              <div className="note" style={{ marginBottom: 20 }}>
-                Sans caisse ouverte, les ventes et dépenses sont bien enregistrées, mais l'arrêté d'espèces n'a pas de point de départ.
-              </div>
               <button id="btn-ouvrir-caisse" className="btn btn-o" style={{ width: '100%', height: 48, fontSize: 16 }}>
-                Ouvrir la journée
+                🚀 Ouvrir la journée de caisse
               </button>
             </form>
           </div>
@@ -282,8 +266,7 @@ export default function Cloture() {
               <h3 style={{ margin: '0 0 14px 0' }}>Arrêté de caisse (espèces)</h3>
               <table className="grid">
                 <tbody>
-                  <Ligne libelle="Fond de caisse initial"       valeur={caisse.fond_initial} />
-                  <Ligne libelle="+ Recettes en espèces"        valeur={caisse.recettes_especes} />
+                  <Ligne libelle="Recettes en espèces"        valeur={caisse.recettes_especes} />
                   <Ligne libelle="− Dépenses en espèces"        valeur={caisse.depenses_especes} rouge />
                   <Ligne libelle="= Montant théorique en caisse" valeur={theorique} fort />
                 </tbody>
@@ -302,10 +285,6 @@ export default function Cloture() {
             <div className="card" style={{ background: '#1e1b1a', color: '#fff', border: 'none' }}>
               <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,.45)', marginBottom: 14 }}>
                 Session en cours
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ color: 'rgba(255,255,255,.55)', fontSize: 13 }}>Fond initial</span>
-                <span style={{ fontWeight: 700 }}>{fcfa(caisse.fond_initial)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                 <span style={{ color: 'rgba(255,255,255,.55)', fontSize: 13 }}>Espèces attendues</span>
