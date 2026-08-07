@@ -697,7 +697,7 @@ export default function Accueil() {
               background: 'var(--tint)',
               border: '1px solid var(--tint-bd)',
               display: 'flex',
-              justify: 'space-between',
+              justifyContent: 'space-between',
               alignItems: 'center',
               fontSize: 13,
             }}
