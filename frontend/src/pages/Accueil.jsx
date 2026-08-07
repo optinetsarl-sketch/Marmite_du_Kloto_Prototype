@@ -4,6 +4,112 @@ import { Link } from 'react-router-dom'
 import { api, fcfa } from '../api'
 import { useAuth } from '../auth-contexte'
 
+/* ─────────────────────────────────────────────────────────────────────────
+   COMPOSANT : Graphique Donut SVG Vectoriel & Élégant
+   ───────────────────────────────────────────────────────────────────────── */
+function GraphiqueDonutSVG({ items, total, libelleCentre }) {
+  let angleCumule = 0
+  const rayonInt = 60
+  const rayonExt = 85
+  const centre = 100
+
+  const arcs = items.map((item) => {
+    const fraction = total > 0 ? item.valeur / total : 0
+    const angle = fraction * 360
+    const angleStart = angleCumule
+    const angleEnd = angleCumule + angle
+    angleCumule += angle
+
+    // Conversion coordonnées polaires -> cartésiennes
+    const radStart = ((angleStart - 90) * Math.PI) / 180
+    const radEnd = ((angleEnd - 90) * Math.PI) / 180
+
+    const x1_ext = centre + rayonExt * Math.cos(radStart)
+    const y1_ext = centre + rayonExt * Math.sin(radStart)
+    const x2_ext = centre + rayonExt * Math.cos(radEnd)
+    const y2_ext = centre + rayonExt * Math.sin(radEnd)
+
+    const x1_int = centre + rayonInt * Math.cos(radStart)
+    const y1_int = centre + rayonInt * Math.sin(radStart)
+    const x2_int = centre + rayonInt * Math.cos(radEnd)
+    const y2_int = centre + rayonInt * Math.sin(radEnd)
+
+    const grandArc = angle > 180 ? 1 : 0
+
+    const pathData = [
+      `M ${x1_ext} ${y1_ext}`,
+      `A ${rayonExt} ${rayonExt} 0 ${grandArc} 1 ${x2_ext} ${y2_ext}`,
+      `L ${x2_int} ${y2_int}`,
+      `A ${rayonInt} ${rayonInt} 0 ${grandArc} 0 ${x1_int} ${y1_int}`,
+      'Z',
+    ].join(' ')
+
+    return { ...item, pathData, fraction }
+  })
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+      <div style={{ position: 'relative', width: 200, height: 200 }}>
+        <svg width="200" height="200" viewBox="0 0 200 200" style={{ transform: 'rotate(-90deg)', overflow: 'visible' }}>
+          <defs>
+            <filter id="shadow-donut" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#000" floodOpacity="0.08" />
+            </filter>
+          </defs>
+          <circle cx="100" cy="100" r={rayonExt} fill="#f5eee8" />
+          {arcs.map((arc, i) => (
+            <path
+              key={i}
+              d={arc.pathData}
+              fill={arc.couleur}
+              style={{ transition: 'all 0.4s ease', cursor: 'pointer' }}
+              filter="url(#shadow-donut)"
+            />
+          ))}
+          <circle cx="100" cy="100" r={rayonInt} fill="var(--bg-app, #ffffff)" />
+        </svg>
+
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            textAlign: 'center',
+          }}
+        >
+          <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--noir)', lineHeight: 1.1 }}>
+            {fcfa(total)}
+          </span>
+          <span style={{ fontSize: 11, color: 'var(--mut)', marginTop: 3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            {libelleCentre || 'Total Encaissé'}
+          </span>
+        </div>
+      </div>
+
+      {/* Légende interactive */}
+      <div style={{ display: 'flex', gap: 16, marginTop: 18, justifyContent: 'center', flexWrap: 'wrap' }}>
+        {items.map((item) => (
+          <div key={item.cle} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
+            <span style={{ width: 10, height: 10, borderRadius: '50%', background: item.couleur, display: 'inline-block' }} />
+            <span style={{ color: 'var(--noir)' }}>{item.libelle}</span>
+            <span style={{ color: 'var(--mut)', fontWeight: 500 }}>({item.pct}%)</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   PAGE PRINCIPALE ACCUEIL
+   ───────────────────────────────────────────────────────────────────────── */
 export default function Accueil() {
   const { utilisateur } = useAuth()
   const estAdmin = Boolean(utilisateur?.is_admin || utilisateur?.role === 'admin')
@@ -20,15 +126,18 @@ export default function Accueil() {
     }
   }, [estAdmin])
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // VUE GÉRANT (Activité Opérationnelle Élégante sans Émojis)
+  // ─────────────────────────────────────────────────────────────────────────
   if (!estAdmin) {
     if (erreur) return <div className="erreur">{erreur}</div>
-    if (!activite) return <div className="etat">Chargement de l'activité du jour…</div>
+    if (!activite) return <div className="etat">Chargement du tableau de bord gérant…</div>
 
     const totalArticles = Math.max(activite.sections.total, 1)
     const sectionItems = [
-      { key: 'cuisine', libelle: 'Cuisine', quantite: activite.sections.cuisine, couleur: '#d9661a', pct: Math.round((activite.sections.cuisine / totalArticles) * 100) },
-      { key: 'bar', libelle: 'Bar', quantite: activite.sections.bar, couleur: '#f47c20', pct: Math.round((activite.sections.bar / totalArticles) * 100) },
-      { key: 'livraison', libelle: 'Livraison', quantite: activite.sections.livraison, couleur: '#9a5716', pct: Math.round((activite.sections.livraison / totalArticles) * 100) },
+      { key: 'cuisine', libelle: 'Cuisine & Restauration', quantite: activite.sections.cuisine, couleur: '#d9661a', pct: Math.round((activite.sections.cuisine / totalArticles) * 100) },
+      { key: 'bar', libelle: 'Bar & Boissons', quantite: activite.sections.bar, couleur: '#f47c20', pct: Math.round((activite.sections.bar / totalArticles) * 100) },
+      { key: 'livraison', libelle: 'Livraisons & Emporter', quantite: activite.sections.livraison, couleur: '#9a5716', pct: Math.round((activite.sections.livraison / totalArticles) * 100) },
     ]
 
     const maxVendu = activite.top_produits.length > 0 ? Math.max(...activite.top_produits.map((p) => p.vendu)) : 1
@@ -49,113 +158,290 @@ export default function Accueil() {
             justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: 'wrap',
-            gap: 12,
+            gap: 16,
           }}
         >
           <div>
             <div
               style={{
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: 700,
                 textTransform: 'uppercase',
-                letterSpacing: '0.1em',
+                letterSpacing: '0.12em',
                 color: 'var(--orange)',
                 marginBottom: 4,
               }}
             >
-              Bienvenue, {utilisateur?.nom} · {activite.periode}
+              ESPACE GÉRANT · {activite.periode}
             </div>
-            <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, color: '#fff' }}>
+            <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, color: '#fff', letterSpacing: '-0.02em' }}>
               La Marmite du Kloto
             </h1>
+            <div style={{ fontSize: 13, color: '#b7ada6', marginTop: 4 }}>
+              Bienvenue, {utilisateur?.nom || 'Gérant'} — Aperçu de l'activité du jour
+            </div>
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.1)', padding: '10px 18px', borderRadius: 12, textAlign: 'center' }}>
-            <div style={{ fontSize: 11, textTransform: 'uppercase', color: '#B7ADA6', fontWeight: 600 }}>Commandes aujourd'hui</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--orange)' }}>{activite.nb_commandes}</div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <div
+              style={{
+                padding: '8px 16px',
+                borderRadius: 30,
+                fontSize: 12,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                background: activite.caisse_ouverte ? 'rgba(63, 125, 78, 0.25)' : 'rgba(217, 102, 26, 0.25)',
+                border: `1px solid ${activite.caisse_ouverte ? 'rgba(63, 125, 78, 0.5)' : 'rgba(217, 102, 26, 0.5)'}`,
+                color: activite.caisse_ouverte ? '#81c784' : 'var(--orange-lt)',
+              }}
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: activite.caisse_ouverte ? '#4caf50' : 'var(--orange)',
+                  boxShadow: activite.caisse_ouverte
+                    ? '0 0 0 3px rgba(76, 175, 80, 0.3)'
+                    : '0 0 0 3px rgba(244, 124, 32, 0.3)',
+                }}
+              />
+              {activite.caisse_ouverte ? 'Session de Caisse Ouverte' : 'Session de Caisse Fermée'}
+            </div>
+
+            <div style={{ background: 'rgba(255,255,255,0.08)', padding: '10px 18px', borderRadius: 14, textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', color: '#B7ADA6', fontWeight: 700, letterSpacing: '0.05em' }}>Commandes du jour</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--orange)', lineHeight: 1.1, marginTop: 2 }}>{activite.nb_commandes}</div>
+            </div>
           </div>
         </div>
 
-        {/* Raccourcis Opérationnels */}
-        <div className="card" style={{ marginBottom: 24 }}>
-          <h3 style={{ fontSize: 16, marginBottom: 16 }}>⚡ Raccourcis Rapides</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
-            <Link to="/ventes" className="btn btn-o" style={{ display: 'flex', justifyContent: 'center', padding: '14px 18px', fontSize: 14, fontWeight: 700, borderRadius: 12 }}>
-              🛒 Ventes / Caisse
+        {/* Accès Opérationnels Rapides */}
+        <div
+          style={{
+            background: 'var(--bg-app, #fff)',
+            borderRadius: 20,
+            padding: 22,
+            border: '1.5px solid var(--bord)',
+            boxShadow: '0 4px 16px rgba(30,27,26,0.04)',
+            marginBottom: 24,
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0, color: 'var(--noir)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Accès Opérationnels
+            </h3>
+            <span style={{ fontSize: 12, color: 'var(--mut)', fontWeight: 600 }}>Raccourcis de gestion</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+            <Link
+              to="/ventes"
+              className="btn btn-o"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                padding: '14px 16px',
+                borderRadius: 14,
+                textDecoration: 'none',
+                boxShadow: '0 4px 12px rgba(244,124,32,0.15)',
+              }}
+            >
+              <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Ventes &amp; Caisse</span>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', marginTop: 2, fontWeight: 500 }}>Saisie des commandes &amp; encaissement</span>
             </Link>
-            <Link to="/tables" className="btn btn-g" style={{ display: 'flex', justifyContent: 'center', padding: '14px 18px', fontSize: 14, fontWeight: 700, borderRadius: 12 }}>
-              🪑 Plan de Salle
+
+            <Link
+              to="/tables"
+              className="btn btn-g"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                padding: '14px 16px',
+                borderRadius: 14,
+                textDecoration: 'none',
+                background: '#fff',
+                border: '1.5px solid var(--bord)',
+              }}
+            >
+              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--noir)' }}>Plan de Salle</span>
+              <span style={{ fontSize: 11, color: 'var(--mut)', marginTop: 2, fontWeight: 500 }}>Gestion visuelle des tables sur place</span>
             </Link>
-            <Link to="/cuisine" className="btn btn-g" style={{ display: 'flex', justifyContent: 'center', padding: '14px 18px', fontSize: 14, fontWeight: 700, borderRadius: 12 }}>
-              🍳 Poste Cuisine
+
+            <Link
+              to="/cuisine"
+              className="btn btn-g"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                padding: '14px 16px',
+                borderRadius: 14,
+                textDecoration: 'none',
+                background: '#fff',
+                border: '1.5px solid var(--bord)',
+              }}
+            >
+              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--noir)' }}>Poste Cuisine</span>
+              <span style={{ fontSize: 11, color: 'var(--mut)', marginTop: 2, fontWeight: 500 }}>Suivi des bons et temps de préparation</span>
             </Link>
-            <Link to="/livraison" className="btn btn-g" style={{ display: 'flex', justifyContent: 'center', padding: '14px 18px', fontSize: 14, fontWeight: 700, borderRadius: 12 }}>
-              🛵 Livraisons
+
+            <Link
+              to="/livraison"
+              className="btn btn-g"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                padding: '14px 16px',
+                borderRadius: 14,
+                textDecoration: 'none',
+                background: '#fff',
+                border: '1.5px solid var(--bord)',
+              }}
+            >
+              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--noir)' }}>Livraisons</span>
+              <span style={{ fontSize: 11, color: 'var(--mut)', marginTop: 2, fontWeight: 500 }}>Dispatching &amp; suivi des livreurs</span>
+            </Link>
+
+            <Link
+              to="/cloture"
+              className="btn btn-g"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                padding: '14px 16px',
+                borderRadius: 14,
+                textDecoration: 'none',
+                background: 'rgba(30,27,26,0.03)',
+                border: '1.5px solid var(--bord)',
+              }}
+            >
+              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--noir)' }}>Clôture du Jour</span>
+              <span style={{ fontSize: 11, color: 'var(--mut)', marginTop: 2, fontWeight: 500 }}>Arrêté de caisse &amp; rapport du jour</span>
             </Link>
           </div>
         </div>
 
-        {/* Graphiques d'Activité Opérationnelle */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+        {/* Graphiques Élégants d'Activité Opérationnelle */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 20 }}>
           
-          {/* GRAPHE 1 : Sections les plus actives (Volume d'articles vendus) */}
-          <div className="card">
-            <h3 style={{ fontSize: 16, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-              📊 Activité par Section
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {sectionItems.map((sec) => (
-                <div key={sec.key}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>
-                    <span>{sec.libelle}</span>
-                    <span style={{ color: sec.couleur, fontWeight: 700 }}>
-                      {sec.quantite} article{sec.quantite > 1 ? 's' : ''} ({sec.pct}%)
-                    </span>
+          {/* GRAPHE 1 : Répartition par Rayon (Articles vendus) */}
+          <div
+            style={{
+              background: 'var(--bg-app, #fff)',
+              borderRadius: 20,
+              padding: 24,
+              border: '1.5px solid var(--bord)',
+              boxShadow: '0 4px 16px rgba(30,27,26,0.04)',
+              display: 'flex',
+              flexDirection: 'column',
+              justify: 'space-between',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0, color: 'var(--noir)' }}>
+                  Activité par Rayon
+                </h3>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--orange-dk)', background: 'rgba(244,124,32,0.1)', padding: '3px 10px', borderRadius: 12 }}>
+                  {activite.sections.total} articles
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 10 }}>
+                {sectionItems.map((sec) => (
+                  <div key={sec.key}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
+                      <span style={{ color: 'var(--noir)' }}>{sec.libelle}</span>
+                      <span style={{ color: sec.couleur }}>
+                        {sec.quantite} unité{sec.quantite > 1 ? 's' : ''} ({sec.pct}%)
+                      </span>
+                    </div>
+                    <div style={{ width: '100%', height: 10, background: '#f5eee8', borderRadius: 8, overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: `${sec.pct}%`,
+                          height: '100%',
+                          background: `linear-gradient(90deg, ${sec.couleur}, #1e1b1a)`,
+                          borderRadius: 8,
+                          transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div style={{ width: '100%', height: 12, background: 'var(--tint)', borderRadius: 10, overflow: 'hidden' }}>
-                    <div
-                      style={{
-                        width: `${sec.pct}%`,
-                        height: '100%',
-                        background: sec.couleur,
-                        borderRadius: 10,
-                        transition: 'width 0.6s ease',
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-            <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--bord)', display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--mut)' }}>
-              <span>Total articles servis aujourd'hui :</span>
-              <strong style={{ color: 'var(--noir)' }}>{activite.sections.total} articles</strong>
+
+            <div style={{ marginTop: 24, paddingTop: 14, borderTop: '1px solid var(--bord)', display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--mut)' }}>
+              <span>Volume total servi aujourd'hui</span>
+              <strong style={{ color: 'var(--noir)' }}>{activite.sections.total} articles enregistrés</strong>
             </div>
           </div>
 
-          {/* GRAPHE 2 : Plats & Boissons les plus commandés */}
-          <div className="card">
-            <h3 style={{ fontSize: 16, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-              🔥 Plats & Boissons les plus commandés
-            </h3>
+          {/* GRAPHE 2 : Classement des Articles les Plus Vendus */}
+          <div
+            style={{
+              background: 'var(--bg-app, #fff)',
+              borderRadius: 20,
+              padding: 24,
+              border: '1.5px solid var(--bord)',
+              boxShadow: '0 4px 16px rgba(30,27,26,0.04)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0, color: 'var(--noir)' }}>
+                Articles les Plus Vendus
+              </h3>
+              <span style={{ fontSize: 12, color: 'var(--mut)', fontWeight: 600 }}>Top 6 des ventes</span>
+            </div>
+
             {activite.top_produits.length === 0 ? (
-              <div className="etat" style={{ padding: 20 }}>Aucune vente enregistrée pour aujourd'hui.</div>
+              <div className="etat" style={{ padding: 30 }}>Aucune vente enregistrée aujourd'hui.</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {activite.top_produits.map((item, index) => {
                   const pct = Math.round((item.vendu / maxVendu) * 100)
                   return (
                     <div key={index}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
-                        <span>#{index + 1} {item.libelle}</span>
-                        <span style={{ color: 'var(--orange)', fontWeight: 700 }}>{item.vendu} unité{item.vendu > 1 ? 's' : ''}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700, marginBottom: 5 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span
+                            style={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: 6,
+                              background: index === 0 ? 'var(--orange)' : index === 1 ? 'var(--orange-dk)' : 'var(--bord)',
+                              color: index < 2 ? '#fff' : 'var(--noir)',
+                              fontSize: 11,
+                              fontWeight: 800,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            0{index + 1}
+                          </span>
+                          <span>{item.libelle}</span>
+                        </div>
+                        <span style={{ color: 'var(--orange-dk)', fontWeight: 800 }}>
+                          {item.vendu} unité{item.vendu > 1 ? 's' : ''}
+                        </span>
                       </div>
-                      <div style={{ width: '100%', height: 10, background: 'var(--tint)', borderRadius: 8, overflow: 'hidden' }}>
+                      <div style={{ width: '100%', height: 8, background: '#f5eee8', borderRadius: 6, overflow: 'hidden' }}>
                         <div
                           style={{
                             width: `${pct}%`,
                             height: '100%',
                             background: 'linear-gradient(90deg, #f47c20, #d9661a)',
-                            borderRadius: 8,
-                            transition: 'width 0.6s ease',
+                            borderRadius: 6,
+                            transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
                           }}
                         />
                       </div>
@@ -171,14 +457,15 @@ export default function Accueil() {
     )
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // VUE ADMIN (Tableau de Bord Exécutif & Financier)
+  // ─────────────────────────────────────────────────────────────────────────
   if (erreur) return <div className="erreur">{erreur}</div>
-  if (!bord) return <div className="etat">Chargement du tableau de bord…</div>
+  if (!bord) return <div className="etat">Chargement du tableau de bord administration…</div>
 
   const { revenus } = bord
-
   const chiffreTotal = Math.max(revenus.total, 1)
 
-  // Palette de couleurs 100% issue de la charte du logo (Noir charbon #1e1b1a & Orange ocre #f47c20 / #d9661a / #9a5716)
   const revenuItems = [
     {
       cle: 'bar',
@@ -206,33 +493,16 @@ export default function Accueil() {
     },
   ]
 
-  // Calcul du gradient conique pour le graphique donut
-  const donutGradient = revenuItems
-    .map((item, index) => {
-      const debut = revenuItems
-        .slice(0, index)
-        .reduce((s, precedent) => s + precedent.valeur, 0)
-      const debutPct = Math.round((debut / chiffreTotal) * 10000) / 100
-      const finPct = Math.round(((debut + item.valeur) / chiffreTotal) * 10000) / 100
-      return `${item.couleur} ${debutPct}% ${finPct}%`
-    })
-    .join(', ')
-
-  const panierMoyen =
-    bord.nb_commandes > 0 ? Math.round(revenus.total / bord.nb_commandes) : 0
-
-  const maxCaTopVente =
-    bord.top_ventes && bord.top_ventes.length > 0
-      ? Math.max(...bord.top_ventes.map((v) => v.ca || 1))
-      : 1
+  const panierMoyen = bord.nb_commandes > 0 ? Math.round(revenus.total / bord.nb_commandes) : 0
+  const maxCaTopVente = bord.top_ventes && bord.top_ventes.length > 0 ? Math.max(...bord.top_ventes.map((v) => v.ca || 1)) : 1
 
   return (
     <div style={{ paddingBottom: 30 }}>
-      {/* En-tête modernisé aux couleurs de la charte logo */}
+      {/* En-tête Administrateur */}
       <div
         style={{
           display: 'flex',
-          justifyContent: 'space-between',
+          justify: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: 16,
@@ -248,18 +518,18 @@ export default function Accueil() {
         <div>
           <div
             style={{
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: 700,
               textTransform: 'uppercase',
-              letterSpacing: '0.1em',
+              letterSpacing: '0.12em',
               color: 'var(--orange)',
               marginBottom: 4,
             }}
           >
-            La Marmite du Kloto · {bord.periode}
+            ADMINISTRATION · {bord.periode}
           </div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, color: '#fff' }}>
-            Tableau de bord
+          <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, color: '#fff', letterSpacing: '-0.02em' }}>
+            Tableau de bord Général
           </h1>
         </div>
 
@@ -268,7 +538,7 @@ export default function Accueil() {
             style={{
               padding: '8px 16px',
               borderRadius: 30,
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: 700,
               display: 'flex',
               alignItems: 'center',
@@ -289,12 +559,12 @@ export default function Accueil() {
                   : '0 0 0 3px rgba(244, 124, 32, 0.3)',
               }}
             />
-            {bord.caisse_ouverte ? 'Caisse Ouverte' : 'Caisse Fermée'}
+            {bord.caisse_ouverte ? 'Session de Caisse Ouverte' : 'Session de Caisse Fermée'}
           </div>
         </div>
       </div>
 
-      {/* Cartes KPI Principales aux teintes d'ocre du logo */}
+      {/* Cartes KPI Principales */}
       <div
         style={{
           display: 'grid',
@@ -313,11 +583,11 @@ export default function Accueil() {
             boxShadow: '0 4px 12px rgba(30,27,26,0.04)',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'space-between',
+            justify: 'space-between',
           }}
         >
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--mut)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--mut)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Chiffre d'affaires total
             </div>
             <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--noir)', marginTop: 8 }}>
@@ -325,26 +595,18 @@ export default function Accueil() {
             </div>
           </div>
           <div style={{ marginTop: 16 }}>
-            {/* Barre de répartition segmentée */}
             <div style={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden', background: '#f5eee8' }}>
               {revenuItems.map((item) => (
-                <div
-                  key={item.cle}
-                  style={{
-                    width: `${item.pct}%`,
-                    background: item.couleur,
-                    transition: 'width 0.3s ease',
-                  }}
-                />
+                <div key={item.cle} style={{ width: `${item.pct}%`, background: item.couleur, transition: 'width 0.3s ease' }} />
               ))}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 6, textAlign: 'right' }}>
+            <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 6, textAlign: 'right', fontWeight: 600 }}>
               {bord.nb_commandes} commande{bord.nb_commandes > 1 ? 's' : ''} encaissée{bord.nb_commandes > 1 ? 's' : ''}
             </div>
           </div>
         </div>
 
-        {/* Cartes par canal (Bar, Cuisine, Livraison) */}
+        {/* Cartes par canal */}
         {revenuItems.map((item) => (
           <div
             key={item.cle}
@@ -358,42 +620,24 @@ export default function Accueil() {
               overflow: 'hidden',
             }}
           >
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 4,
-                background: item.couleur,
-              }}
-            />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: item.couleur }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--noir)' }}>{item.libelle}</span>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  padding: '2px 8px',
-                  borderRadius: 10,
-                  background: item.bg,
-                  color: item.couleur,
-                }}
-              >
+              <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 10, background: item.bg, color: item.couleur }}>
                 {item.pct}%
               </span>
             </div>
             <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--noir)', marginTop: 12 }}>
               {fcfa(item.valeur)}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--mut)', marginTop: 4 }}>
+            <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4, fontWeight: 500 }}>
               Part du chiffre d'affaires
             </div>
           </div>
         ))}
       </div>
 
-      {/* Grille du Milieu : Synthèse financière & Graphique Donut */}
+      {/* Grille du Milieu : Synthèse financière & Graphique Donut SVG */}
       <div
         style={{
           display: 'grid',
@@ -412,71 +656,32 @@ export default function Accueil() {
             boxShadow: '0 4px 16px rgba(30,27,26,0.04)',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'space-between',
+            justify: 'space-between',
           }}
         >
           <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--noir)', marginBottom: 16 }}>
-            Bilan Financier du Jour
+            Bilan Financier
           </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 12,
-            }}
-          >
-            {/* Stat Dépenses */}
-            <div
-              style={{
-                padding: 16,
-                borderRadius: 14,
-                background: 'rgba(154,87,22,0.07)',
-                border: '1px solid rgba(154,87,22,0.18)',
-              }}
-            >
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--tint-tx)' }}>Dépenses</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            <div style={{ padding: 16, borderRadius: 14, background: 'rgba(154,87,22,0.07)', border: '1px solid rgba(154,87,22,0.18)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--tint-tx)', textTransform: 'uppercase' }}>Dépenses</div>
               <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--tint-tx)', marginTop: 4 }}>
                 {fcfa(bord.depenses)}
               </div>
               <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4 }}>Sorties de caisse</div>
             </div>
 
-            {/* Stat Résultat Net */}
-            <div
-              style={{
-                padding: 16,
-                borderRadius: 14,
-                background: bord.resultat_net >= 0 ? 'rgba(244,124,32,0.1)' : 'rgba(217,102,26,0.15)',
-                border: `1px solid ${bord.resultat_net >= 0 ? 'var(--tint-bd)' : 'rgba(217,102,26,0.3)'}`,
-              }}
-            >
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--orange-dk)' }}>
-                Résultat Net
-              </div>
-              <div
-                style={{
-                  fontSize: 20,
-                  fontWeight: 800,
-                  color: 'var(--orange-dk)',
-                  marginTop: 4,
-                }}
-              >
+            <div style={{ padding: 16, borderRadius: 14, background: bord.resultat_net >= 0 ? 'rgba(244,124,32,0.1)' : 'rgba(217,102,26,0.15)', border: `1px solid ${bord.resultat_net >= 0 ? 'var(--tint-bd)' : 'rgba(217,102,26,0.3)'}` }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--orange-dk)', textTransform: 'uppercase' }}>Résultat Net</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--orange-dk)', marginTop: 4 }}>
                 {fcfa(bord.resultat_net)}
               </div>
               <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4 }}>CA minus Dépenses</div>
             </div>
 
-            {/* Stat Panier Moyen */}
-            <div
-              style={{
-                padding: 16,
-                borderRadius: 14,
-                background: 'rgba(30,27,26,0.04)',
-                border: '1px solid var(--bord)',
-              }}
-            >
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--noir)' }}>Panier Moyen</div>
+            <div style={{ padding: 16, borderRadius: 14, background: 'rgba(30,27,26,0.04)', border: '1px solid var(--bord)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--noir)', textTransform: 'uppercase' }}>Panier Moyen</div>
               <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--noir)', marginTop: 4 }}>
                 {fcfa(panierMoyen)}
               </div>
@@ -492,7 +697,7 @@ export default function Accueil() {
               background: 'var(--tint)',
               border: '1px solid var(--tint-bd)',
               display: 'flex',
-              justifyContent: 'space-between',
+              justify: 'space-between',
               alignItems: 'center',
               fontSize: 13,
             }}
@@ -506,7 +711,7 @@ export default function Accueil() {
           </div>
         </div>
 
-        {/* Colonne Droite : Donut Chart Répartition */}
+        {/* Colonne Droite : Donut Chart SVG Vectoriel */}
         <div
           style={{
             background: 'var(--bg-app, #fff)',
@@ -524,66 +729,7 @@ export default function Accueil() {
             Répartition par Source
           </div>
 
-          <div
-            style={{
-              width: 170,
-              height: 170,
-              borderRadius: '50%',
-              position: 'relative',
-              backgroundImage: `conic-gradient(${donutGradient})`,
-              boxShadow: '0 6px 20px rgba(244,124,32,0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <div
-              style={{
-                width: 120,
-                height: 120,
-                borderRadius: '50%',
-                background: 'var(--bg-app, #fff)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-              }}
-            >
-              <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--noir)', lineHeight: 1.1 }}>
-                {fcfa(revenus.total)}
-              </span>
-              <span style={{ fontSize: 11, color: 'var(--mut)', marginTop: 2, fontWeight: 600 }}>
-                Total encaissé
-              </span>
-            </div>
-          </div>
-
-          {/* Légende du graphique */}
-          <div
-            style={{
-              display: 'flex',
-              gap: 16,
-              marginTop: 20,
-              justifyContent: 'center',
-              flexWrap: 'wrap',
-            }}
-          >
-            {revenuItems.map((item) => (
-              <div key={item.cle} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
-                <span
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: '50%',
-                    background: item.couleur,
-                  }}
-                />
-                <span style={{ color: 'var(--noir)' }}>{item.libelle}</span>
-                <span style={{ color: 'var(--mut)', fontWeight: 500 }}>({item.pct}%)</span>
-              </div>
-            ))}
-          </div>
+          <GraphiqueDonutSVG items={revenuItems} total={revenus.total} />
         </div>
       </div>
 
@@ -599,7 +745,7 @@ export default function Accueil() {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
           <div>
-            <h3 style={{ fontSize: 17, fontWeight: 800, margin: 0, color: 'var(--noir)' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0, color: 'var(--noir)' }}>
               Top Ventes Plats &amp; Boissons
             </h3>
             <div style={{ fontSize: 12, color: 'var(--mut)', marginTop: 2 }}>
@@ -632,23 +778,15 @@ export default function Accueil() {
                     gap: 16,
                   }}
                 >
-                  {/* Rang + Nom du produit */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
                     <span
                       style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 8,
-                        background:
-                          rang === 0
-                            ? 'var(--orange)'
-                            : rang === 1
-                            ? 'var(--orange-dk)'
-                            : rang === 2
-                            ? '#9a5716'
-                            : 'var(--bord)',
+                        width: 26,
+                        height: 26,
+                        borderRadius: 7,
+                        background: rang === 0 ? 'var(--orange)' : rang === 1 ? 'var(--orange-dk)' : rang === 2 ? '#9a5716' : 'var(--bord)',
                         color: rang < 3 ? '#fff' : 'var(--noir)',
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: 800,
                         display: 'flex',
                         alignItems: 'center',
@@ -656,7 +794,7 @@ export default function Accueil() {
                         flexShrink: 0,
                       }}
                     >
-                      {rang + 1}
+                      0{rang + 1}
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div
@@ -671,56 +809,17 @@ export default function Accueil() {
                       >
                         {ligne.libelle}
                       </div>
-                      {/* Barre relative de popularité aux couleurs ocre */}
-                      <div
-                        style={{
-                          height: 4,
-                          width: '100%',
-                          maxWidth: 180,
-                          background: 'var(--bord)',
-                          borderRadius: 2,
-                          marginTop: 5,
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <div
-                          style={{
-                            height: '100%',
-                            width: `${pctPopularite}%`,
-                            background: rang === 0 ? 'var(--orange)' : 'var(--orange-dk)',
-                            borderRadius: 2,
-                          }}
-                        />
+                      <div style={{ height: 4, width: '100%', maxWidth: 180, background: 'var(--bord)', borderRadius: 2, marginTop: 5, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pctPopularite}%`, background: rang === 0 ? 'var(--orange)' : 'var(--orange-dk)', borderRadius: 2 }} />
                       </div>
                     </div>
                   </div>
 
-                  {/* Nombre de ventes */}
-                  <div
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 20,
-                      background: 'var(--bg-app, #fff)',
-                      border: '1px solid var(--bord)',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--mut)',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
+                  <div style={{ padding: '4px 10px', borderRadius: 20, background: 'var(--bg-app, #fff)', border: '1px solid var(--bord)', fontSize: 12, fontWeight: 700, color: 'var(--mut)', whiteSpace: 'nowrap' }}>
                     {ligne.vendu} vente{ligne.vendu > 1 ? 's' : ''}
                   </div>
 
-                  {/* Montant total du produit */}
-                  <div
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 800,
-                      color: 'var(--noir)',
-                      minWidth: 100,
-                      textAlign: 'right',
-                    }}
-                  >
+                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--noir)', minWidth: 100, textAlign: 'right' }}>
                     {fcfa(ligne.ca)}
                   </div>
                 </div>

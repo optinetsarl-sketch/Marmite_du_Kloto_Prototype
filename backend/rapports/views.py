@@ -442,6 +442,8 @@ def activite_gerant(request):
         .order_by("-vendu")[:6]
     )
 
+    session = SessionCaisse.courante()
+
     return Response(
         {
             "periode": libelle,
@@ -453,6 +455,7 @@ def activite_gerant(request):
             },
             "top_produits": top_produits,
             "nb_commandes": _commandes_payees(debut, fin).count(),
+            "caisse_ouverte": session is not None,
         }
     )
 
