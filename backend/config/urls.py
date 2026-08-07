@@ -62,6 +62,8 @@ urlpatterns = [
     path("api/", include(router.urls)),
     path("api/auth/login/", auth.connexion),
     path("api/auth/moi/", auth.moi),
+    path("api/auth/utilisateurs/", auth.liste_utilisateurs),
+    path("api/auth/modifier-compte/", auth.modifier_compte),
     path("api/rapports/tableau-de-bord/", rapports.tableau_de_bord),
     path("api/rapports/bar/", rapports.rapport_bar),
     path("api/rapports/cuisine/", rapports.rapport_cuisine),

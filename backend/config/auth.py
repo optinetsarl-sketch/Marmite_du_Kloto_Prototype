@@ -14,6 +14,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from config.permissions import IsAdminUserRole
+
 
 def _auto_seed_si_bd_vide(username="", password=""):
     User = get_user_model()
@@ -91,3 +93,67 @@ def moi(request):
             "etablissement": settings.ETABLISSEMENT,
         }
     )
+
+
+@api_view(["GET"])
+@permission_classes([IsAdminUserRole])
+def liste_utilisateurs(request):
+    """Liste tous les comptes utilisateurs pour la gestion par l'administrateur."""
+    User = get_user_model()
+    users = User.objects.all().order_by("username")
+    result = []
+    for u in users:
+        is_admin = bool(u.is_superuser or u.is_staff or u.username == "admin")
+        result.append(
+            {
+                "id": str(u.pk),
+                "username": u.username,
+                "first_name": u.first_name,
+                "nom": u.first_name or u.username,
+                "role": "admin" if is_admin else "gerant",
+                "is_admin": is_admin,
+            }
+        )
+    return Response(result)
+
+
+@api_view(["POST"])
+@permission_classes([IsAdminUserRole])
+def modifier_compte(request):
+    """Permet à l'administrateur de modifier le nom et le mot de passe d'un compte."""
+    User = get_user_model()
+    user_id = request.data.get("user_id")
+    nouveau_nom = request.data.get("nom", "").strip()
+    nouveau_mot_de_passe = request.data.get("mot_de_passe", "").strip()
+
+    try:
+        user_obj = User.objects.get(pk=user_id)
+    except (User.DoesNotExist, ValueError):
+        return Response({"detail": "Utilisateur introuvable."}, status=status.HTTP_404_NOT_FOUND)
+
+    if nouveau_nom:
+        user_obj.first_name = nouveau_nom
+        user_obj.save(update_fields=["first_name"])
+
+    if nouveau_mot_de_passe:
+        if len(nouveau_mot_de_passe) < 4:
+            return Response({"detail": "Le mot de passe doit contenir au moins 4 caractères."}, status=status.HTTP_400_BAD_REQUEST)
+        user_obj.set_password(nouveau_mot_de_passe)
+        user_obj.save()
+        Token.objects.filter(user=user_obj).delete()
+        Token.objects.create(user=user_obj)
+
+    is_admin = bool(user_obj.is_superuser or user_obj.is_staff or user_obj.username == "admin")
+    return Response(
+        {
+            "detail": f"Compte '{user_obj.username}' mis à jour avec succès.",
+            "utilisateur": {
+                "id": str(user_obj.pk),
+                "username": user_obj.username,
+                "nom": user_obj.first_name or user_obj.username,
+                "role": "admin" if is_admin else "gerant",
+                "is_admin": is_admin,
+            },
+        }
+    )
+

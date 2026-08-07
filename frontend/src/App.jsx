@@ -6,6 +6,7 @@ import Bar from './pages/Bar'
 import Catalogue from './pages/Catalogue'
 import Cloture from './pages/Cloture'
 import Connexion from './pages/Connexion'
+import Comptes from './pages/Comptes'
 import Cuisine from './pages/Cuisine'
 import Depenses from './pages/Depenses'
 import Emporter from './pages/Emporter'
@@ -32,6 +33,7 @@ const MENU = [
   { to: '/historique', libelle: 'Historique' },
   { to: '/rapports', libelle: 'Rapports' },
   { to: '/cloture', libelle: 'Clôture du jour' },
+  { to: '/comptes', libelle: 'Comptes & Sécurité' },
 ]
 
 export default function App() {
@@ -42,8 +44,8 @@ export default function App() {
 
   const estAdmin = Boolean(utilisateur.is_admin || utilisateur.role === 'admin')
 
-  // Filtrer les menus de gestion réservés à l'admin (Catalogue, Dépenses, Rapports, Clôture)
-  const pagesAdminOnly = ['/catalogue', '/depenses', '/rapports', '/cloture']
+  // Filtrer les menus de gestion réservés à l'admin (Catalogue, Dépenses, Rapports, Clôture, Comptes)
+  const pagesAdminOnly = ['/catalogue', '/depenses', '/rapports', '/cloture', '/comptes']
   
   const menuFiltre = MENU.filter((entree) => {
     if (entree.to && pagesAdminOnly.includes(entree.to) && !estAdmin) return false
@@ -115,6 +117,7 @@ export default function App() {
           <Route path="/depenses" element={estAdmin ? <Depenses /> : <Navigate to="/" replace />} />
           <Route path="/rapports" element={estAdmin ? <Rapports /> : <Navigate to="/" replace />} />
           <Route path="/cloture" element={estAdmin ? <Cloture /> : <Navigate to="/" replace />} />
+          <Route path="/comptes" element={estAdmin ? <Comptes /> : <Navigate to="/" replace />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
