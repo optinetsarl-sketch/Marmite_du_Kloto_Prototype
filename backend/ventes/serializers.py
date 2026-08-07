@@ -44,13 +44,13 @@ class CommandeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Commande
         fields = [
-            "id", "uuid", "numero_recu", "type", "origine", "statut",
+            "id", "uuid", "numero_recu", "numero_jour", "type", "origine", "statut",
             "table", "table_numero", "couverts",
             "client_nom", "client_telephone", "client_adresse", "livreur", "livreur_nom",
             "note", "addition_demandee", "ouverte_le", "cloturee_le",
             "lignes", "paiements", "total", "total_paye", "reste_a_payer",
         ]
-        read_only_fields = ["numero_recu", "cloturee_le"]
+        read_only_fields = ["numero_recu", "numero_jour", "cloturee_le"]
 
     def get_id(self, obj):
         from utils.objectid import to_str

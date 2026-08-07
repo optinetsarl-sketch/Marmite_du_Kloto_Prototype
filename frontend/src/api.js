@@ -76,10 +76,11 @@ export function fcfa(montant) {
 }
 
 export function referenceCommande(commande) {
-  if (!commande || !commande.id) return ''
-  const idStr = String(commande.id).slice(-4).toUpperCase()
+  if (!commande) return ''
   const type = commande.type || (commande.table_numero ? 'place' : 'place')
-  const prefixe = type === 'livraison' ? 'LIV' : type === 'emporter' ? 'EMP' : 'PLC'
-  return `${prefixe}-${idStr}`
+  const prefixe = type === 'livraison' ? 'LIV' : type === 'emporter' ? 'EMP' : 'VSP'
+  const num = commande.numero_jour || commande.numero_recu || 1
+  const numStr = String(num).padStart(2, '0')
+  return `${prefixe}-${numStr}`
 }
 

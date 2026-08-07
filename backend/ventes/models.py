@@ -74,6 +74,7 @@ class Commande(models.Model):
     # si le réseau a coupé avant la réponse du serveur.
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     numero_recu = models.PositiveIntegerField(null=True, blank=True, unique=True)
+    numero_jour = models.PositiveIntegerField(null=True, blank=True)
 
     type = models.CharField(max_length=12, choices=TYPES, default=TYPE_PLACE)
     origine = models.CharField(max_length=12, choices=ORIGINES, default=ORIGINE_COMPTOIR)
@@ -106,9 +107,22 @@ class Commande(models.Model):
             models.Index(fields=["cloturee_le"]),
         ]
 
+    def save(self, *args, **kwargs):
+        if not self.numero_jour:
+            import datetime
+            from django.utils import timezone
+            from django.db.models import Max
+            now = self.ouverte_le or timezone.now()
+            today = timezone.localdate(now)
+            debut_jour = timezone.make_aware(datetime.datetime.combine(today, datetime.time.min))
+            fin_jour = timezone.make_aware(datetime.datetime.combine(today, datetime.time.max))
+            dernier = Commande.objects.filter(ouverte_le__range=(debut_jour, fin_jour)).aggregate(m=Max("numero_jour"))["m"] or 0
+            self.numero_jour = dernier + 1
+        super().save(*args, **kwargs)
+
     def __str__(self):
         cible = str(self.table) if self.table else (self.client_nom or self.get_type_display())
-        return f"#{self.numero_recu or self.pk} · {cible}"
+        return f"#{self.numero_jour or self.numero_recu or self.pk} · {cible}"
 
     @property
     def total(self):
