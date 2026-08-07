@@ -44,8 +44,8 @@ export default function App() {
 
   const estAdmin = Boolean(utilisateur.is_admin || utilisateur.role === 'admin')
 
-  // Filtrer les menus de gestion réservés à l'admin (Catalogue, Dépenses, Rapports, Clôture, Comptes)
-  const pagesAdminOnly = ['/catalogue', '/depenses', '/rapports', '/cloture', '/comptes']
+  // Filtrer les menus de gestion réservés à l'admin (Catalogue, Dépenses, Rapports, Comptes)
+  const pagesAdminOnly = ['/catalogue', '/depenses', '/rapports', '/comptes']
   
   const menuFiltre = MENU.filter((entree) => {
     if (entree.to && pagesAdminOnly.includes(entree.to) && !estAdmin) return false
@@ -112,11 +112,12 @@ export default function App() {
           <Route path="/livraison" element={<Livraison />} />
           <Route path="/historique" element={<Historique />} />
 
+          <Route path="/cloture" element={<Cloture />} />
+          
           {/* Routes réservées exclusivement à l'Admin */}
           <Route path="/catalogue" element={estAdmin ? <Catalogue /> : <Navigate to="/" replace />} />
           <Route path="/depenses" element={estAdmin ? <Depenses /> : <Navigate to="/" replace />} />
           <Route path="/rapports" element={estAdmin ? <Rapports /> : <Navigate to="/" replace />} />
-          <Route path="/cloture" element={estAdmin ? <Cloture /> : <Navigate to="/" replace />} />
           <Route path="/comptes" element={estAdmin ? <Comptes /> : <Navigate to="/" replace />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />

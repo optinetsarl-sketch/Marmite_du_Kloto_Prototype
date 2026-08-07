@@ -37,7 +37,7 @@ class SessionCaisseViewSet(viewsets.ModelViewSet):
     serializer_class = SessionCaisseSerializer
 
     def get_permissions(self):
-        if self.action in ["create", "cloturer", "destroy"]:
+        if getattr(self, "action", None) in ["destroy"]:
             return [IsAdminUserRole()]
         return super().get_permissions()
 

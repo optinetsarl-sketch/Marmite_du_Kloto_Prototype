@@ -243,7 +243,6 @@ def rapport_revenus(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAdminUserRole])
 def rapport_cloture(request):
     """Tout ce qu'il faut pour l'arrêté de fin de journée, en un seul appel :
     recettes, dépenses, résultat et état du tiroir-caisse."""
