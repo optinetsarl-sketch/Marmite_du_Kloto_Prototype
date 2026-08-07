@@ -2,9 +2,18 @@
 
 Bar-Resto · Avedji, non loin de la Côte d'Or · +228 91 04 27 02
 
-Django REST côté API, React côté écrans, **un seul compte utilisateur** (le responsable).
+Django REST côté API, React côté écrans, **gestion par deux rôles d'utilisateurs** (Administrateur & Gérant).
 `Marmite_du_Kloto_Prototype.html` reste la maquette de référence : c'est elle qui fixe
 la grammaire visuelle, on la garde jusqu'à ce que tous les écrans soient portés.
+
+## Comptes et Accès par Défaut
+
+- **👑 Administrateur (Responsable)** : `admin` / `marmite2026`
+  - Accès complet : Chiffre d'Affaires (CA), Rapports financiers, Clôture de caisse, Dépenses, Édition du Catalogue, Ajustements & Inventaires de Stock, Historique financier.
+- **👤 Gérant / Caisse (Personnel)** : `gerant` / `marmite2026`
+  - Accès opérationnel : Ventes & Caisse, Plan de Salle (Tables), Poste Cuisine, Livraisons, Consultation du stock, Graphiques d'activité (volume d'articles et top plats) et Historique des opérations (sans données monétaires FCFA). Masquage complet du Chiffre d'Affaires et blocage des saisies d'inventaire.
+
+*À changer avant toute mise en service (`manage.py changepassword <compte>`).*
 
 ## Démarrer sur Windows (PowerShell)
 
@@ -21,9 +30,6 @@ cd backend
 cd frontend
 npm run dev
 ```
-
-Compte : `gerant` / `marmite2026` — **à changer avant toute mise en service**
-(`manage.py changepassword gerant`).
 
 ## Installer depuis zéro
 
