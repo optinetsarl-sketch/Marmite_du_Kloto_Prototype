@@ -148,7 +148,14 @@ class CommandeViewSet(viewsets.ModelViewSet):
         """Encaisser plusieurs commandes à la fois (livraison, emporter ou sélection spécifique)."""
         livreur_id = request.data.get("livreur_id")
         commande_ids = request.data.get("commande_ids")
-        mode_paiement = request.data.get("mode", "especes")
+        raw_paiements = request.data.get("paiements")
+        mode_paiement = request.data.get("mode")
+
+        if not mode_paiement and raw_paiements and isinstance(raw_paiements, list) and len(raw_paiements) > 0:
+            mode_paiement = raw_paiements[0].get("mode", "especes")
+        if not mode_paiement:
+            mode_paiement = "especes"
+
         type_cmd = request.data.get("type")
 
         queryset = Commande.objects.exclude(statut__in=[Commande.STATUT_PAYEE, Commande.STATUT_ANNULEE])
@@ -171,14 +178,26 @@ class CommandeViewSet(viewsets.ModelViewSet):
         encaissees = []
         montant_total = 0
 
+        total_groupe = sum(c.total for c in commandes if c.statut != Commande.STATUT_PAYEE and c.lignes.exists() and c.total > 0) or 1
+
         for cmd in commandes:
             if cmd.statut == Commande.STATUT_PAYEE or not cmd.lignes.exists():
                 continue
             total = cmd.total
             if total <= 0:
                 continue
-            paiements = [{"mode": mode_paiement, "montant": total, "montant_recu": total}]
-            services.encaisser(cmd, paiements)
+
+            if raw_paiements and isinstance(raw_paiements, list):
+                ratio = total / total_groupe
+                cmd_paiements = []
+                for p in raw_paiements:
+                    p_mode = p.get("mode", "especes")
+                    p_montant = round(p.get("montant", 0) * ratio)
+                    cmd_paiements.append({"mode": p_mode, "montant": p_montant})
+            else:
+                cmd_paiements = [{"mode": mode_paiement, "montant": total, "montant_recu": total}]
+
+            services.encaisser(cmd, cmd_paiements)
             encaissees.append(cmd.pk)
             montant_total += total
 

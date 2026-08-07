@@ -148,85 +148,25 @@ function ModaleConfierLivreur({ commande, livreurs, onConfirme, onFerme, onErreu
 
 /* ─── Modal d'encaissement groupé (par livreur ou global) ───────── */
 function ModaleEncaissementGroupe({ cibles, livreurNom, onConfirme, onFerme }) {
-  const [mode, setMode] = useState('especes')
-  const [envoi, setEnvoi] = useState(false)
   const totalCumule = cibles.reduce((sum, c) => sum + (c.total || 0), 0)
 
-  async function valider(e) {
-    e.preventDefault()
-    setEnvoi(true)
-    try {
-      await onConfirme({
-        livreur_id: cibles[0]?.livreur_id,
-        commande_ids: cibles.map((c) => c.id),
-        mode,
-      })
-      onFerme()
-    } catch (err) {
-      alert(err.message)
-      setEnvoi(false)
-    }
+  async function validerPaiement(paiements) {
+    await onConfirme({
+      livreur_id: cibles[0]?.livreur_id,
+      commande_ids: cibles.map((c) => c.id),
+      paiements,
+      mode: paiements[0]?.mode || 'especes',
+    })
+    onFerme()
   }
 
   return (
-    <div className="modal-bg" onClick={onFerme}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
-        <div className="modal-hd">
-          <span>💰 Encaissement groupé des courses</span>
-          <button className="btn btn-g btn-mini" onClick={onFerme}>✕</button>
-        </div>
-        <form onSubmit={valider}>
-          <div style={{ padding: '10px 0 14px', fontSize: 14 }}>
-            Encaissement de <strong style={{ color: 'var(--orange-dk)' }}>{cibles.length} course(s)</strong> {livreurNom ? `pour ${livreurNom}` : 'au total'}.
-          </div>
-
-          <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid var(--bord)', borderRadius: 8, padding: 8, marginBottom: 14, background: '#fafafa' }}>
-            {cibles.map((c) => (
-              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', borderBottom: '1px solid #eee', fontSize: 13 }}>
-                <div>
-                  <strong style={{ color: 'var(--orange-dk)' }}>{referenceCommande(c)}</strong> · {c.client_nom || 'Client'}
-                  {c.livreur_nom && <span style={{ color: 'var(--mut)', marginLeft: 6 }}>({c.livreur_nom})</span>}
-                </div>
-                <strong style={{ color: '#000' }}>{fcfa(c.total)}</strong>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--noir)', color: '#fff', padding: '12px 16px', borderRadius: 8, marginBottom: 16 }}>
-            <span style={{ fontWeight: 600 }}>TOTAL À ENCAISSER</span>
-            <strong style={{ fontSize: 20, color: 'var(--orange)' }}>{fcfa(totalCumule)}</strong>
-          </div>
-
-          <div style={{ marginBottom: 16 }}>
-            <label className="lbl" style={{ marginBottom: 6, display: 'block' }}>Mode de règlement</label>
-            <div style={{ display: 'flex', gap: 10 }}>
-              {[
-                { code: 'especes', label: '💵 Espèces' },
-                { code: 'mobile_money', label: '📱 Mobile Money' },
-                { code: 'carte', label: '💳 Carte' },
-              ].map((m) => (
-                <button
-                  key={m.code}
-                  type="button"
-                  className={`btn ${mode === m.code ? 'btn-o' : 'btn-g'}`}
-                  style={{ flex: 1, padding: '8px 12px', fontSize: 13 }}
-                  onClick={() => setMode(m.code)}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="modal-act">
-            <button type="button" className="btn btn-g" onClick={onFerme}>Annuler</button>
-            <button className="btn btn-o" disabled={envoi || cibles.length === 0} style={{ fontWeight: 800 }}>
-              {envoi ? 'Encaissement…' : `⚡ Valider ${fcfa(totalCumule)}`}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <ModalePaiement
+      total={totalCumule}
+      titre={`⚡ Encaissement ${livreurNom ? `pour ${livreurNom}` : 'groupé'} (${cibles.length} courses)`}
+      onEncaisse={validerPaiement}
+      onFerme={onFerme}
+    />
   )
 }
 
