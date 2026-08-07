@@ -10,6 +10,7 @@ from caisse.views import DepenseViewSet, SessionCaisseViewSet
 from catalogue.views import CategorieViewSet, FamilleViewSet, ProduitViewSet
 from livraison.views import LivreurViewSet
 from rapports import views as rapports
+from stock import views as stock_views
 from stock.views import FournisseurViewSet, MouvementStockViewSet
 from ventes.views import CommandeViewSet, LigneCommandeViewSet, TableRestoViewSet
 
@@ -74,6 +75,7 @@ urlpatterns = [
     path("api/rapports/cloture/", rapports.rapport_cloture),
     path("api/rapports/historique/", rapports.historique),
     path("api/rapports/activite-gerant/", rapports.activite_gerant),
+    path("api/stock/alertes/", stock_views.alertes_stock),
 ]
 
 if settings.DEBUG:

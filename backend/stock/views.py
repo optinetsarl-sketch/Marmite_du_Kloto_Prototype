@@ -1,7 +1,8 @@
 from django.db import transaction
+from catalogue.models import Produit
 from config.permissions import IsAdminUserRole
 from rest_framework import status, viewsets
-from rest_framework.decorators import action, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
 from .models import Fournisseur, MouvementStock
@@ -93,3 +94,23 @@ class MouvementStockViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(
             MouvementStockSerializer(mouvement).data, status=status.HTTP_201_CREATED
         )
+
+
+@api_view(["GET"])
+def alertes_stock(request):
+    """Renvoie les alertes de stock (bas/rupture), accessible aux administrateurs et gérants."""
+    stocks = MouvementStock.stocks_par_produit()
+    alertes = []
+    for produit in Produit.objects.filter(gere_stock=True, actif=True):
+        niveau = stocks.get(produit.pk, 0)
+        if niveau <= produit.seuil_alerte:
+            alertes.append(
+                {
+                    "produit": produit.nom,
+                    "stock": niveau,
+                    "etat": "rupture" if niveau <= 0 else "bas",
+                }
+            )
+    alertes.sort(key=lambda ligne: ligne["stock"])
+    return Response({"alertes_stock": alertes[:15]})
+

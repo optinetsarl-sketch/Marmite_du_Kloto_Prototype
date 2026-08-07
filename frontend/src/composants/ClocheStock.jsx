@@ -14,8 +14,8 @@ export default function ClocheStock() {
 
   async function chargerAlertes() {
     try {
-      const bord = await api.get('/rapports/tableau-de-bord/')
-      setAlertes(bord.alertes_stock || [])
+      const res = await api.get('/stock/alertes/')
+      setAlertes(res.alertes_stock || [])
     } catch {
       // Silencieux — la cloche ne bloque pas l'app en cas d'erreur réseau
     }
