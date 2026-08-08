@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { api } from '../api'
+import { api, setToken } from '../api'
 import { useAuth } from '../auth-contexte'
 
 export default function Comptes() {
@@ -73,6 +73,12 @@ export default function Comptes() {
       if (passSaisi) payload.mot_de_passe = passSaisi
 
       const res = await api.post('/auth/modifier-compte/', payload)
+
+      // Si le mot de passe de l'utilisateur actuellement connecté a changé, mettre à jour son token de session
+      if (res.token && (userObj.username === utilisateur?.username || String(userObj.id) === String(utilisateur?.id))) {
+        setToken(res.token)
+      }
+
       setSucces(res.detail || 'Modifications enregistrées avec succès.')
 
       // Réinitialiser les champs de mot de passe du compte

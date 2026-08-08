@@ -135,25 +135,29 @@ def modifier_compte(request):
         user_obj.first_name = nouveau_nom
         user_obj.save(update_fields=["first_name"])
 
+    nouveau_token_key = None
     if nouveau_mot_de_passe:
         if len(nouveau_mot_de_passe) < 4:
             return Response({"detail": "Le mot de passe doit contenir au moins 4 caractères."}, status=status.HTTP_400_BAD_REQUEST)
         user_obj.set_password(nouveau_mot_de_passe)
         user_obj.save()
         Token.objects.filter(user=user_obj).delete()
-        Token.objects.create(user=user_obj)
+        tok = Token.objects.create(user=user_obj)
+        nouveau_token_key = tok.key
 
     is_admin = bool(user_obj.is_superuser or user_obj.is_staff or user_obj.username == "admin")
-    return Response(
-        {
-            "detail": f"Compte '{user_obj.username}' mis à jour avec succès.",
-            "utilisateur": {
-                "id": str(user_obj.pk),
-                "username": user_obj.username,
-                "nom": user_obj.first_name or user_obj.username,
-                "role": "admin" if is_admin else "gerant",
-                "is_admin": is_admin,
-            },
-        }
-    )
+    resp_data = {
+        "detail": f"Compte '{user_obj.username}' mis à jour avec succès.",
+        "utilisateur": {
+            "id": str(user_obj.pk),
+            "username": user_obj.username,
+            "nom": user_obj.first_name or user_obj.username,
+            "role": "admin" if is_admin else "gerant",
+            "is_admin": is_admin,
+        },
+    }
+    if nouveau_token_key:
+        resp_data["token"] = nouveau_token_key
+
+    return Response(resp_data)
 
