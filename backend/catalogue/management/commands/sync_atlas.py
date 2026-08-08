@@ -14,7 +14,7 @@ import logging
 from datetime import datetime, timezone
 from django.core.management.base import BaseCommand
 from pymongo import MongoClient, ReplaceOne
-from pymongo.errors import ConnectionFailure, PyMongoError
+from pymongo.errors import ConnectionFailure, PyMongoError, DuplicateKeyError
 
 logger = logging.getLogger(__name__)
 
@@ -171,9 +171,19 @@ class Command(BaseCommand):
                     doc_id = doc.get("_id")
                     if (col_name, doc_id) in atlas_tombstones:
                         continue
-                    coll_at.replace_one({"_id": doc_id}, doc, upsert=True)
-                    coll_loc.update_one({"_id": doc_id}, {"$set": {"synced": True}})
-                    pushed += 1
+                    try:
+                        coll_at.replace_one({"_id": doc_id}, doc, upsert=True)
+                        coll_loc.update_one({"_id": doc_id}, {"$set": {"synced": True}})
+                        pushed += 1
+                    except DuplicateKeyError:
+                        if "username" in doc:
+                            try:
+                                coll_at.update_one({"username": doc["username"]}, {"$set": doc}, upsert=True)
+                            except Exception:
+                                pass
+                        coll_loc.update_one({"_id": doc_id}, {"$set": {"synced": True}})
+                    except Exception as err_doc:
+                        coll_loc.update_one({"_id": doc_id}, {"$set": {"synced": True}})
 
                 # Alignement Bootstrap (absents d'Atlas)
                 local_ids = set(coll_loc.distinct("_id"))
@@ -184,9 +194,19 @@ class Command(BaseCommand):
                         continue
                     doc = coll_loc.find_one({"_id": doc_id})
                     if doc:
-                        coll_at.replace_one({"_id": doc_id}, doc, upsert=True)
-                        coll_loc.update_one({"_id": doc_id}, {"$set": {"synced": True}})
-                        pushed += 1
+                        try:
+                            coll_at.replace_one({"_id": doc_id}, doc, upsert=True)
+                            coll_loc.update_one({"_id": doc_id}, {"$set": {"synced": True}})
+                            pushed += 1
+                        except DuplicateKeyError:
+                            if "username" in doc:
+                                try:
+                                    coll_at.update_one({"username": doc["username"]}, {"$set": doc}, upsert=True)
+                                except Exception:
+                                    pass
+                            coll_loc.update_one({"_id": doc_id}, {"$set": {"synced": True}})
+                        except Exception:
+                            coll_loc.update_one({"_id": doc_id}, {"$set": {"synced": True}})
 
                 # Atlas -> Local (Nouveautés créées sur le Cloud)
                 missing_in_local = atlas_ids - local_ids
@@ -195,9 +215,12 @@ class Command(BaseCommand):
                         continue
                     doc = coll_at.find_one({"_id": doc_id})
                     if doc:
-                        doc_copy = {**doc, "synced": True}
-                        coll_loc.replace_one({"_id": doc_id}, doc_copy, upsert=True)
-                        pulled += 1
+                        try:
+                            doc_copy = {**doc, "synced": True}
+                            coll_loc.replace_one({"_id": doc_id}, doc_copy, upsert=True)
+                            pulled += 1
+                        except Exception:
+                            pass
 
                 # Arbitrage par date de modification s'il y a conflit
                 for doc_id in (local_ids & atlas_ids):
@@ -209,9 +232,12 @@ class Command(BaseCommand):
                         loc_updated = str(loc_doc.get("updated_at") or loc_doc.get("modifie_le") or "")
                         at_updated = str(at_doc.get("updated_at") or at_doc.get("modifie_le") or "")
                         if at_updated and at_updated > loc_updated:
-                            merged = {**at_doc, "synced": True}
-                            coll_loc.replace_one({"_id": doc_id}, merged, upsert=True)
-                            pulled += 1
+                            try:
+                                merged = {**at_doc, "synced": True}
+                                coll_loc.replace_one({"_id": doc_id}, merged, upsert=True)
+                                pulled += 1
+                            except Exception:
+                                pass
 
             self.stdout.write(
                 self.style.SUCCESS(
