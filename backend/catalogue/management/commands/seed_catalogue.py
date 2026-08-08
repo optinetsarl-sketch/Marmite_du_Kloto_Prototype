@@ -84,6 +84,7 @@ BOISSONS = [
 PLATS = [
     "Fufu", "Pâte", "Spaghetti", "Poisson braisé", "Poulet braisé", "Frite", "Alloco",
     "Attiéké", "Riz blanc", "Riz au gras", "Pomme sauté", "Khom", "Sifio",
+    "Soupe", "Sauce seule",
 ]
 
 LIVREURS = ["Kofi", "Kossi", "Yao"]
