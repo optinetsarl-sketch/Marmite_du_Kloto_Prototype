@@ -16,7 +16,7 @@ function PopUpMessageFlash({ messageFlash, onFerme }) {
     if (messageFlash) {
       const timer = setTimeout(() => {
         onFerme()
-      }, 4000)
+      }, 3500)
       return () => clearTimeout(timer)
     }
   }, [messageFlash, onFerme])
@@ -28,43 +28,78 @@ function PopUpMessageFlash({ messageFlash, onFerme }) {
     <div
       style={{
         position: 'fixed',
-        top: 24,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 99999,
-        background: estSucces ? '#22c55e' : '#ef4444',
-        color: '#ffffff',
-        padding: '14px 24px',
-        borderRadius: 14,
-        boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0,0,0,0.4)',
+        backdropFilter: 'blur(3px)',
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
-        fontWeight: 800,
-        fontSize: 15,
-        cursor: 'pointer',
-        maxWidth: '90vw',
-        animation: 'slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+        justifyContent: 'center',
+        zIndex: 99999,
       }}
       onClick={onFerme}
     >
-      <span style={{ fontSize: 22 }}>{estSucces ? '✅' : '⚠️'}</span>
-      <span>{messageFlash.message}</span>
-      <button
-        type="button"
+      <div
+        onClick={(e) => e.stopPropagation()}
         style={{
-          background: 'transparent',
-          border: 'none',
-          color: '#ffffff',
-          fontWeight: 900,
-          fontSize: 16,
-          cursor: 'pointer',
-          marginLeft: 12,
+          background: 'var(--bg-app, #ffffff)',
+          borderRadius: 20,
+          padding: '24px 28px',
+          maxWidth: 360,
+          width: '90%',
+          textAlign: 'center',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+          border: `2px solid ${estSucces ? '#22c55e' : '#ef4444'}`,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 12,
         }}
-        onClick={onFerme}
       >
-        ✕
-      </button>
+        {/* Icône Cercle Vert (Check) ou Cercle Rouge (Cross) exactement comme l'image */}
+        {estSucces ? (
+          <svg width="60" height="60" viewBox="0 0 48 48" fill="none">
+            <circle cx="24" cy="24" r="20" stroke="#22c55e" strokeWidth="4" />
+            <path d="M14 24L21 31L34 17" stroke="#22c55e" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ) : (
+          <svg width="60" height="60" viewBox="0 0 48 48" fill="none">
+            <circle cx="24" cy="24" r="20" stroke="#ef4444" strokeWidth="4" />
+            <path d="M16 16L32 32M32 16L16 32" stroke="#ef4444" strokeWidth="4.5" strokeLinecap="round" />
+          </svg>
+        )}
+
+        <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--noir)', marginTop: 4 }}>
+          {estSucces ? 'Succès !' : 'Attention'}
+        </div>
+
+        <div style={{ fontSize: 14, fontWeight: 700, color: estSucces ? '#15803d' : '#b91c1c', lineHeight: 1.45 }}>
+          {messageFlash.message}
+        </div>
+
+        <button
+          type="button"
+          className="btn"
+          style={{
+            marginTop: 8,
+            width: '100%',
+            padding: '11px',
+            borderRadius: 12,
+            fontWeight: 800,
+            fontSize: 14,
+            background: estSucces ? '#22c55e' : '#ef4444',
+            borderColor: estSucces ? '#22c55e' : '#ef4444',
+            color: '#ffffff',
+            cursor: 'pointer',
+          }}
+          onClick={onFerme}
+          autoFocus
+        >
+          {estSucces ? "D'accord" : 'Compris'}
+        </button>
+      </div>
     </div>
   )
 }
