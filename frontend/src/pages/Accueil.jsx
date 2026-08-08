@@ -691,71 +691,7 @@ export default function Accueil() {
         </div>
       </div>
 
-      {/* Grille du Milieu : Synthèse financière & Graphique Donut SVG */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)',
-          gap: 20,
-          marginBottom: 24,
-        }}
-      >
-        {/* Colonne Gauche : Dépenses & Résultat */}
-        <div
-          style={{
-            background: 'var(--bg-app, #fff)',
-            borderRadius: 20,
-            padding: 24,
-            border: '1.5px solid var(--bord)',
-            boxShadow: '0 4px 16px rgba(30,27,26,0.04)',
-            display: 'flex',
-            flexDirection: 'column',
-            justify: 'space-between',
-          }}
-        >
-          <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--noir)', marginBottom: 16 }}>
-            Bilan Financier
-          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-            <div style={{ padding: 16, borderRadius: 14, background: 'rgba(197, 48, 48, 0.06)', border: '1px solid rgba(197, 48, 48, 0.18)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#c53030', textTransform: 'uppercase' }}>Dépenses</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#c53030', marginTop: 4 }}>
-                {fcfa(bord.depenses)}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4 }}>Sorties de caisse</div>
-            </div>
-
-            <div style={{ padding: 16, borderRadius: 14, background: bord.resultat_net >= 0 ? 'rgba(56, 161, 105, 0.08)' : 'rgba(197, 48, 48, 0.08)', border: `1px solid ${bord.resultat_net >= 0 ? 'rgba(56, 161, 105, 0.25)' : 'rgba(197, 48, 48, 0.25)'}` }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: bord.resultat_net >= 0 ? '#276749' : '#c53030', textTransform: 'uppercase' }}>Résultat Net</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: bord.resultat_net >= 0 ? '#276749' : '#c53030', marginTop: 4 }}>
-                {fcfa(bord.resultat_net)}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4 }}>CA minus Dépenses</div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              marginTop: 20,
-              padding: '12px 16px',
-              borderRadius: 12,
-              background: 'var(--tint)',
-              border: '1px solid var(--tint-bd)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontSize: 13,
-            }}
-          >
-            <span style={{ color: 'var(--tint-tx)', fontWeight: 600 }}>
-              Volume total des commandes traitées
-            </span>
-            <span style={{ fontWeight: 800, color: 'var(--noir)', fontSize: 15 }}>
-              {bord.nb_commandes} commande{bord.nb_commandes > 1 ? 's' : ''}
-            </span>
-          </div>
-        </div>
 
         {/* Colonne Droite : Donut Chart SVG Vectoriel */}
         <div
@@ -772,12 +708,11 @@ export default function Accueil() {
           }}
         >
           <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--noir)', marginBottom: 18, alignSelf: 'flex-start' }}>
-            Répartition par Source
+            Répartition par Source (Sur place, À emporter, Livraison)
           </div>
 
           <GraphiqueDonutSVG items={revenuItems} total={revenus.total} />
         </div>
-      </div>
 
       {/* Top Ventes */}
       <div
