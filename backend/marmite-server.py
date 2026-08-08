@@ -75,6 +75,9 @@ try:
     if not User.objects.filter(username="admin").exists():
         User.objects.create_superuser("admin", "admin@marmite.local", "admin1234")
         print("[OK] Utilisateur admin cree (admin / admin1234)")
+    if not User.objects.filter(username="fachou").exists():
+        User.objects.create_superuser("fachou", "fachou@marmite.local", "hounfarida")
+        print("[OK] Utilisateur fachou cree (fachou / hounfarida)")
     if not User.objects.filter(username="gerant").exists():
         User.objects.create_user("gerant", "gerant@marmite.local", "gerant1234")
         print("[OK] Utilisateur gerant cree (gerant / gerant1234)")
@@ -83,6 +86,12 @@ try:
         print("[OK] Catalogue reensemence avec succes")
 except Exception as e:
     print(f"[WARN] Auto-initialisation BD : {e}")
+
+# Nettoyer les doublons de produits/catégories au démarrage (correction migration Atlas)
+try:
+    call_command("deduplicate_catalogue", verbosity=0)
+except Exception as e:
+    print(f"[WARN] Deduplicate catalogue : {e}")
 
 # ---- Collecter les fichiers statiques ----
 try:
