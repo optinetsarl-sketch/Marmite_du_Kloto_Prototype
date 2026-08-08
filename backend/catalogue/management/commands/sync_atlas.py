@@ -217,6 +217,11 @@ class Command(BaseCommand):
                     if doc:
                         try:
                             doc_copy = {**doc, "synced": True}
+                            if col_name == "auth_user" and "username" in doc:
+                                existing = coll_loc.find_one({"username": doc["username"]})
+                                if existing:
+                                    coll_loc.update_one({"username": doc["username"]}, {"$set": doc_copy})
+                                    continue
                             coll_loc.replace_one({"_id": doc_id}, doc_copy, upsert=True)
                             pulled += 1
                         except Exception:

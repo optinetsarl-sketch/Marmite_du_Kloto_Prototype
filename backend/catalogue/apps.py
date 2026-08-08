@@ -36,7 +36,7 @@ def _demarrer_synchro_atlas():
 
 
 class CatalogueConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
+    default_auto_field = 'django_mongodb_backend.fields.ObjectIdAutoField'
     name = 'catalogue'
 
     def ready(self):
