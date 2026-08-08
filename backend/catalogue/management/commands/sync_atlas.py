@@ -104,7 +104,7 @@ class Command(BaseCommand):
             )
             return
 
-        self.stdout.write(self.style.SUCCESS("[DEMARRAGE] Module de synchronisation bi-directionnelle Marmite du Kloto..."))
+        self.log_info("[DEMARRAGE] Module de synchronisation bi-directionnelle Marmite du Kloto...")
 
         while True:
             self.synchroniser(local_url, atlas_url, db_name)
@@ -112,6 +112,20 @@ class Command(BaseCommand):
                 break
             intervalle = options["interval"]
             time.sleep(intervalle)
+
+    def log_info(self, msg, style_name="SUCCESS"):
+        try:
+            if self.stdout and getattr(self.stdout, "_out", None) is not None:
+                style_func = getattr(self.style, style_name, lambda x: x)
+                self.stdout.write(style_func(msg))
+        except Exception:
+            pass
+        if style_name == "ERROR":
+            logger.error(msg)
+        elif style_name == "WARNING":
+            logger.warning(msg)
+        else:
+            logger.info(msg)
 
     def synchroniser(self, local_url, atlas_url, db_name):
         local_client = None
@@ -122,7 +136,7 @@ class Command(BaseCommand):
 
             atlas_client = create_atlas_client(atlas_url)
             if not atlas_client:
-                self.stdout.write(self.style.WARNING("[SYNC PAUSE] Atlas injoignable (réseau/routeur ou SSL)."))
+                self.log_info("[SYNC PAUSE] Atlas injoignable (réseau/routeur ou SSL).", "WARNING")
                 return
 
             local_db = local_client[db_name]
@@ -244,16 +258,14 @@ class Command(BaseCommand):
                             except Exception:
                                 pass
 
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f"[SYNC OK] Local <-> Atlas | {pushed} doc(s) envoyés vers Cloud | {pulled} doc(s) importés d'Atlas."
-                )
+            self.log_info(
+                f"[SYNC OK] Local <-> Atlas | {pushed} doc(s) envoyés vers Cloud | {pulled} doc(s) importés d'Atlas."
             )
 
         except ConnectionFailure as e:
-            self.stdout.write(self.style.WARNING(f"[SYNC PAUSE] Réseau/Serveur hors ligne : {e}"))
+            self.log_info(f"[SYNC PAUSE] Réseau/Serveur hors ligne : {e}", "WARNING")
         except PyMongoError as e:
-            self.stdout.write(self.style.ERROR(f"[SYNC ERREUR] MongoDB : {e}"))
+            self.log_info(f"[SYNC ERREUR] MongoDB : {e}", "ERROR")
         finally:
             if local_client:
                 local_client.close()

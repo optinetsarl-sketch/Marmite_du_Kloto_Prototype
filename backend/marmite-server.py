@@ -6,6 +6,14 @@ le même port 8000.  Ce fichier est le "entry point" du .exe autonome.
 
 import os
 import sys
+import io
+
+# Empêcher les crashs si sys.stdout ou sys.stderr est None (mode GUI noconsole PyInstaller)
+if sys.stdout is None:
+    sys.stdout = io.StringIO()
+if sys.stderr is None:
+    sys.stderr = io.StringIO()
+
 import webbrowser
 import threading
 

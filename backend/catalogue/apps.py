@@ -15,19 +15,17 @@ def _demarrer_synchro_atlas():
         return
     _sync_thread_started = True
 
-    atlas_url = os.getenv("MONGO_URL_ATLAS")
-    if not atlas_url or "<" in atlas_url or "srv://" not in atlas_url:
-        return
-
     def _loop():
         import time
         from django.core.management import call_command
-        time.sleep(4)
+        time.sleep(3)
         while True:
-            try:
-                call_command("sync_atlas")
-            except Exception as err:
-                logger.error(f"Sync Atlas background error: {err}")
+            atlas_url = os.getenv("MONGO_URL_ATLAS")
+            if atlas_url and "<" not in atlas_url and "srv://" in atlas_url:
+                try:
+                    call_command("sync_atlas")
+                except Exception as err:
+                    logger.error(f"Sync Atlas background error: {err}")
             intervalle = int(os.getenv("SYNC_INTERVAL_SECONDS", "15"))
             time.sleep(intervalle)
 
