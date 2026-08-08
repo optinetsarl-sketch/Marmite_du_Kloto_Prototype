@@ -57,18 +57,11 @@ def connexion(request):
     else:
         utilisateur = authenticate(username=username, password=password)
 
-    # Si l'authentification a échoué car le mot de passe ou l'utilisateur a changé post-reset
     if utilisateur is None:
-        User = get_user_model()
-        user_obj = User.objects.filter(username=username).first()
-        if not user_obj and username and password:
-            user_obj = User.objects.create_user(username, f"{username}@marmite.local", password)
-            utilisateur = user_obj
-        elif user_obj and password:
-            if User.objects.count() <= 3:
-                user_obj.set_password(password)
-                user_obj.save()
-                utilisateur = authenticate(username=username, password=password)
+        return Response(
+            {"detail": "Identifiant ou mot de passe incorrect."},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
 
     tokens = Token.objects.filter(user=utilisateur)
     if tokens.count() > 1:
