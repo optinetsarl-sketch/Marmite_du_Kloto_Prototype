@@ -142,6 +142,10 @@ class Command(BaseCommand):
             local_db = local_client[db_name]
             atlas_db = atlas_client[db_name]
 
+            # 0. Fusion des doublons par clé métier (même nom ≠ même _id)
+            #    Avant toute sync, on s'assure que les deux BD sont propres
+            self._fusionner_doublons_metier(local_db, atlas_db)
+
             # 1. Gestion des Tombstones (Propager les suppressions bidirectionnelles)
             atlas_tombstones = set()
             for t in atlas_db["tombstones"].find({}, {"col": 1, "doc_id": 1, "_id": 0}):
@@ -196,10 +200,10 @@ class Command(BaseCommand):
                             except Exception:
                                 pass
                         coll_loc.update_one({"_id": doc_id}, {"$set": {"synced": True}})
-                    except Exception as err_doc:
+                    except Exception:
                         coll_loc.update_one({"_id": doc_id}, {"$set": {"synced": True}})
 
-                # Alignement Bootstrap (absents d'Atlas)
+                # Alignement Bootstrap — documents locaux absents d'Atlas
                 local_ids = set(coll_loc.distinct("_id"))
                 atlas_ids = set(coll_at.distinct("_id"))
                 missing_in_atlas = local_ids - atlas_ids
@@ -222,7 +226,7 @@ class Command(BaseCommand):
                         except Exception:
                             coll_loc.update_one({"_id": doc_id}, {"$set": {"synced": True}})
 
-                # Atlas -> Local (Nouveautés créées sur le Cloud)
+                # Atlas -> Local — Nouveautés créées sur le Cloud (ou sur l'autre PC)
                 missing_in_local = atlas_ids - local_ids
                 for doc_id in missing_in_local:
                     if (col_name, doc_id) in local_tombstones:
@@ -241,7 +245,7 @@ class Command(BaseCommand):
                         except Exception:
                             pass
 
-                # Arbitrage par date de modification s'il y a conflit
+                # Arbitrage par date de modification en cas de conflit
                 for doc_id in (local_ids & atlas_ids):
                     if (col_name, doc_id) in local_tombstones or (col_name, doc_id) in atlas_tombstones:
                         continue
@@ -271,3 +275,100 @@ class Command(BaseCommand):
                 local_client.close()
             if atlas_client:
                 atlas_client.close()
+
+    def _fusionner_doublons_metier(self, local_db, atlas_db):
+        """
+        Fusionne les doublons identifiés par clé métier (et non par _id).
+
+        Problème : PC1 et PC2 ont tous deux reçu le seed_catalogue → mêmes produits
+        mais avec des _id MongoDB différents. La sync par _id les traite comme des
+        nouveautés et les copie dans les deux sens → doublons.
+
+        Solution : pour chaque collection avec une clé métier connue, on détecte
+        les entrées en double (même nom/numéro), on conserve la plus ancienne (_id
+        le plus petit = le premier créé) et on supprime les autres des DEUX bases.
+        """
+
+        # Définition des clés métier par collection
+        # (nom_collection, champ_clé_unique_metier)
+        CLE_METIER = {
+            "catalogue_famille":   "nom",
+            "catalogue_categorie": "nom",
+            "catalogue_produit":   "nom",
+            "ventes_tableresto":   "numero",
+            "livraison_livreur":   "nom",
+        }
+
+        for col_name, champ_cle in CLE_METIER.items():
+            try:
+                self._deduper_collection(local_db, atlas_db, col_name, champ_cle)
+            except Exception as e:
+                self.log_info(f"[DEDUP WARN] {col_name}: {e}", "WARNING")
+
+    def _deduper_collection(self, local_db, atlas_db, col_name, champ_cle):
+        """
+        Pour une collection donnée :
+        1. Récupère tous les documents des DEUX bases
+        2. Regroupe par valeur de champ_cle
+        3. Pour chaque groupe > 1, garde le plus ancien (_id le plus petit)
+        4. Supprime les doublons dans les DEUX bases et inscrit des tombstones
+        """
+        coll_loc = local_db[col_name]
+        coll_at = atlas_db[col_name]
+
+        # Réunion de tous les documents (local + atlas) indexés par clé métier
+        # On construit { valeur_cle: [liste de _id triés] }
+        index = {}
+
+        for doc in coll_loc.find({}, {"_id": 1, champ_cle: 1}):
+            val = doc.get(champ_cle)
+            if val is None:
+                continue
+            key = str(val).strip().lower()
+            if key not in index:
+                index[key] = set()
+            index[key].add(doc["_id"])
+
+        for doc in coll_at.find({}, {"_id": 1, champ_cle: 1}):
+            val = doc.get(champ_cle)
+            if val is None:
+                continue
+            key = str(val).strip().lower()
+            if key not in index:
+                index[key] = set()
+            index[key].add(doc["_id"])
+
+        supprimes = 0
+        for key, ids in index.items():
+            if len(ids) <= 1:
+                continue
+
+            # Conserver le premier _id (le plus "petit" = le plus ancien en général)
+            ids_tries = sorted(ids, key=lambda x: str(x))
+            id_a_garder = ids_tries[0]
+            ids_a_supprimer = ids_tries[1:]
+
+            for bad_id in ids_a_supprimer:
+                # Supprimer dans local s'il existe
+                coll_loc.delete_one({"_id": bad_id})
+                # Supprimer dans atlas s'il existe
+                coll_at.delete_one({"_id": bad_id})
+                # Ajouter un tombstone dans les DEUX bases pour éviter réapparition
+                for db in (local_db, atlas_db):
+                    db["tombstones"].update_one(
+                        {"col": col_name, "doc_id": bad_id},
+                        {"$set": {
+                            "col": col_name,
+                            "doc_id": bad_id,
+                            "deleted_at": datetime.now(timezone.utc).isoformat(),
+                            "raison": f"doublon_metier:{champ_cle}={key}",
+                        }},
+                        upsert=True,
+                    )
+                supprimes += 1
+
+        if supprimes:
+            self.log_info(
+                f"[DEDUP] {col_name} : {supprimes} doublon(s) supprimé(s) par clé métier '{champ_cle}'"
+            )
+
