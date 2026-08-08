@@ -35,40 +35,50 @@ CATEGORIES = [
 
 # (nom, prix standard FCFA, catégorie)
 BOISSONS = [
+    # Bières
     ("Pils", 700, "Bière"), ("Lager", 700, "Bière"), ("Beaufort", 700, "Bière"),
     ("Awouyo", 800, "Bière"), ("Castel", 700, "Bière"), ("Eku", 700, "Bière"),
     ("Doppel", 700, "Bière"), ("Racines", 700, "Bière"), ("Guinness", 800, "Bière"),
-    ("Cocktail", 500, "Sucrerie"), ("Coca", 500, "Sucrerie"), ("Malta", 500, "Sucrerie"),
-    ("Youzou", 500, "Sucrerie"), ("Chill", 600, "Sucrerie"), ("Xxl", 700, "Énergisante"),
-    ("Sport actif", 500, "Énergisante"), ("Tonic", 500, "Sucrerie"),
     ("Djama pils", 700, "Bière"), ("Djama Lager", 700, "Bière"), ("Djama 228", 700, "Bière"),
     ("Djama noir", 800, "Bière"), ("Djama panaché", 600, "Bière"), ("Sikavi", 700, "Bière"),
-    ("Bitter lemon", 500, "Sucrerie"), ("Agrumes", 500, "Sucrerie"), ("Pom Pom", 500, "Sucrerie"),
-    ("Cristal", 600, "Eau"), ("Voltic", 600, "Eau"), ("Verna", 300, "Eau"),
-    ("Possotome", 1500, "Eau"), ("Vody", 800, "Bière"), ("3x", 500, "Énergisante"),
-    ("Origin", 800, "Bière"), ("RoxEnergy", 1000, "Énergisante"), ("Ira", 600, "Bière"),
-    ("Benin'or", 600, "Bière"), ("Malta Can", 500, "Sucrerie"), ("Cocktail Can", 500, "Sucrerie"),
-    ("Desperado", 800, "Bière"), ("Heineken", 1200, "Bière"), ("Red bull", 1200, "Énergisante"),
-    ("Double 7", 800, "Bière"), ("Rush", 300, "Énergisante"), ("Vita mulk", 800, "Autre"),
-    # Ajouts du prototype, hors annexe A
+    ("Vody", 800, "Bière"), ("Origin", 800, "Bière"), ("Ira", 600, "Bière"),
+    ("Benin'or", 600, "Bière"), ("Desperado", 800, "Bière"), ("Heineken", 1200, "Bière"),
+    ("Double 7", 800, "Bière"), ("Beaufort canette", 500, "Bière"),
+    # Sucreries
+    ("Cocktail", 500, "Sucrerie"), ("Coca", 500, "Sucrerie"), ("Malta", 500, "Sucrerie"),
+    ("Youzou", 500, "Sucrerie"), ("Chill", 600, "Sucrerie"), ("Tonic", 500, "Sucrerie"),
+    ("Bitter lemon", 500, "Sucrerie"), ("Chap Cocktail", 500, "Sucrerie"),
+    ("Agrumes", 500, "Sucrerie"), ("Pom Pom", 500, "Sucrerie"),
+    ("Malta Can", 500, "Sucrerie"), ("Cocktail Can", 500, "Sucrerie"),
+    # Énergisantes
+    ("Xxl", 700, "Énergisante"), ("Sport actif", 500, "Énergisante"), ("3x", 500, "Énergisante"),
+    ("RoxEnergy", 1000, "Énergisante"), ("Red bull", 1200, "Énergisante"), ("Rush", 300, "Énergisante"),
+    # Eaux
+    ("Cristal", 600, "Eau"), ("Voltic", 600, "Eau"), ("Vitale", 600, "Eau"),
+    ("Verna", 300, "Eau"), ("Possotome", 1500, "Eau"),
+    # Autre
+    ("Vita mulk", 800, "Autre"),
+    # Wiskys & Liqueurs
     ("Jameson", 1800, "Wisky"), ("Johnnie Walker", 5000, "Wisky"), ("Old Monk", 1500, "Wisky"),
     ("Dennis", 2500, "Wisky"), ("White&Bue", 3500, "Wisky"), ("Wall street", 2500, "Wisky"),
     ("Blue Funeste", 3000, "Wisky"), ("Jack 10", 3000, "Wisky"), ("Vodka", 9000, "Wisky"),
     ("JB", 7000, "Wisky"), ("Lion diamond", 3500, "Wisky"), ("Bishop Oak's", 3500, "Wisky"),
     ("Royal circle", 3500, "Wisky"),
+    # Vins
     ("Du vin et des jeux", 5000, "Vin"), ("Thérapie de groupe", 5000, "Vin"),
     ("Vallformosa", 8500, "Vin"), ("Aria", 5000, "Vin"), ("Hacienda", 3500, "Vin"),
     ("Grand versant", 5000, "Vin"), ("JP chenet", 5000, "Vin"), ("Muscador", 4000, "Vin"),
-    ("Mouton Cadet", 9000, "Vin"), ("Asconi", 6000, "Vin"), ("Old beaver", 5000, "Vin"),
-    ("Haut Machel", 2500, "Vin"), ("Baron de Senac", 2500, "Vin"),
+    ("Mouton Cadet", 9000, "Vin"), ("Asconi", 6000, "Vin"), ("Agor Lux", 6000, "Vin"),
+    ("Old beaver", 5000, "Vin"), ("Haut Machel", 2500, "Vin"), ("Baron de Senac", 2500, "Vin"),
     ("Jardin des amoureux", 3000, "Vin"), ("Baron de Romero", 2500, "Vin"),
     ("Fiesta", 2000, "Vin"), ("Magic", 2000, "Vin"), ("Martini", 6000, "Vin"),
     ("Bella Tavola", 6000, "Vin"), ("Les Gardielles", 5000, "Vin"),
-    ("Pied d'argent", 7000, "Vin"), ("RLG", 5000, "Vin"), ("Cote de Rhone", 6000, "Vin"),
-    ("Portal Braz", 6000, "Vin"), ("Terres légendaires", 6000, "Vin"),
-    ("Bellerives", 6000, "Vin"), ("Jas d'Estanquet", 5000, "Vin"),
-    ("Montmeyrac", 5000, "Vin"), ("Fifty 50", 5000, "Vin"), ("Lamorosso", 7000, "Vin"),
-    ("Du bonnet", 7000, "Vin"), ("Petite Baie", 5000, "Vin"),
+    ("Pied d'argent", 7000, "Vin"), ("Forges de Bordeaux", 6000, "Vin"),
+    ("RLG", 5000, "Vin"), ("Cote de Rhone", 6000, "Vin"), ("Portal Braz", 6000, "Vin"),
+    ("Terres légendaires", 6000, "Vin"), ("Bellerives", 6000, "Vin"),
+    ("Jas d'Estanquet", 5000, "Vin"), ("Montmeyrac", 5000, "Vin"),
+    ("Fifty 50", 5000, "Vin"), ("Lamorosso", 7000, "Vin"), ("Du bonnet", 7000, "Vin"),
+    ("Petite Baie", 5000, "Vin"),
 ]
 
 PLATS = [
