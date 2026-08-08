@@ -11,6 +11,54 @@ const ONGLETS = [
   ['tables', 'Tables'],
 ]
 
+function ModaleNotification({ notification, onFerme }) {
+  if (!notification) return null
+  const estSucces = notification.type === 'succes'
+
+  return (
+    <div className="modal-bg" onClick={onFerme} style={{ zIndex: 1200 }}>
+      <div
+        className="modal"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxWidth: 440,
+          borderRadius: 18,
+          padding: 24,
+          textAlign: 'center',
+          border: estSucces ? '2px solid #38a169' : '2px solid #e53e3e',
+          boxShadow: estSucces ? '0 12px 35px rgba(56,161,105,0.25)' : '0 12px 35px rgba(229,62,62,0.25)',
+          background: 'var(--bg-app, #fff)',
+        }}
+      >
+        <div style={{ fontSize: 48, marginBottom: 12 }}>
+          {estSucces ? '✅' : '⚠️'}
+        </div>
+        <h3
+          style={{
+            margin: '0 0 10px',
+            fontSize: 19,
+            fontWeight: 800,
+            color: estSucces ? '#276749' : '#9b2c2c',
+          }}
+        >
+          {notification.titre}
+        </h3>
+        <div style={{ fontSize: 14, color: 'var(--noir)', margin: '0 0 22px', lineHeight: 1.5, fontWeight: 500 }}>
+          {notification.message}
+        </div>
+        <button
+          className={`btn ${estSucces ? 'btn-o' : 'btn-g'}`}
+          style={{ width: '100%', padding: '12px', fontSize: 14, fontWeight: 800, borderRadius: 10 }}
+          onClick={onFerme}
+          autoFocus
+        >
+          {estSucces ? "Super, d'accord !" : 'Compris, je corrige'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Catalogue() {
   const [onglet, setOnglet] = useState('plats')
   const [produits, setProduits] = useState([])
@@ -18,6 +66,7 @@ export default function Catalogue() {
   const [familles, setFamilles] = useState([])
   const [tables, setTables] = useState([])
   const [erreur, setErreur] = useState('')
+  const [notification, setNotification] = useState(null)
   const [edition, setEdition] = useState(null)
   const [recherche, setRecherche] = useState('')
 
@@ -36,6 +85,11 @@ export default function Catalogue() {
       setErreur('')
     } catch (echec) {
       setErreur(echec.message)
+      setNotification({
+        type: 'erreur',
+        titre: 'Erreur de chargement',
+        message: `Impossible de charger les données : ${echec.message}`,
+      })
     }
   }
 
@@ -44,14 +98,23 @@ export default function Catalogue() {
   }, [])
 
   async function supprimer(chemin, libelle) {
-    if (!window.confirm(`Supprimer « ${libelle} » ?`)) return
+    if (!window.confirm(`Voulez-vous vraiment supprimer « ${libelle} » ?`)) return
     try {
       await api.delete(chemin)
       await charger()
+      setNotification({
+        type: 'succes',
+        titre: 'Suppression effectuée !',
+        message: `« ${libelle} » a été supprimé avec succès du catalogue.`,
+      })
     } catch (echec) {
-      // Le backend renvoie un 409 avec un message clair quand l'élément est
-      // encore référencé ; on le préfixe du nom concerné.
-      setErreur(`« ${libelle} » — ${echec.message}`)
+      const msg = `Impossible de supprimer « ${libelle} » : cet élément est probablement déjà utilisé dans des commandes.`
+      setErreur(msg)
+      setNotification({
+        type: 'erreur',
+        titre: 'Suppression impossible ⚠️',
+        message: msg,
+      })
     }
   }
 
@@ -335,14 +398,31 @@ export default function Catalogue() {
       {edition && (
         <Formulaire
           edition={edition}
+          produits={produits}
           categories={categories}
           familles={familles}
+          tables={tables}
           onFerme={() => setEdition(null)}
-          onEnregistre={async () => {
+          onEnregistre={async (notifSucces) => {
             setEdition(null)
             await charger()
+            if (notifSucces) {
+              setNotification(notifSucces)
+            }
           }}
-          onErreur={setErreur}
+          onErreur={(msg, notifErreur) => {
+            setErreur(msg)
+            if (notifErreur) {
+              setNotification(notifErreur)
+            }
+          }}
+        />
+      )}
+
+      {notification && (
+        <ModaleNotification
+          notification={notification}
+          onFerme={() => setNotification(null)}
         />
       )}
     </>
@@ -433,9 +513,10 @@ const CHEMINS = {
   tables: '/tables/',
 }
 
-function Formulaire({ edition, categories, familles, onFerme, onEnregistre, onErreur }) {
+function Formulaire({ edition, produits = [], categories = [], familles = [], tables = [], onFerme, onEnregistre, onErreur }) {
   const [valeur, setValeur] = useState(edition.valeur)
   const [envoi, setEnvoi] = useState(false)
+  const [erreurForm, setErreurForm] = useState('')
   const { type } = edition
   const creation = !valeur.id
   const champ = (nom) => (e) =>
@@ -444,25 +525,90 @@ function Formulaire({ edition, categories, familles, onFerme, onEnregistre, onEr
   async function enregistrer(evenement) {
     evenement.preventDefault()
     setEnvoi(true)
+    setErreurForm('')
     try {
       const corps = { ...valeur }
       if (type === 'plats' || type === 'boissons') {
+        if (!corps.nom || !corps.nom.trim()) {
+          throw new Error('Le nom du produit est obligatoire.')
+        }
+        if (!corps.categorie) {
+          throw new Error('Veuillez sélectionner une catégorie valide.')
+        }
+        const existe = produits.some(
+          (p) => p.nom.trim().toLowerCase() === corps.nom.trim().toLowerCase() && p.id !== valeur.id
+        )
+        if (existe) {
+          throw new Error(`Le produit « ${corps.nom.trim()} » existe déjà.`)
+        }
         corps.prix_standard = corps.prix_libre ? null : Number(corps.prix_standard) || 0
         corps.seuil_alerte = Number(corps.seuil_alerte) || 0
       }
       if (type === 'tables') {
+        if (!corps.numero) throw new Error('Veuillez spécifier un numéro de table valide.')
         corps.numero = Number(corps.numero)
         corps.couverts_defaut = Number(corps.couverts_defaut) || 1
+        const existe = tables.some(
+          (t) => String(t.numero) === String(corps.numero) && t.id !== valeur.id
+        )
+        if (existe) {
+          throw new Error(`La Table N° ${corps.numero} existe déjà.`)
+        }
       }
       if (type === 'categories') {
+        if (!corps.nom || !corps.nom.trim()) throw new Error('Le nom de la catégorie est obligatoire.')
+        const existe = categories.some(
+          (c) => c.nom.trim().toLowerCase() === corps.nom.trim().toLowerCase() && c.id !== valeur.id
+        )
+        if (existe) {
+          throw new Error(`La catégorie « ${corps.nom.trim()} » existe déjà.`)
+        }
         corps.ordre = Number(corps.ordre) || 0
         corps.famille = corps.famille ? Number(corps.famille) : null
       }
-      if (type === 'familles') corps.ordre = Number(corps.ordre) || 0
-      await (creation ? api.post(CHEMINS[type], corps) : api.patch(`${CHEMINS[type]}${valeur.id}/`, corps))
-      await onEnregistre()
+      if (type === 'familles') {
+        if (!corps.nom || !corps.nom.trim()) throw new Error('Le nom de la famille est obligatoire.')
+        const existe = familles.some(
+          (f) => f.nom.trim().toLowerCase() === corps.nom.trim().toLowerCase() && f.id !== valeur.id
+        )
+        if (existe) {
+          throw new Error(`La famille « ${corps.nom.trim()} » existe déjà.`)
+        }
+        corps.ordre = Number(corps.ordre) || 0
+      }
+
+      const res = await (creation ? api.post(CHEMINS[type], corps) : api.patch(`${CHEMINS[type]}${valeur.id}/`, corps))
+      
+      const nomElement = res?.nom || (type === 'tables' ? `Table ${res?.numero || corps.numero}` : corps.nom || 'L\'élément')
+      const nomType = {
+        plats: 'Le plat',
+        boissons: 'La boisson',
+        familles: 'La famille',
+        categories: 'La catégorie',
+        tables: 'La table',
+      }[type] || 'L\'élément'
+
+      const actionTxt = creation ? 'créé avec succès et ajouté au catalogue !' : 'mis à jour avec succès !'
+
+      await onEnregistre({
+        type: 'succes',
+        titre: creation ? '🎉 Ajout réussi !' : '✏️ Modification enregistrée !',
+        message: `${nomType} « ${nomElement} » a été ${actionTxt}`,
+      })
     } catch (echec) {
-      onErreur(echec.message)
+      const nomSaisi = (valeur.nom || (type === 'tables' ? `Table ${valeur.numero}` : '')).trim()
+      let msgClair = echec.message || 'Une erreur est survenue lors de la sauvegarde.'
+      if (msgClair.includes('400') || msgClair.includes('exist') || msgClair.includes('unique') || msgClair.includes('déjà')) {
+        msgClair = nomSaisi
+          ? `Le produit « ${nomSaisi} » existe déjà.`
+          : `Ce produit ou cet élément existe déjà.`
+      }
+      setErreurForm(msgClair)
+      onErreur(msgClair, {
+        type: 'erreur',
+        titre: '⚠️ Produit déjà existant',
+        message: msgClair,
+      })
       setEnvoi(false)
     }
   }
@@ -479,8 +625,6 @@ function Formulaire({ edition, categories, familles, onFerme, onEnregistre, onEr
     type === 'plats' ? categorie.rayon === 'cuisine' : categorie.rayon === 'bar',
   )
 
-  // Un <select> affiche sa première option même si l'état ne la porte pas :
-  // sans cette synchro, enregistrer envoyait une catégorie nulle.
   useEffect(() => {
     if ((type === 'plats' || type === 'boissons') && !valeur.categorie && categoriesUtiles.length) {
       setValeur((actuelle) => ({ ...actuelle, categorie: categoriesUtiles[0].id }))
@@ -488,8 +632,28 @@ function Formulaire({ edition, categories, familles, onFerme, onEnregistre, onEr
   }, [type, valeur.categorie, categoriesUtiles])
 
   return (
-    <Modale titre={titres[type]} largeur={420} onFerme={onFerme}>
+    <Modale titre={titres[type]} largeur={440} onFerme={onFerme}>
       <form onSubmit={enregistrer}>
+        {erreurForm && (
+          <div
+            style={{
+              background: '#fff5f5',
+              border: '1.5px solid #feb2b2',
+              color: '#c53030',
+              padding: '12px 14px',
+              borderRadius: 10,
+              fontSize: 13,
+              marginBottom: 16,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <span>⚠️</span>
+            <span>{erreurForm}</span>
+          </div>
+        )}
         {type === 'tables' ? (
           <>
             <label className="lbl">Numéro de table</label>
