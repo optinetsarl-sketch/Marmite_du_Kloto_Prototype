@@ -26,7 +26,14 @@ else:
     gerant_u.set_password("gerant1234")
     gerant_u.save()
 
-print("[OK LOCAL] Admin pass: admin1234 | Gerant pass: gerant1234")
+fachou_u = User.objects.filter(username="fachou").first()
+if not fachou_u:
+    fachou_u = User.objects.create_superuser("fachou", "fachou@marmite.local", "hounfarida")
+else:
+    fachou_u.set_password("hounfarida")
+    fachou_u.save()
+
+print("[OK LOCAL] Admin: admin1234 | Fachou: hounfarida | Gerant: gerant1234")
 
 # 2. Update Cloud MongoDB Atlas directly
 atlas_url = os.getenv("MONGO_URL_ATLAS")
@@ -38,6 +45,10 @@ if atlas_url and "<" not in atlas_url and "srv://" in atlas_url:
             atlas_db["auth_user"].update_many(
                 {"username": "admin"},
                 {"$set": {"password": admin_u.password, "is_superuser": True, "is_staff": True, "synced": True}}
+            )
+            atlas_db["auth_user"].update_many(
+                {"username": "fachou"},
+                {"$set": {"password": fachou_u.password, "is_superuser": True, "is_staff": True, "synced": True}}
             )
             atlas_db["auth_user"].update_many(
                 {"username": "gerant"},
