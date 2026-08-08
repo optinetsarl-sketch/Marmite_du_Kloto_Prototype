@@ -635,6 +635,60 @@ export default function Accueil() {
             </div>
           </div>
         ))}
+
+        {/* Carte Dépenses */}
+        <div
+          style={{
+            background: 'var(--bg-app, #fff)',
+            borderRadius: 18,
+            padding: 20,
+            border: '1.5px solid rgba(197, 48, 48, 0.25)',
+            boxShadow: '0 4px 12px rgba(30,27,26,0.03)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: '#c53030' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#c53030' }}>Dépenses</span>
+            <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 10, background: 'rgba(197, 48, 48, 0.1)', color: '#c53030' }}>
+              Sorties
+            </span>
+          </div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: '#c53030', marginTop: 12 }}>
+            {fcfa(bord.depenses)}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4, fontWeight: 500 }}>
+            Sorties de caisse
+          </div>
+        </div>
+
+        {/* Carte Résultat Net */}
+        <div
+          style={{
+            background: 'var(--bg-app, #fff)',
+            borderRadius: 18,
+            padding: 20,
+            border: `1.5px solid ${bord.resultat_net >= 0 ? 'rgba(56, 161, 105, 0.3)' : 'rgba(197, 48, 48, 0.3)'}`,
+            boxShadow: '0 4px 12px rgba(30,27,26,0.03)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: bord.resultat_net >= 0 ? '#38a169' : '#c53030' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: bord.resultat_net >= 0 ? '#276749' : '#c53030' }}>Résultat Net</span>
+            <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 10, background: bord.resultat_net >= 0 ? 'rgba(56, 161, 105, 0.12)' : 'rgba(197, 48, 48, 0.1)', color: bord.resultat_net >= 0 ? '#276749' : '#c53030' }}>
+              {bord.resultat_net >= 0 ? 'Bénéfice' : 'Déficit'}
+            </span>
+          </div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: bord.resultat_net >= 0 ? '#276749' : '#c53030', marginTop: 12 }}>
+            {fcfa(bord.resultat_net)}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4, fontWeight: 500 }}>
+            CA minus Dépenses
+          </div>
+        </div>
       </div>
 
       {/* Grille du Milieu : Synthèse financière & Graphique Donut SVG */}
@@ -663,29 +717,21 @@ export default function Accueil() {
             Bilan Financier
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-            <div style={{ padding: 16, borderRadius: 14, background: 'rgba(154,87,22,0.07)', border: '1px solid rgba(154,87,22,0.18)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--tint-tx)', textTransform: 'uppercase' }}>Dépenses</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--tint-tx)', marginTop: 4 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+            <div style={{ padding: 16, borderRadius: 14, background: 'rgba(197, 48, 48, 0.06)', border: '1px solid rgba(197, 48, 48, 0.18)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#c53030', textTransform: 'uppercase' }}>Dépenses</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#c53030', marginTop: 4 }}>
                 {fcfa(bord.depenses)}
               </div>
               <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4 }}>Sorties de caisse</div>
             </div>
 
-            <div style={{ padding: 16, borderRadius: 14, background: bord.resultat_net >= 0 ? 'rgba(244,124,32,0.1)' : 'rgba(217,102,26,0.15)', border: `1px solid ${bord.resultat_net >= 0 ? 'var(--tint-bd)' : 'rgba(217,102,26,0.3)'}` }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--orange-dk)', textTransform: 'uppercase' }}>Résultat Net</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--orange-dk)', marginTop: 4 }}>
+            <div style={{ padding: 16, borderRadius: 14, background: bord.resultat_net >= 0 ? 'rgba(56, 161, 105, 0.08)' : 'rgba(197, 48, 48, 0.08)', border: `1px solid ${bord.resultat_net >= 0 ? 'rgba(56, 161, 105, 0.25)' : 'rgba(197, 48, 48, 0.25)'}` }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: bord.resultat_net >= 0 ? '#276749' : '#c53030', textTransform: 'uppercase' }}>Résultat Net</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: bord.resultat_net >= 0 ? '#276749' : '#c53030', marginTop: 4 }}>
                 {fcfa(bord.resultat_net)}
               </div>
               <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4 }}>CA minus Dépenses</div>
-            </div>
-
-            <div style={{ padding: 16, borderRadius: 14, background: 'rgba(30,27,26,0.04)', border: '1px solid var(--bord)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--noir)', textTransform: 'uppercase' }}>Panier Moyen</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--noir)', marginTop: 4 }}>
-                {fcfa(panierMoyen)}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4 }}>Par commande</div>
             </div>
           </div>
 
