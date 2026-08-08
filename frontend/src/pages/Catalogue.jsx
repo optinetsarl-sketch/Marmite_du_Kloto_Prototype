@@ -11,50 +11,60 @@ const ONGLETS = [
   ['tables', 'Tables'],
 ]
 
-function ModaleNotification({ notification, onFerme }) {
-  if (!notification) return null
-  const estSucces = notification.type === 'succes'
+function PopUpMessageFlash({ messageFlash, onFerme }) {
+  useEffect(() => {
+    if (messageFlash) {
+      const timer = setTimeout(() => {
+        onFerme()
+      }, 4000)
+      return () => clearTimeout(timer)
+    }
+  }, [messageFlash, onFerme])
+
+  if (!messageFlash) return null
+  const estSucces = messageFlash.type === 'succes'
 
   return (
-    <div className="modal-bg" onClick={onFerme} style={{ zIndex: 1200 }}>
-      <div
-        className="modal"
-        onClick={(e) => e.stopPropagation()}
+    <div
+      style={{
+        position: 'fixed',
+        top: 24,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 99999,
+        background: estSucces ? '#22c55e' : '#ef4444',
+        color: '#ffffff',
+        padding: '14px 24px',
+        borderRadius: 14,
+        boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        fontWeight: 800,
+        fontSize: 15,
+        cursor: 'pointer',
+        maxWidth: '90vw',
+        animation: 'slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+      }}
+      onClick={onFerme}
+    >
+      <span style={{ fontSize: 22 }}>{estSucces ? '✅' : '⚠️'}</span>
+      <span>{messageFlash.message}</span>
+      <button
+        type="button"
         style={{
-          maxWidth: 440,
-          borderRadius: 18,
-          padding: 24,
-          textAlign: 'center',
-          border: estSucces ? '2px solid #38a169' : '2px solid #e53e3e',
-          boxShadow: estSucces ? '0 12px 35px rgba(56,161,105,0.25)' : '0 12px 35px rgba(229,62,62,0.25)',
-          background: 'var(--bg-app, #fff)',
+          background: 'transparent',
+          border: 'none',
+          color: '#ffffff',
+          fontWeight: 900,
+          fontSize: 16,
+          cursor: 'pointer',
+          marginLeft: 12,
         }}
+        onClick={onFerme}
       >
-        <div style={{ fontSize: 48, marginBottom: 12 }}>
-          {estSucces ? '✅' : '⚠️'}
-        </div>
-        <h3
-          style={{
-            margin: '0 0 10px',
-            fontSize: 19,
-            fontWeight: 800,
-            color: estSucces ? '#276749' : '#9b2c2c',
-          }}
-        >
-          {notification.titre}
-        </h3>
-        <div style={{ fontSize: 14, color: 'var(--noir)', margin: '0 0 22px', lineHeight: 1.5, fontWeight: 500 }}>
-          {notification.message}
-        </div>
-        <button
-          className={`btn ${estSucces ? 'btn-o' : 'btn-g'}`}
-          style={{ width: '100%', padding: '12px', fontSize: 14, fontWeight: 800, borderRadius: 10 }}
-          onClick={onFerme}
-          autoFocus
-        >
-          {estSucces ? "Super, d'accord !" : 'Compris, je corrige'}
-        </button>
-      </div>
+        ✕
+      </button>
     </div>
   )
 }
@@ -66,7 +76,7 @@ export default function Catalogue() {
   const [familles, setFamilles] = useState([])
   const [tables, setTables] = useState([])
   const [erreur, setErreur] = useState('')
-  const [notification, setNotification] = useState(null)
+  const [messageFlash, setMessageFlash] = useState(null)
   const [edition, setEdition] = useState(null)
   const [recherche, setRecherche] = useState('')
 
@@ -403,26 +413,26 @@ export default function Catalogue() {
           familles={familles}
           tables={tables}
           onFerme={() => setEdition(null)}
-          onEnregistre={async (notifSucces) => {
+          onEnregistre={async (flashSucces) => {
             setEdition(null)
             await charger()
-            if (notifSucces) {
-              setNotification(notifSucces)
+            if (flashSucces) {
+              setMessageFlash(flashSucces)
             }
           }}
-          onErreur={(msg, notifErreur) => {
+          onErreur={(msg, flashErreur) => {
             setErreur(msg)
-            if (notifErreur) {
-              setNotification(notifErreur)
+            if (flashErreur) {
+              setMessageFlash(flashErreur)
             }
           }}
         />
       )}
 
-      {notification && (
-        <ModaleNotification
-          notification={notification}
-          onFerme={() => setNotification(null)}
+      {messageFlash && (
+        <PopUpMessageFlash
+          messageFlash={messageFlash}
+          onFerme={() => setMessageFlash(null)}
         />
       )}
     </>
