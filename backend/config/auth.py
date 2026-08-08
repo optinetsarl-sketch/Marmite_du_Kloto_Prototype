@@ -70,12 +70,15 @@ def connexion(request):
                 user_obj.save()
                 utilisateur = authenticate(username=username, password=password)
 
-    if utilisateur is None:
-        return Response(
-            {"detail": "Identifiant ou mot de passe incorrect."},
-            status=status.HTTP_401_UNAUTHORIZED,
-        )
-    token, _ = Token.objects.get_or_create(user=utilisateur)
+    tokens = Token.objects.filter(user=utilisateur)
+    if tokens.count() > 1:
+        tokens.delete()
+        token = Token.objects.create(user=utilisateur)
+    elif tokens.exists():
+        token = tokens.first()
+    else:
+        token = Token.objects.create(user=utilisateur)
+
     is_admin = bool(utilisateur.is_superuser or utilisateur.is_staff or utilisateur.username == "admin")
     return Response(
         {
