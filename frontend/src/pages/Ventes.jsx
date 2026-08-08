@@ -136,6 +136,16 @@ export default function Ventes() {
     setParametres({})
   }
 
+  const categoriesUniques = useMemo(() => {
+    const vus = new Set()
+    return categories.filter((c) => {
+      const nomNet = (c.nom || '').trim().toLowerCase()
+      if (!nomNet || vus.has(nomNet)) return false
+      vus.add(nomNet)
+      return true
+    })
+  }, [categories])
+
   const produitsFiltres = useMemo(() => {
     const q = recherche.trim().toLowerCase()
     if (q) {
@@ -572,7 +582,7 @@ export default function Ventes() {
           </div>
 
           <div className="cats">
-            {categories.map((categorie) => (
+            {categoriesUniques.map((categorie) => (
               <button
                 key={categorie.id}
                 className={`cat ${categorieActive === categorie.id ? 'on' : ''}`}

@@ -25,6 +25,19 @@ class CategorieViewSet(AdminWritePermissionMixin, viewsets.ModelViewSet):
     serializer_class = CategorieSerializer
     filterset_fields = ["rayon", "famille"]
 
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        if isinstance(response.data, list):
+            vus = set()
+            uniques = []
+            for item in response.data:
+                nom = (item.get("nom") or "").strip().lower()
+                if nom and nom not in vus:
+                    vus.add(nom)
+                    uniques.append(item)
+            response.data = uniques
+        return response
+
 
 class ProduitViewSet(AdminWritePermissionMixin, viewsets.ModelViewSet):
     queryset = Produit.objects.select_related("categorie", "categorie__famille")
