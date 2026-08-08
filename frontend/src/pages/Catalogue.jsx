@@ -55,79 +55,116 @@ export default function Catalogue() {
     }
   }
 
-  const plats = useMemo(
+  const platsTous = useMemo(
     () => produits.filter((produit) => produit.rayon === 'cuisine'),
+    [produits],
+  )
+  const plats = useMemo(() => {
+    const terme = recherche.trim().toLowerCase()
+    return terme ? platsTous.filter((p) => p.nom.toLowerCase().includes(terme)) : platsTous
+  }, [platsTous, recherche])
+
+  const boissonsToutes = useMemo(
+    () => produits.filter((produit) => produit.rayon === 'bar'),
     [produits],
   )
   const boissons = useMemo(() => {
     const terme = recherche.trim().toLowerCase()
-    // « listeBar », pas « liste » : ce dernier est la fonction importée d'api.js.
-    const listeBar = produits.filter((produit) => produit.rayon === 'bar')
-    return terme ? listeBar.filter((produit) => produit.nom.toLowerCase().includes(terme)) : listeBar
-  }, [produits, recherche])
+    return terme ? boissonsToutes.filter((p) => p.nom.toLowerCase().includes(terme)) : boissonsToutes
+  }, [boissonsToutes, recherche])
+
+  function ouvrirAjout(targetType = onglet) {
+    const catParDefaut = categories.find((c) =>
+      targetType === 'plats' ? c.rayon === 'cuisine' : c.rayon === 'bar',
+    )?.id || (categories.length > 0 ? categories[0].id : null)
+
+    setEdition({
+      type: targetType,
+      valeur:
+        targetType === 'tables'
+          ? { numero: (tables.length + 1).toString(), couverts_defaut: 2, active: true }
+          : targetType === 'familles'
+            ? { nom: '', ordre: familles.length + 1 }
+            : targetType === 'categories'
+            ? { nom: '', rayon: 'bar', famille: familles[0]?.id || '', ordre: categories.length + 1 }
+            : {
+                nom: '',
+                categorie: catParDefaut,
+                prix_standard: targetType === 'plats' ? null : '',
+                prix_libre: targetType === 'plats',
+                gere_stock: targetType !== 'plats',
+                seuil_alerte: 12,
+                actif: true,
+              },
+    })
+  }
+
+  const libellesAjout = {
+    plats: '+ Ajouter un plat',
+    boissons: '+ Ajouter une boisson',
+    familles: '+ Ajouter une famille',
+    categories: '+ Ajouter une catégorie',
+    tables: '+ Ajouter une table',
+  }
+
+  const compteurs = {
+    plats: platsTous.length,
+    boissons: boissonsToutes.length,
+    familles: familles.length,
+    categories: categories.length,
+    tables: tables.length,
+  }
 
   return (
     <>
       <div className="top">
         <div>
-          <h1>Catalogue</h1>
-          <div className="sub">Plats, boissons, catégories et tables de la salle</div>
+          <h1>Catalogue &amp; Configuration</h1>
+          <div className="sub">Gestion des plats, boissons, familles, catégories et tables de la salle</div>
         </div>
         <button
           className="btn btn-o"
-          // Un plat/une boisson a besoin d'une catégorie à proposer ; les
-          // familles, catégories et tables se créent sans dépendance.
-          disabled={(onglet === 'plats' || onglet === 'boissons') && categories.length === 0}
-          onClick={() =>
-            setEdition({
-              type: onglet,
-              valeur:
-                onglet === 'tables'
-                  ? { numero: '', couverts_defaut: 2, active: true }
-                  : onglet === 'familles'
-                    ? { nom: '', ordre: 0 }
-                    : onglet === 'categories'
-                    ? { nom: '', rayon: 'bar', famille: '', ordre: 0 }
-                    : {
-                        nom: '',
-                        categorie: categories.find((c) =>
-                          onglet === 'plats' ? c.rayon === 'cuisine' : c.rayon === 'bar',
-                        )?.id,
-                        prix_standard: onglet === 'plats' ? null : '',
-                        prix_libre: onglet === 'plats',
-                        gere_stock: onglet !== 'plats',
-                        seuil_alerte: 12,
-                        actif: true,
-                      },
-            })
-          }
+          style={{ fontWeight: 800, padding: '10px 18px' }}
+          onClick={() => ouvrirAjout(onglet)}
         >
-          + Ajouter
+          {libellesAjout[onglet] || '+ Ajouter'}
         </button>
       </div>
 
-      {erreur && <div className="erreur">{erreur}</div>}
+      {erreur && <div className="erreur" style={{ marginBottom: 16 }}>{erreur}</div>}
 
-      <div className="seg seg-onglets">
+      <div className="seg seg-onglets" style={{ marginBottom: 16 }}>
         {ONGLETS.map(([code, libelle]) => (
           <button
             key={code}
             className={`segb ${onglet === code ? 'on' : ''}`}
-            onClick={() => setOnglet(code)}
+            onClick={() => {
+              setOnglet(code)
+              setRecherche('')
+            }}
           >
-            {libelle}
+            {libelle} ({compteurs[code] || 0})
           </button>
         ))}
       </div>
 
-      {onglet === 'boissons' && (
-        <input
-          className="champ"
-          style={{ margin: '14px 0' }}
-          placeholder="Rechercher une boisson…"
-          value={recherche}
-          onChange={(e) => setRecherche(e.target.value)}
-        />
+      {(onglet === 'boissons' || onglet === 'plats') && (
+        <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' }}>
+          <input
+            className="champ"
+            style={{ flex: 1 }}
+            placeholder={onglet === 'plats' ? "Rechercher un plat..." : "Rechercher une boisson..."}
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+          />
+          <button
+            className="btn btn-g"
+            style={{ fontWeight: 700 }}
+            onClick={() => ouvrirAjout(onglet)}
+          >
+            {libellesAjout[onglet]}
+          </button>
+        </div>
       )}
 
       <div className="card carte-tableau">
