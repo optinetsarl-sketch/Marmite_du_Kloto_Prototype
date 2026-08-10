@@ -780,7 +780,7 @@ function InventaireGlobal({ produits, onFerme, onEnregistre }) {
     })
     return init
   })
-  const [commentaire, setCommentaire] = useState('Correction / Stock de début')
+  const [commentaire, setCommentaire] = useState('Stock physique en boutique')
   const [erreur, setErreur] = useState('')
   const [envoi, setEnvoi] = useState(false)
 
@@ -823,7 +823,7 @@ function InventaireGlobal({ produits, onFerme, onEnregistre }) {
         await api.post('/mouvements-stock/inventaire/', {
           produit: p.id,
           stock_reel: sReel,
-          commentaire: commentaire || 'Correction / Stock de début',
+          commentaire: commentaire || 'Stock physique en boutique',
         })
       }
       await onEnregistre()
@@ -834,7 +834,7 @@ function InventaireGlobal({ produits, onFerme, onEnregistre }) {
   }
 
   return (
-    <Modale titre="Correction d'inventaire — Saisie du Stock de Début / Boutique" largeur={850} onFerme={onFerme}>
+    <Modale titre="Correction d'inventaire — Stock physique en boutique" largeur={850} onFerme={onFerme}>
       {erreur && <div className="erreur">{erreur}</div>}
       <form onSubmit={enregistrer}>
         <div style={{ display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
@@ -861,7 +861,7 @@ function InventaireGlobal({ produits, onFerme, onEnregistre }) {
           <input
             className="champ"
             style={{ flex: 2, minWidth: 180 }}
-            placeholder="Motif / Commentaire (ex: Stock de début boutique)"
+            placeholder="Motif / Commentaire (ex: Stock physique en boutique)"
             value={commentaire}
             onChange={(e) => setCommentaire(e.target.value)}
           />
@@ -875,7 +875,7 @@ function InventaireGlobal({ produits, onFerme, onEnregistre }) {
                 <th>Catégorie</th>
                 <th>Prix Standard</th>
                 <th>Stock Théorique</th>
-                <th>Stock en Boutique (Stock de début)</th>
+                <th>Stock physique en boutique</th>
                 <th>Écart</th>
               </tr>
             </thead>
