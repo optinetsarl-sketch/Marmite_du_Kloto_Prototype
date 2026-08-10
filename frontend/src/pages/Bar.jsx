@@ -29,7 +29,7 @@ export default function Bar() {
     try {
       const [listeProduits, historique, listeCategories] = await Promise.all([
         liste('/produits/?categorie__rayon=bar&page_size=400'),
-        liste('/mouvements-stock/?page_size=30'),
+        liste('/mouvements-stock/?page_size=500'),
         liste('/categories/'),
       ])
       setProduits(listeProduits)
@@ -45,7 +45,41 @@ export default function Bar() {
     charger()
   }, [])
 
+  const [ongletMouvements, setOngletMouvements] = useState('tous') // 'tous' | 'inventaires'
+
   const [groupesOuverts, setGroupesOuverts] = useState({})
+
+  // Regroupement des mouvements d'inventaires en "Sessions d'inventaire"
+  const sessionsInventaire = useMemo(() => {
+    const mvtInventaires = mouvements.filter((m) => m.motif === 'inventaire')
+    const sessionsMap = {}
+
+    mvtInventaires.forEach((mvt) => {
+      // Clé par date (minute) + commentaire pour regrouper la même session d'inventaire
+      const dateMinute = mvt.cree_le ? mvt.cree_le.substring(0, 16) : 'inconnu'
+      const key = `${dateMinute}_${mvt.commentaire || 'sans_note'}`
+
+      if (!sessionsMap[key]) {
+        sessionsMap[key] = {
+          id: key,
+          date: mvt.cree_le,
+          commentaire: mvt.commentaire || "Correction d'inventaire",
+          mouvements: [],
+          totalPositifs: 0,
+          totalNegatifs: 0,
+          totalEcart: 0,
+        }
+      }
+
+      sessionsMap[key].mouvements.push(mvt)
+      const q = Number(mvt.quantite || 0)
+      sessionsMap[key].totalEcart += q
+      if (q > 0) sessionsMap[key].totalPositifs += q
+      else sessionsMap[key].totalNegatifs += Math.abs(q)
+    })
+
+    return Object.values(sessionsMap).sort((a, b) => new Date(b.date) - new Date(a.date))
+  }, [mouvements])
 
   const mouvementsGroupes = useMemo(() => {
     const map = {}
@@ -99,6 +133,15 @@ export default function Bar() {
         </div>
         {estAdmin && (
           <div className="actions-top">
+            <button
+              className="btn btn-g"
+              onClick={() => {
+                setOngletMouvements('inventaires')
+                document.getElementById('section-mouvements')?.scrollIntoView({ behavior: 'smooth' })
+              }}
+            >
+              📜 Historique inventaires ({sessionsInventaire.length})
+            </button>
             <button className="btn btn-g" onClick={() => setOperation('sortie')}>
               Casse / perte
             </button>
@@ -202,15 +245,38 @@ export default function Bar() {
         {filtres.length === 0 && <div className="etat">Aucune boisson ne correspond.</div>}
       </div>
 
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div>
-            <h3 style={{ margin: 0 }}>Derniers mouvements</h3>
-            <div style={{ fontSize: 12, color: 'var(--mut)', marginTop: 2 }}>
-              Groupés par boisson · Cliquez sur un produit pour voir ou masquer ses détails
-            </div>
+      <div className="card" id="section-mouvements">
+        {/* Onglets de navigation entre Mouvements et Historique d'Inventaire */}
+        <div
+          style={{
+            display: 'flex',
+            justify: 'space-between',
+            alignItems: 'center',
+            marginBottom: 16,
+            flexWrap: 'wrap',
+            gap: 12,
+          }}
+        >
+          <div className="seg" style={{ background: 'var(--tint)', padding: 4, borderRadius: 10 }}>
+            <button
+              type="button"
+              className={`segb ${ongletMouvements === 'tous' ? 'on' : ''}`}
+              onClick={() => setOngletMouvements('tous')}
+              style={{ fontWeight: 700, fontSize: 13 }}
+            >
+              📋 Tous les mouvements ({mouvements.length})
+            </button>
+            <button
+              type="button"
+              className={`segb ${ongletMouvements === 'inventaires' ? 'on' : ''}`}
+              onClick={() => setOngletMouvements('inventaires')}
+              style={{ fontWeight: 700, fontSize: 13 }}
+            >
+              📊 Historique des inventaires passés ({sessionsInventaire.length})
+            </button>
           </div>
-          {mouvementsGroupes.length > 0 && (
+
+          {ongletMouvements === 'tous' && mouvementsGroupes.length > 0 && (
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
@@ -231,8 +297,141 @@ export default function Bar() {
             </div>
           )}
         </div>
+        {ongletMouvements === 'inventaires' ? (
+          sessionsInventaire.length === 0 ? (
+            <div className="etat">Aucun inventaire antérieur enregistré.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {sessionsInventaire.map((session) => {
+                const estOuvert = !!groupesOuverts[session.id]
+                return (
+                  <div
+                    key={session.id}
+                    style={{
+                      border: '1px solid var(--bord)',
+                      borderRadius: 12,
+                      overflow: 'hidden',
+                      background: 'var(--bg-app, #fff)',
+                      transition: 'all 0.15s ease',
+                      borderLeft: '5px solid var(--orange)',
+                    }}
+                  >
+                    <div
+                      onClick={() => basculerGroupe(session.id)}
+                      style={{
+                        padding: '14px 18px',
+                        background: estOuvert ? 'var(--tint)' : 'var(--bg-app, #fff)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        userSelect: 'none',
+                        flexWrap: 'wrap',
+                        gap: 10,
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--noir)' }}>
+                            📅 {new Date(session.date).toLocaleString('fr-FR', {
+                              weekday: 'long',
+                              day: '2-digit',
+                              month: 'long',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 700,
+                              padding: '2px 10px',
+                              borderRadius: 12,
+                              background: 'var(--bg-app, #fff)',
+                              border: '1px solid var(--bord)',
+                              color: 'var(--mut)',
+                            }}
+                          >
+                            {session.mouvements.length} article{session.mouvements.length > 1 ? 's' : ''} ajusté{session.mouvements.length > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--mut)', fontWeight: 600 }}>
+                          📝 Motif : <span style={{ color: 'var(--noir)' }}>{session.commentaire}</span>
+                        </div>
+                      </div>
 
-        {mouvementsGroupes.length === 0 ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ display: 'flex', gap: 8, fontSize: 12, fontWeight: 700 }}>
+                          {session.totalPositifs > 0 && (
+                            <span style={{ color: 'var(--vert)', background: 'rgba(76, 175, 80, 0.12)', padding: '3px 8px', borderRadius: 8 }}>
+                              +{session.totalPositifs} (surplus)
+                            </span>
+                          )}
+                          {session.totalNegatifs > 0 && (
+                            <span style={{ color: 'var(--rouge)', background: 'rgba(244, 67, 54, 0.12)', padding: '3px 8px', borderRadius: 8 }}>
+                              -{session.totalNegatifs} (manquants)
+                            </span>
+                          )}
+                        </div>
+
+                        <span
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: 'var(--orange-dk)',
+                            background: 'rgba(244,124,32,0.1)',
+                            padding: '4px 10px',
+                            borderRadius: 8,
+                          }}
+                        >
+                          {estOuvert ? 'Masquer ▲' : 'Voir le rapport ▼'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {estOuvert && (
+                      <div className="tableau-defilant" style={{ padding: '8px 12px 12px', borderTop: '1px solid var(--bord)' }}>
+                        <table className="grid cartes compacte">
+                          <thead>
+                            <tr>
+                              <th>Boisson / Produit</th>
+                              <th style={{ textAlign: 'right' }}>Ajustement (Écart)</th>
+                              <th>Commentaire / Remarque</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {session.mouvements.map((mvt) => (
+                              <tr key={mvt.id}>
+                                <td data-label="Produit" style={{ fontWeight: 700, color: 'var(--noir)' }}>
+                                  {mvt.produit_nom}
+                                </td>
+                                <td
+                                  data-label="Ajustement"
+                                  style={{
+                                    textAlign: 'right',
+                                    fontWeight: 800,
+                                    fontSize: 14,
+                                    color: mvt.quantite < 0 ? 'var(--rouge)' : 'var(--vert)',
+                                  }}
+                                >
+                                  {mvt.quantite > 0 ? `+${mvt.quantite}` : mvt.quantite}
+                                </td>
+                                <td data-label="Remarque" style={{ color: 'var(--mut)' }}>
+                                  {mvt.commentaire || '—'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )
+        ) : mouvementsGroupes.length === 0 ? (
           <div className="etat">Aucun mouvement enregistré.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
