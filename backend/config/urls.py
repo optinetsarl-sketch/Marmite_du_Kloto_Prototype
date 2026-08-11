@@ -11,7 +11,7 @@ from catalogue.views import CategorieViewSet, FamilleViewSet, ProduitViewSet
 from livraison.views import LivreurViewSet
 from rapports import views as rapports
 from stock import views as stock_views
-from stock.views import FournisseurViewSet, MouvementStockViewSet
+from stock.views import FournisseurViewSet, MouvementStockViewSet, SessionInventaireViewSet
 from ventes.views import CommandeViewSet, LigneCommandeViewSet, TableRestoViewSet
 
 from . import auth
@@ -53,6 +53,7 @@ router.register("tables", TableRestoViewSet)
 router.register("commandes", CommandeViewSet)
 router.register("lignes", LigneCommandeViewSet)
 router.register("mouvements-stock", MouvementStockViewSet)
+router.register("sessions-inventaire", SessionInventaireViewSet)
 router.register("fournisseurs", FournisseurViewSet)
 router.register("depenses", DepenseViewSet)
 router.register("sessions-caisse", SessionCaisseViewSet)

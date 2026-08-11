@@ -162,7 +162,7 @@ export default function Ventes() {
       setErreur(`Le produit « ${produit.nom} » est en rupture de stock.`)
       return
     }
-    if (produit.prix_libre && prix === undefined) {
+    if ((produit.prix_libre || produit.rayon === 'cuisine') && prix === undefined) {
       setPlatEnAttente(produit)
       return
     }
@@ -723,14 +723,9 @@ export default function Ventes() {
             const produit = platEnAttente
             setPlatEnAttente(null)
             if (typeof res === 'object' && res !== null) {
-              const { prixPlat, sauceNom, prixSauce, note } = res
-              let noteFinale = note || ''
-              if (sauceNom) {
-                const infoSauce = `Sauce ${sauceNom}${prixSauce > 0 ? ` (+${fcfa(prixSauce)})` : ''}`
-                noteFinale = noteFinale ? `${infoSauce} · ${noteFinale}` : infoSauce
-              }
-              const prixTotalLigne = (Number(prixPlat) || 0) + (Number(prixSauce) || 0)
-              ajouter(produit, prixTotalLigne, noteFinale)
+              // ModalePrix construit déjà la note complète (type de portion + sauce + instructions)
+              const prixFinal = Number(res.prixPlat) || 0
+              ajouter(produit, prixFinal, res.note || '')
             } else {
               ajouter(produit, res)
             }

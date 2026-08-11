@@ -14,11 +14,17 @@ class FamilleSerializer(serializers.ModelSerializer):
 
 class CategorieSerializer(serializers.ModelSerializer):
     id = serializers.CharField(read_only=True)
-    famille_nom = serializers.CharField(source="famille.nom", read_only=True)
+    famille_nom = serializers.SerializerMethodField()
 
     class Meta:
         model = Categorie
         fields = ["id", "nom", "rayon", "famille", "famille_nom", "icone", "ordre"]
+
+    def get_famille_nom(self, obj):
+        try:
+            return obj.famille.nom if obj.famille else None
+        except Exception:
+            return None
 
 
 class ProduitSerializer(serializers.ModelSerializer):

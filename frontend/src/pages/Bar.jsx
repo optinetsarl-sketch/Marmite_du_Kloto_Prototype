@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import { api, fcfa, liste } from '../api'
 import { useAuth } from '../auth-contexte'
@@ -14,6 +15,7 @@ const MOTIFS_SORTIE = [
 ]
 
 export default function Bar() {
+  const navigate = useNavigate()
   const { utilisateur } = useAuth()
   const estAdmin = Boolean(utilisateur?.is_admin || utilisateur?.role === 'admin')
 
@@ -25,16 +27,20 @@ export default function Bar() {
   const [erreur, setErreur] = useState('')
   const [operation, setOperation] = useState(null)
 
+  const [brouillonSession, setBrouillonSession] = useState(null)
+
   async function charger() {
     try {
-      const [listeProduits, historique, listeCategories] = await Promise.all([
+      const [listeProduits, historique, listeCategories, repBrouillon] = await Promise.all([
         liste('/produits/?categorie__rayon=bar&page_size=400'),
         liste('/mouvements-stock/?page_size=500'),
         liste('/categories/'),
+        api.get('/sessions-inventaire/brouillon_en_cours/').catch(() => ({ brouillon: null })),
       ])
       setProduits(listeProduits)
       setMouvements(historique)
       setCategories(listeCategories)
+      setBrouillonSession(repBrouillon?.brouillon || null)
       setErreur('')
     } catch (echec) {
       setErreur(echec.message)
@@ -55,9 +61,9 @@ export default function Bar() {
     const sessionsMap = {}
 
     mvtInventaires.forEach((mvt) => {
-      // Clé par date (minute) + commentaire pour regrouper la même session d'inventaire
-      const dateMinute = mvt.cree_le ? mvt.cree_le.substring(0, 16) : 'inconnu'
-      const key = `${dateMinute}_${mvt.commentaire || 'sans_note'}`
+      // Clé par JOUR + commentaire — tous les produits saisis le même jour avec le même motif = 1 session
+      const dateJour = mvt.cree_le ? mvt.cree_le.substring(0, 10) : 'inconnu'
+      const key = `${dateJour}_${(mvt.commentaire || 'sans_note').trim().toLowerCase()}`
 
       if (!sessionsMap[key]) {
         sessionsMap[key] = {
@@ -135,12 +141,18 @@ export default function Bar() {
           <div className="actions-top">
             <button
               className="btn btn-g"
+              onClick={() => navigate('/inventaires')}
+            >
+              Registre PV Inventaires
+            </button>
+            <button
+              className="btn btn-g"
               onClick={() => {
                 setOngletMouvements('inventaires')
                 document.getElementById('section-mouvements')?.scrollIntoView({ behavior: 'smooth' })
               }}
             >
-              📜 Historique inventaires ({sessionsInventaire.length})
+              Mouvements ({sessionsInventaire.length})
             </button>
             <button className="btn btn-g" onClick={() => setOperation('sortie')}>
               Casse / perte
@@ -156,6 +168,40 @@ export default function Bar() {
       </div>
 
       {erreur && <div className="erreur">{erreur}</div>}
+
+      {brouillonSession && (
+        <div
+          style={{
+            background: '#fff3cd',
+            border: '1px solid #ffeeba',
+            color: '#856404',
+            padding: '12px 18px',
+            borderRadius: 12,
+            marginBottom: 16,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 10,
+          }}
+        >
+          <div>
+            <strong>Un inventaire est en cours de saisie ({brouillonSession.motif})</strong> —{' '}
+            <span style={{ fontSize: 13 }}>
+              Démarré le {new Date(brouillonSession.date).toLocaleDateString('fr-FR')}. Le stock n'a pas encore été modifié.
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className="btn btn-o"
+              style={{ fontSize: 13, padding: '6px 14px' }}
+              onClick={() => setOperation('inventaire')}
+            >
+              Reprendre la saisie
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="selbar">
         {/* Pas de flex-basis en style en ligne : la barre passe en colonne sur
@@ -264,7 +310,7 @@ export default function Bar() {
               onClick={() => setOngletMouvements('tous')}
               style={{ fontWeight: 700, fontSize: 13 }}
             >
-              📋 Tous les mouvements ({mouvements.length})
+              Tous les mouvements ({mouvements.length})
             </button>
             <button
               type="button"
@@ -272,7 +318,7 @@ export default function Bar() {
               onClick={() => setOngletMouvements('inventaires')}
               style={{ fontWeight: 700, fontSize: 13 }}
             >
-              📊 Historique des inventaires passés ({sessionsInventaire.length})
+              Historique des inventaires passés ({sessionsInventaire.length})
             </button>
           </div>
 
@@ -333,7 +379,7 @@ export default function Bar() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--noir)' }}>
-                            📅 {new Date(session.date).toLocaleString('fr-FR', {
+                            {new Date(session.date).toLocaleString('fr-FR', {
                               weekday: 'long',
                               day: '2-digit',
                               month: 'long',
@@ -357,7 +403,7 @@ export default function Bar() {
                           </span>
                         </div>
                         <div style={{ fontSize: 13, color: 'var(--mut)', fontWeight: 600 }}>
-                          📝 Motif : <span style={{ color: 'var(--noir)' }}>{session.commentaire}</span>
+                          Motif : <span style={{ color: 'var(--noir)' }}>{session.commentaire}</span>
                         </div>
                       </div>
 
@@ -575,6 +621,7 @@ export default function Bar() {
         <OperationStock
           type={operation}
           produits={produits}
+          brouillonSession={brouillonSession}
           onFerme={() => setOperation(null)}
           onEnregistre={async () => {
             setOperation(null)
@@ -604,7 +651,7 @@ function OperationStock({ type, produits, onFerme, onEnregistre }) {
   const [envoi, setEnvoi] = useState(false)
 
   if (type === 'inventaire') {
-    return <InventaireGlobal produits={produits} onFerme={onFerme} onEnregistre={onEnregistre} />
+    return <InventaireOfficielWorkflow brouillonSession={brouillonSession} onFerme={onFerme} onEnregistre={onEnregistre} />
   }
 
   const choisi = produits.find((entree) => String(entree.id) === String(produit))
@@ -770,144 +817,358 @@ function OperationStock({ type, produits, onFerme, onEnregistre }) {
   )
 }
 
-function InventaireGlobal({ produits, onFerme, onEnregistre }) {
-  const [recherche, setRecherche] = useState('')
-  const [categorieFiltre, setCategorieFiltre] = useState('')
-  const [stocksReels, setStocksReels] = useState(() => {
-    const init = {}
-    produits.forEach((p) => {
-      init[p.id] = p.stock
-    })
-    return init
-  })
-  const [commentaire, setCommentaire] = useState('Stock physique en boutique')
+function InventaireOfficielWorkflow({ brouillonSession, onFerme, onEnregistre }) {
+  const dateAujourdhui = new Date().toISOString().substring(0, 10)
+  const [date, setDate] = useState(dateAujourdhui)
+  const [motif, setMotif] = useState(`Inventaire semaine du ${new Date().toLocaleDateString('fr-FR')}`)
+
+  const [sessionActive, setSessionActive] = useState(null)
+  const [saisies, setSaisies] = useState({}) // { [ligneId]: stringValue }
+  const [chargement, setChargement] = useState(false)
   const [erreur, setErreur] = useState('')
+  const [recherche, setRecherche] = useState('')
+  const [filtreCategorie, setFiltreCategorie] = useState('')
+  const [confirmValidation, setConfirmValidation] = useState(false)
   const [envoi, setEnvoi] = useState(false)
 
-  // Extraire les catégories uniques pour le filtre
-  const categories = Array.from(
-    new Set(produits.map((p) => p.categorie?.nom || p.categorie_nom).filter(Boolean)),
-  )
+  // Charger la session en brouillon si elle existe
+  useEffect(() => {
+    if (brouillonSession?.id) {
+      chargerSession(brouillonSession.id)
+    }
+  }, [brouillonSession])
 
-  const produitsFiltres = produits.filter((p) => {
-    const matchNom = p.nom.toLowerCase().includes(recherche.toLowerCase())
-    const catNom = p.categorie?.nom || p.categorie_nom || ''
-    const matchCat = !categorieFiltre || catNom === categorieFiltre
-    return matchNom && matchCat
-  })
+  async function chargerSession(sessionId) {
+    setChargement(true)
+    try {
+      const details = await api.get(`/sessions-inventaire/${sessionId}/`)
+      setSessionActive(details)
+      // Initialiser les saisies locales
+      const mapSaisies = {}
+      details.lignes.forEach((ligne) => {
+        mapSaisies[ligne.id] = ligne.stock_physique !== null && ligne.stock_physique !== undefined ? String(ligne.stock_physique) : ''
+      })
+      setSaisies(mapSaisies)
+      setErreur('')
+    } catch (err) {
+      setErreur(err.message || 'Erreur lors du chargement de la session inventaire')
+    } finally {
+      setChargement(false)
+    }
+  }
 
-  function changerStock(id, valeur) {
-    setStocksReels((prev) => ({
+  async function demarrerInventaire(e) {
+    e.preventDefault()
+    setChargement(true)
+    setErreur('')
+    try {
+      const nouvelleSession = await api.post('/sessions-inventaire/', {
+        date,
+        motif: motif.trim() || `Inventaire du ${date}`,
+      })
+      await chargerSession(nouvelleSession.id)
+    } catch (err) {
+      setErreur(err.message || "Erreur lors du démarrage de l'inventaire")
+    } finally {
+      setChargement(false)
+    }
+  }
+
+  function changerStock(ligneId, valStr) {
+    setSaisies((prev) => ({
       ...prev,
-      [id]: valeur,
+      [ligneId]: valStr,
     }))
   }
 
-  // Articles ayant eu une modification par rapport au stock actuel
-  const modifications = produits.filter((p) => {
-    const sReel = Number(stocksReels[p.id])
-    return !isNaN(sReel) && sReel !== p.stock
-  })
-
-  async function enregistrer(e) {
-    e.preventDefault()
-    setErreur('')
-    if (modifications.length === 0) {
-      onFerme()
-      return
-    }
+  async function sauvegarderProgression() {
+    if (!sessionActive) return
     setEnvoi(true)
+    setErreur('')
     try {
-      for (const p of modifications) {
-        const sReel = Number(stocksReels[p.id])
-        await api.post('/mouvements-stock/inventaire/', {
-          produit: p.id,
-          stock_reel: sReel,
-          commentaire: commentaire || 'Stock physique en boutique',
-        })
-      }
-      await onEnregistre()
-    } catch (echec) {
-      setErreur(echec.message || "Erreur lors de l'enregistrement de l'inventaire")
+      const payloadSaisies = Object.entries(saisies).map(([ligneId, val]) => ({
+        ligne_id: ligneId,
+        stock_physique: val !== '' && val !== null && !isNaN(Number(val)) ? Number(val) : null,
+      }))
+      const miseAJour = await api.post(`/sessions-inventaire/${sessionActive.id}/sauvegarder_brouillon/`, {
+        saisies: payloadSaisies,
+      })
+      setSessionActive(miseAJour)
+    } catch (err) {
+      setErreur(err.message || 'Erreur lors de la sauvegarde du brouillon')
+    } finally {
       setEnvoi(false)
     }
   }
 
+  async function annulerInventaire() {
+    if (!sessionActive) return
+    if (!window.confirm("Êtes-vous sûr de vouloir abandonner cet inventaire ? Aucun changement ne sera apporté au stock.")) {
+      return
+    }
+    setEnvoi(true)
+    try {
+      await api.post(`/sessions-inventaire/${sessionActive.id}/annuler/`)
+      await onEnregistre()
+    } catch (err) {
+      setErreur(err.message || "Erreur lors de l'annulation")
+      setEnvoi(false)
+    }
+  }
+
+  async function validerDefinitivement() {
+    if (!sessionActive) return
+    setEnvoi(true)
+    setErreur('')
+    try {
+      const payloadSaisies = Object.entries(saisies).map(([ligneId, val]) => ({
+        ligne_id: ligneId,
+        stock_physique: val !== '' && val !== null && !isNaN(Number(val)) ? Number(val) : null,
+      }))
+      await api.post(`/sessions-inventaire/${sessionActive.id}/valider/`, {
+        saisies: payloadSaisies,
+      })
+      setConfirmValidation(false)
+      await onEnregistre()
+    } catch (err) {
+      setErreur(err.message || "Erreur lors de la validation de l'inventaire")
+      setEnvoi(false)
+    }
+  }
+
+  // Si pas de session active, afficher le formulaire de démarrage
+  if (!sessionActive) {
+    return (
+      <Modale titre="Démarrer un Inventaire Officiel" largeur={480} onFerme={onFerme}>
+        {erreur && <div className="erreur">{erreur}</div>}
+        <form onSubmit={demarrerInventaire}>
+          <div style={{ background: 'var(--tint)', padding: 14, borderRadius: 10, marginBottom: 16, fontSize: 13, color: 'var(--txt-sombre)' }}>
+            📋 <strong>Session d'inventaire sécurisée :</strong><br />
+            Le stock théorique de tout le catalogue sera figé à cet instant. Vos saisies seront conservées en brouillon et <strong>aucun mouvement de stock ne sera créé tant que vous ne validez pas</strong>.
+          </div>
+
+          <label className="lbl">Date de l'inventaire</label>
+          <input
+            className="champ"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            required
+          />
+
+          <label className="lbl">Nom / Motif de l'inventaire</label>
+          <input
+            className="champ"
+            placeholder="ex. Inventaire semaine du 10/08/2026"
+            value={motif}
+            onChange={(e) => setMotif(e.target.value)}
+            required
+          />
+
+          <div className="modal-act" style={{ marginTop: 20 }}>
+            <button type="button" className="btn btn-g" onClick={onFerme}>
+              Annuler
+            </button>
+            <button className="btn btn-o" disabled={chargement}>
+              {chargement ? 'Démarrage…' : 'Commencer le comptage'}
+            </button>
+          </div>
+        </form>
+      </Modale>
+    )
+  }
+
+  // Calculs des lignes et des catégories
+  const lignes = sessionActive.lignes || []
+  const categoriesObj = Array.from(
+    new Set(lignes.map((l) => l.produit_categorie_nom).filter(Boolean)),
+  )
+
+  const lignesFiltrees = lignes.filter((l) => {
+    const terme = recherche.trim().toLowerCase()
+    // Si recherche active -> cherche dans toutes les catégories
+    if (terme) return l.produit_nom.toLowerCase().includes(terme)
+    // Sinon -> applique le filtre catégorie
+    if (filtreCategorie) return String(l.produit_categorie_nom) === String(filtreCategorie)
+    return true
+  })
+
+  // Statistiques en direct
+  let comptés = 0
+  let avecEcart = 0
+  let totalManquants = 0
+  let totalSurplus = 0
+  let valeurFinanciereEcarts = 0
+
+  lignes.forEach((l) => {
+    const val = saisies[l.id]
+    if (val !== '' && val !== null && val !== undefined) {
+      comptés++
+      const phys = Number(val)
+      const ecart = phys - l.stock_theorique
+      if (ecart !== 0) {
+        avecEcart++
+        if (ecart < 0) totalManquants += Math.abs(ecart)
+        else totalSurplus += ecart
+        valeurFinanciereEcarts += Math.abs(ecart) * (l.produit_prix || 0)
+      }
+    }
+  })
+
   return (
-    <Modale titre="Correction d'inventaire — Stock physique en boutique" largeur={850} onFerme={onFerme}>
-      {erreur && <div className="erreur">{erreur}</div>}
-      <form onSubmit={enregistrer}>
-        <div style={{ display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-          <input
-            className="champ"
-            style={{ flex: 2, minWidth: 180 }}
-            placeholder="🔍 Rechercher un article…"
-            value={recherche}
-            onChange={(e) => setRecherche(e.target.value)}
-          />
-          <select
-            className="champ"
-            style={{ flex: 1, minWidth: 150 }}
-            value={categorieFiltre}
-            onChange={(e) => setCategorieFiltre(e.target.value)}
-          >
-            <option value="">Toutes les catégories</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-          <input
-            className="champ"
-            style={{ flex: 2, minWidth: 180 }}
-            placeholder="Motif / Commentaire (ex: Stock physique en boutique)"
-            value={commentaire}
-            onChange={(e) => setCommentaire(e.target.value)}
-          />
+    <>
+      <Modale titre={`Saisie Inventaire Officiel — ${sessionActive.motif}`} largeur={920} onFerme={onFerme}>
+        {erreur && <div className="erreur">{erreur}</div>}
+
+        {/* Barre de statut et de progression */}
+        <div
+          style={{
+            background: 'var(--tint)',
+            border: '1px solid var(--tint-bd)',
+            padding: '12px 16px',
+            borderRadius: 12,
+            marginBottom: 14,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 10,
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--noir)' }}>
+              Session du {new Date(sessionActive.date).toLocaleDateString('fr-FR')} &nbsp;•&nbsp;{' '}
+              <span style={{ color: '#d97706', background: '#fef3c7', padding: '2px 8px', borderRadius: 8, fontSize: 12 }}>
+                🟡 Brouillon (Stock boutique non modifié)
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--mut)', marginTop: 2 }}>
+              Progression : <strong>{comptés} / {lignes.length}</strong> articles comptés
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 12, fontSize: 13, fontWeight: 700 }}>
+            {totalManquants > 0 && (
+              <span style={{ color: 'var(--rouge)', background: 'rgba(244, 67, 54, 0.1)', padding: '4px 10px', borderRadius: 8 }}>
+                -{totalManquants} manquants
+              </span>
+            )}
+            {totalSurplus > 0 && (
+              <span style={{ color: 'var(--vert)', background: 'rgba(76, 175, 80, 0.1)', padding: '4px 10px', borderRadius: 8 }}>
+                +{totalSurplus} surplus
+              </span>
+            )}
+          </div>
         </div>
 
+        {/* Barre de recherche + Filtres boutons par catégorie */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <input
+              className="champ"
+              style={{ flex: 1 }}
+              placeholder="Rechercher une boisson dans toutes les catégories…"
+              value={recherche}
+              onChange={(e) => setRecherche(e.target.value)}
+            />
+            {recherche && (
+              <button
+                type="button"
+                className="btn btn-g"
+                style={{ padding: '6px 12px', fontSize: 12 }}
+                onClick={() => setRecherche('')}
+              >
+                Effacer
+              </button>
+            )}
+          </div>
+
+          {!recherche && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--mut)', textTransform: 'uppercase', marginRight: 4 }}>
+                Catégories :
+              </span>
+              <button
+                type="button"
+                className={`segb ${filtreCategorie === '' ? 'on' : ''}`}
+                onClick={() => setFiltreCategorie('')}
+              >
+                Toutes ({lignes.length})
+              </button>
+              {categoriesObj.map((catNom) => {
+                const countCat = lignes.filter((l) => l.produit_categorie_nom === catNom).length
+                return (
+                  <button
+                    key={catNom}
+                    type="button"
+                    className={`segb ${filtreCategorie === catNom ? 'on' : ''}`}
+                    onClick={() => setFiltreCategorie(catNom)}
+                  >
+                    {catNom} ({countCat})
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Tableau de saisie */}
         <div style={{ maxHeight: 420, overflowY: 'auto', border: '1px solid var(--bord)', borderRadius: 'var(--radius)' }}>
           <table className="tbl">
             <thead>
               <tr>
                 <th>Produit</th>
                 <th>Catégorie</th>
-                <th>Prix Standard</th>
-                <th>Stock Théorique</th>
-                <th>Stock physique en boutique</th>
-                <th>Écart</th>
+                <th style={{ textAlign: 'right' }}>Prix</th>
+                <th style={{ textAlign: 'center' }}>Stock Théorique</th>
+                <th style={{ textAlign: 'center', width: 170 }}>Stock Physique</th>
+                <th style={{ textAlign: 'center' }}>Écart</th>
               </tr>
             </thead>
             <tbody>
-              {produitsFiltres.map((p) => {
-                const valSaisie = stocksReels[p.id] !== undefined ? stocksReels[p.id] : p.stock
-                const sReel = Number(valSaisie)
-                const ecart = !isNaN(sReel) ? sReel - p.stock : 0
+              {lignesFiltrees.map((ligne) => {
+                const valStr = saisies[ligne.id] ?? ''
+                const phys = valStr !== '' ? Number(valStr) : null
+                const ecart = phys !== null && !isNaN(phys) ? phys - ligne.stock_theorique : null
 
                 return (
-                  <tr key={p.id} style={{ background: ecart !== 0 ? 'rgba(255, 152, 0, 0.06)' : undefined }}>
-                    <td style={{ fontWeight: 600 }}>{p.nom}</td>
-                    <td>{p.categorie?.nom || p.categorie_nom || '—'}</td>
-                    <td>{p.prix_standard ? `${p.prix_standard} F` : 'Prix libre'}</td>
-                    <td>
-                      <span className={`badge ${p.stock <= 0 ? 'b-rup' : p.stock <= p.seuil_alerte ? 'b-bas' : 'b-ok'}`}>
-                        {p.stock}
+                  <tr
+                    key={ligne.id}
+                    style={{
+                      background: ecart !== null && ecart !== 0 ? 'rgba(255, 152, 0, 0.08)' : undefined,
+                    }}
+                  >
+                    <td style={{ fontWeight: 600 }}>{ligne.produit_nom}</td>
+                    <td style={{ color: 'var(--mut)' }}>{ligne.produit_categorie_nom || '—'}</td>
+                    <td style={{ textAlign: 'right', color: 'var(--mut)' }}>{fcfa(ligne.produit_prix)}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span className="badge b-ok" style={{ fontWeight: 700 }}>
+                        {ligne.stock_theorique}
                       </span>
                     </td>
-                    <td style={{ width: 170 }}>
+                    <td style={{ textAlign: 'center' }}>
                       <input
                         className="champ"
                         type="number"
                         min="0"
-                        style={{ margin: 0, padding: '4px 8px', textAlign: 'center', fontWeight: 'bold', fontSize: 14, borderColor: ecart !== 0 ? 'var(--orange-dk)' : undefined }}
-                        value={valSaisie}
-                        onChange={(e) => changerStock(p.id, e.target.value)}
+                        placeholder="Saisir..."
+                        style={{
+                          margin: 0,
+                          padding: '4px 8px',
+                          textAlign: 'center',
+                          fontWeight: 'bold',
+                          fontSize: 14,
+                          borderColor: valStr !== '' && ecart !== 0 ? 'var(--orange-dk)' : undefined,
+                        }}
+                        value={valStr}
+                        onChange={(e) => changerStock(ligne.id, e.target.value)}
                       />
                     </td>
-                    <td>
-                      {ecart === 0 ? (
-                        <span style={{ color: 'var(--txt-clair)', fontSize: 13 }}>0</span>
+                    <td style={{ textAlign: 'center' }}>
+                      {ecart === null ? (
+                        <span style={{ color: 'var(--mut)', fontSize: 13 }}>— non compté</span>
+                      ) : ecart === 0 ? (
+                        <span style={{ color: '#2e7d32', fontSize: 13, fontWeight: 'bold' }}>0 (Conforme)</span>
                       ) : (
                         <span
                           className="badge"
@@ -917,7 +1178,7 @@ function InventaireGlobal({ produits, onFerme, onEnregistre }) {
                             fontWeight: 'bold',
                           }}
                         >
-                          {ecart > 0 ? `+${ecart}` : ecart}
+                          {ecart > 0 ? `+${ecart} (Surplus)` : `${ecart} (Manquant)`}
                         </span>
                       )}
                     </td>
@@ -928,26 +1189,96 @@ function InventaireGlobal({ produits, onFerme, onEnregistre }) {
           </table>
         </div>
 
+        {/* Actions principales */}
         <div className="modal-act" style={{ marginTop: 18, justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 13, color: 'var(--txt-sombre)' }}>
-            {modifications.length === 0 ? (
-              <span>Aucun ajustement de stock</span>
-            ) : (
-              <span style={{ color: 'var(--orange-dk)', fontWeight: 600 }}>
-                {modifications.length} article(s) à réajuster
-              </span>
-            )}
-          </div>
+          <button
+            type="button"
+            className="btn btn-g"
+            style={{ color: 'var(--rouge)' }}
+            onClick={annulerInventaire}
+            disabled={envoi}
+          >
+            Abandonner cet inventaire
+          </button>
+
           <div style={{ display: 'flex', gap: 10 }}>
-            <button type="button" className="btn btn-g" onClick={onFerme}>
-              Annuler
+            <button
+              type="button"
+              className="btn btn-g"
+              onClick={sauvegarderProgression}
+              disabled={envoi}
+            >
+              {envoi ? 'Sauvegarde…' : 'Sauvegarder le brouillon'}
             </button>
-            <button className="btn btn-o" disabled={envoi}>
-              {envoi ? 'Enregistrement…' : `Valider l'inventaire (${modifications.length})`}
+
+            <button
+              type="button"
+              className="btn btn-o"
+              style={{ fontWeight: 700 }}
+              onClick={() => setConfirmValidation(true)}
+              disabled={envoi || comptés === 0}
+            >
+              Valider et enregistrer définitivement ({comptés})
             </button>
           </div>
         </div>
-      </form>
-    </Modale>
+      </Modale>
+
+      {/* Pop-up de confirmation finale */}
+      {confirmValidation && (
+        <Modale titre="Confirmation de Validation de l'Inventaire" largeur={500} onFerme={() => setConfirmValidation(false)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ background: '#fef3c7', border: '1px solid #fde68a', color: '#92400e', padding: 14, borderRadius: 10, fontSize: 13 }}>
+              ⚠️ <strong>ATTENTION :</strong><br />
+              Vous allez valider définitivement l'inventaire du <strong>{new Date(sessionActive.date).toLocaleDateString('fr-FR')}</strong>.<br />
+              Cette action va écrire les corrections au livre de stock et mettre à jour le stock disponible du Bar.
+            </div>
+
+            <div style={{ background: 'var(--tint)', padding: 14, borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Total des articles comptés :</span>
+                <strong>{comptés} articles</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Articles avec écart de stock :</span>
+                <strong style={{ color: avecEcart > 0 ? 'var(--orange-dk)' : 'var(--vert)' }}>{avecEcart} articles</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Bouteilles manquantes :</span>
+                <strong style={{ color: 'var(--rouge)' }}>-{totalManquants}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Bouteilles en surplus :</span>
+                <strong style={{ color: 'var(--vert)' }}>+{totalSurplus}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--bord)', paddingTop: 6, marginTop: 4 }}>
+                <span>Valeur financière des écarts :</span>
+                <strong style={{ fontSize: 14 }}>{fcfa(valeurFinanciereEcarts)}</strong>
+              </div>
+            </div>
+
+            <div className="modal-act" style={{ marginTop: 10 }}>
+              <button
+                type="button"
+                className="btn btn-g"
+                onClick={() => setConfirmValidation(false)}
+                disabled={envoi}
+              >
+                Retour aux modifications
+              </button>
+              <button
+                type="button"
+                className="btn btn-o"
+                style={{ fontWeight: 800 }}
+                onClick={validerDefinitivement}
+                disabled={envoi}
+              >
+                {envoi ? 'Validation en cours…' : 'Oui, Valider définitivement'}
+              </button>
+            </div>
+          </div>
+        </Modale>
+      )}
+    </>
   )
 }

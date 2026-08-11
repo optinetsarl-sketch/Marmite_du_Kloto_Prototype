@@ -114,11 +114,12 @@ export default function Catalogue() {
   const [messageFlash, setMessageFlash] = useState(null)
   const [edition, setEdition] = useState(null)
   const [recherche, setRecherche] = useState('')
+  const [filtreCategorie, setFiltreCategorie] = useState('')
 
   async function charger() {
     try {
       const [prods, cats, fams, tbls] = await Promise.all([
-        liste('/produits/?page_size=400'),
+        liste('/produits/?page_size=1000'),
         liste('/categories/'),
         liste('/familles/'),
         liste('/tables/?page_size=200'),
@@ -130,11 +131,6 @@ export default function Catalogue() {
       setErreur('')
     } catch (echec) {
       setErreur(echec.message)
-      setNotification({
-        type: 'erreur',
-        titre: 'Erreur de chargement',
-        message: `Impossible de charger les données : ${echec.message}`,
-      })
     }
   }
 
@@ -147,17 +143,15 @@ export default function Catalogue() {
     try {
       await api.delete(chemin)
       await charger()
-      setNotification({
+      setMessageFlash({
         type: 'succes',
-        titre: 'Suppression effectuée !',
         message: `« ${libelle} » a été supprimé avec succès du catalogue.`,
       })
     } catch (echec) {
       const msg = `Impossible de supprimer « ${libelle} » : cet élément est probablement déjà utilisé dans des commandes.`
       setErreur(msg)
-      setNotification({
+      setMessageFlash({
         type: 'erreur',
-        titre: 'Suppression impossible ⚠️',
         message: msg,
       })
     }
@@ -169,8 +163,12 @@ export default function Catalogue() {
   )
   const plats = useMemo(() => {
     const terme = recherche.trim().toLowerCase()
-    return terme ? platsTous.filter((p) => p.nom.toLowerCase().includes(terme)) : platsTous
-  }, [platsTous, recherche])
+    // Si une recherche est active : cherche dans TOUTES les catégories, ignore le filtre catégorie
+    if (terme) return platsTous.filter((p) => p.nom.toLowerCase().includes(terme))
+    // Sinon : applique le filtre catégorie pour réduire la liste
+    if (filtreCategorie) return platsTous.filter((p) => String(p.categorie) === String(filtreCategorie))
+    return platsTous
+  }, [platsTous, recherche, filtreCategorie])
 
   const boissonsToutes = useMemo(
     () => produits.filter((produit) => produit.rayon === 'bar'),
@@ -178,8 +176,12 @@ export default function Catalogue() {
   )
   const boissons = useMemo(() => {
     const terme = recherche.trim().toLowerCase()
-    return terme ? boissonsToutes.filter((p) => p.nom.toLowerCase().includes(terme)) : boissonsToutes
-  }, [boissonsToutes, recherche])
+    // Si une recherche est active : cherche dans TOUTES les catégories, ignore le filtre catégorie
+    if (terme) return boissonsToutes.filter((p) => p.nom.toLowerCase().includes(terme))
+    // Sinon : applique le filtre catégorie pour réduire la liste
+    if (filtreCategorie) return boissonsToutes.filter((p) => String(p.categorie) === String(filtreCategorie))
+    return boissonsToutes
+  }, [boissonsToutes, recherche, filtreCategorie])
 
   function ouvrirAjout(targetType = onglet) {
     const catParDefaut = categories.find((c) =>
@@ -223,6 +225,10 @@ export default function Catalogue() {
     tables: tables.length,
   }
 
+  const categoriesFiltreOption = categories.filter((c) =>
+    onglet === 'plats' ? c.rayon === 'cuisine' : c.rayon === 'bar',
+  )
+
   return (
     <>
       <div className="top">
@@ -249,6 +255,7 @@ export default function Catalogue() {
             onClick={() => {
               setOnglet(code)
               setRecherche('')
+              setFiltreCategorie('')
             }}
           >
             {libelle} ({compteurs[code] || 0})
@@ -257,23 +264,74 @@ export default function Catalogue() {
       </div>
 
       {(onglet === 'boissons' || onglet === 'plats') && (
-        <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' }}>
-          <input
-            className="champ"
-            style={{ flex: 1 }}
-            placeholder={onglet === 'plats' ? "Rechercher un plat..." : "Rechercher une boisson..."}
-            value={recherche}
-            onChange={(e) => setRecherche(e.target.value)}
-          />
-          <button
-            className="btn btn-g"
-            style={{ fontWeight: 700 }}
-            onClick={() => ouvrirAjout(onglet)}
-          >
-            {libellesAjout[onglet]}
-          </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+          {/* Barre de recherche + bouton ajouter */}
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              className="champ"
+              style={{ flex: 1, minWidth: 200 }}
+              placeholder={onglet === 'plats' ? "Rechercher un plat dans toutes les catégories..." : "Rechercher une boisson dans toutes les catégories..."}
+              value={recherche}
+              onChange={(e) => setRecherche(e.target.value)}
+            />
+            {recherche && (
+              <button
+                type="button"
+                className="btn btn-g"
+                style={{ padding: '8px 14px', fontSize: 12 }}
+                onClick={() => setRecherche('')}
+              >
+                Effacer
+              </button>
+            )}
+            <button
+              className="btn btn-o"
+              style={{ fontWeight: 700 }}
+              onClick={() => ouvrirAjout(onglet)}
+            >
+              {libellesAjout[onglet]}
+            </button>
+          </div>
+
+          {/* Filtres par catégorie — boutons rapides */}
+          {!recherche && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--mut)', textTransform: 'uppercase', marginRight: 4 }}>
+                Filtrer :
+              </span>
+              <button
+                type="button"
+                className={`segb ${filtreCategorie === '' ? 'on' : ''}`}
+                onClick={() => setFiltreCategorie('')}
+              >
+                Toutes ({onglet === 'boissons' ? boissonsToutes.length : platsTous.length})
+              </button>
+              {categoriesFiltreOption.map((c) => {
+                const nb = (onglet === 'boissons' ? boissonsToutes : platsTous)
+                  .filter((p) => String(p.categorie) === String(c.id)).length
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`segb ${filtreCategorie === String(c.id) ? 'on' : ''}`}
+                    onClick={() => setFiltreCategorie(String(c.id))}
+                  >
+                    {c.nom} ({nb})
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Indicateur quand la recherche est active */}
+          {recherche && (
+            <div style={{ fontSize: 12, color: 'var(--mut)', fontStyle: 'italic' }}>
+              Recherche dans toutes les catégories pour «&nbsp;<strong style={{ color: 'var(--noir)' }}>{recherche}</strong>&nbsp;»
+            </div>
+          )}
         </div>
       )}
+
 
       <div className="card carte-tableau">
         <div className="tableau-defilant">
@@ -609,7 +667,7 @@ function Formulaire({ edition, produits = [], categories = [], familles = [], ta
           throw new Error(`La catégorie « ${corps.nom.trim()} » existe déjà.`)
         }
         corps.ordre = Number(corps.ordre) || 0
-        corps.famille = corps.famille ? Number(corps.famille) : null
+        corps.famille = corps.famille ? String(corps.famille) : null
       }
       if (type === 'familles') {
         if (!corps.nom || !corps.nom.trim()) throw new Error('Le nom de la famille est obligatoire.')

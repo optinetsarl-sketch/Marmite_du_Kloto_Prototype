@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Modale from './Modale'
 
 const SAUCES_DISPONIBLES = [
@@ -8,140 +8,234 @@ const SAUCES_DISPONIBLES = [
   { id: 'poulet', nom: 'Poulet' },
   { id: 'poisson_fume', nom: 'Poisson fumé' },
   { id: 'agouti', nom: 'Agouti' },
+  { id: 'gombo', nom: 'Gombo' },
+  { id: 'arachide', nom: 'Arachide' },
+]
+
+/* ─────────────────────────────────────────────────────────────
+   TYPES DE PORTION
+   ───────────────────────────────────────────────────────────── */
+const PORTIONS = [
+  {
+    id: 'complet',
+    label: '🍽️ Plat complet',
+    description: 'Plat + Sauce incluse',
+    couleur: '#dd6b20',
+    fond: '#fff5ec',
+    bordure: '#dd6b20',
+  },
+  {
+    id: 'sauce_seule',
+    label: '🥣 Sauce seule',
+    description: 'Sans accompagnement',
+    couleur: '#2b6cb0',
+    fond: '#ebf8ff',
+    bordure: '#2b6cb0',
+  },
+  {
+    id: 'plat_seul',
+    label: '🍚 Plat seul',
+    description: 'Sans sauce',
+    couleur: '#38a169',
+    fond: '#f0fff4',
+    bordure: '#38a169',
+  },
 ]
 
 export default function ModalePrix({ produit, onValide, onFerme }) {
+  const [typePortion, setTypePortion] = useState('complet')
   const [prix, setPrix] = useState(produit.prix_standard ? String(produit.prix_standard) : '')
   const [sauceChoisie, setSauceChoisie] = useState('')
-  const [prixSauce, setPrixSauce] = useState('')
   const [autreSauce, setAutreSauce] = useState('')
   const [noteInstruction, setNoteInstruction] = useState('')
 
+  // Quand on change le type de portion, adapter l'affichage
+  const portionActive = PORTIONS.find((p) => p.id === typePortion)
+  const necessite_sauce = typePortion === 'complet' || typePortion === 'sauce_seule'
+
+  // Réinitialiser la sauce si on passe à "Plat seul"
+  useEffect(() => {
+    if (typePortion === 'plat_seul') {
+      setSauceChoisie('')
+    }
+  }, [typePortion])
+
   function valider(evenement) {
     evenement.preventDefault()
-    const montantPlat = Number(prix) || 0
-    const montantSauce = Number(prixSauce) || 0
-    if (montantPlat <= 0 && montantSauce <= 0 && !produit.prix_standard) return
+    const montantSaisi = Number(prix)
+    if (montantSaisi <= 0) return
 
-    const nomSauceFinal = sauceChoisie === '__autre__' ? autreSauce.trim() : sauceChoisie
+    const nomSauceFinal =
+      sauceChoisie === '__autre__' ? autreSauce.trim() : sauceChoisie
+
+    // Construire la note finale
+    let noteFinale = noteInstruction.trim()
+    const infoType =
+      typePortion === 'sauce_seule'
+        ? '🥣 Sauce seule'
+        : typePortion === 'plat_seul'
+          ? '🍚 Plat seul'
+          : ''
+    if (infoType) {
+      noteFinale = noteFinale ? `${infoType} · ${noteFinale}` : infoType
+    }
+    if (nomSauceFinal && necessite_sauce) {
+      const sauceInfo = `Sauce ${nomSauceFinal}`
+      noteFinale = noteFinale ? `${sauceInfo} · ${noteFinale}` : sauceInfo
+    }
 
     onValide({
-      prixPlat: montantPlat || (produit.prix_standard ? Number(produit.prix_standard) : 0),
-      sauceNom: nomSauceFinal,
-      prixSauce: montantSauce,
-      note: noteInstruction.trim(),
+      prixPlat: montantSaisi,
+      sauceNom: necessite_sauce ? nomSauceFinal : '',
+      prixSauce: 0,
+      note: noteFinale,
+      typePortion,
     })
   }
 
-  const formulaireValide = Number(prix) > 0 || Number(prixSauce) > 0 || Boolean(produit.prix_standard)
+  const portionInfo = portionActive || PORTIONS[0]
 
   return (
-    <Modale titre="Prix & Choix de la Sauce" sousTitre={produit.nom} onFerme={onFerme}>
+    <Modale titre="Type de portion & Prix" sousTitre={produit.nom} onFerme={onFerme}>
       <form onSubmit={valider}>
-        {/* 1. Saisie du prix du plat */}
+
+        {/* ── 1. Choix du type de portion ── */}
+        <div style={{ marginBottom: 18 }}>
+          <label className="lbl" style={{ marginBottom: 10, display: 'block', fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Le client veut…
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {PORTIONS.map((portion) => {
+              const active = typePortion === portion.id
+              return (
+                <button
+                  key={portion.id}
+                  type="button"
+                  onClick={() => setTypePortion(portion.id)}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                    padding: '12px 6px',
+                    borderRadius: 10,
+                    border: `2px solid ${active ? portion.bordure : '#e2e8f0'}`,
+                    background: active ? portion.fond : '#f8fafc',
+                    cursor: 'pointer',
+                    transition: 'all 0.18s ease',
+                    boxShadow: active ? `0 0 0 3px ${portion.couleur}22` : 'none',
+                  }}
+                >
+                  <span style={{ fontSize: 22 }}>{portion.label.split(' ')[0]}</span>
+                  <span style={{ fontSize: 12, fontWeight: active ? 800 : 600, color: active ? portion.couleur : '#4a5568', textAlign: 'center', lineHeight: 1.2 }}>
+                    {portion.label.replace(portion.label.split(' ')[0] + ' ', '')}
+                  </span>
+                  <span style={{ fontSize: 10, color: active ? portion.couleur : '#a0aec0', textAlign: 'center' }}>
+                    {portion.description}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* ── 2. Prix ── */}
         <div style={{ marginBottom: 16 }}>
           <label className="lbl" style={{ marginBottom: 6, display: 'block', fontWeight: 700 }}>
-            Prix du plat (FCFA)
+            Prix (FCFA) *
           </label>
           <input
             className="champ"
-            style={{ fontSize: 18, fontWeight: 700, padding: '10px 14px' }}
+            style={{
+              fontSize: 20,
+              fontWeight: 700,
+              padding: '10px 14px',
+              borderColor: portionInfo.bordure,
+              outline: 'none',
+            }}
             type="number"
-            min="0"
+            min="1"
             step="1"
-            placeholder="ex: 500 ou 1000 (0 si sauce uniquement)"
+            placeholder="ex: 500 ou 1500"
             value={prix}
             onChange={(e) => setPrix(e.target.value)}
             autoFocus
           />
         </div>
 
-        {/* 2. Sélection de la sauce */}
-        <div style={{ marginBottom: 16 }}>
-          <label className="lbl" style={{ marginBottom: 8, display: 'block', fontWeight: 700 }}>
-            Sauces disponibles (Cuisine)
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 8 }}>
-            {SAUCES_DISPONIBLES.map((s) => {
-              const active = sauceChoisie === s.nom
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  className={`btn ${active ? 'btn-o' : 'btn-g'}`}
-                  style={{
-                    padding: '10px 6px',
-                    fontSize: 13,
-                    fontWeight: active ? 800 : 600,
-                    textAlign: 'center',
-                  }}
-                  onClick={() => setSauceChoisie(active ? '' : s.nom)}
-                >
-                  {s.nom}
-                </button>
-              )
-            })}
-          </div>
+        {/* ── 3. Sélection de la sauce (masqué si "Plat seul") ── */}
+        {necessite_sauce && (
+          <div style={{ marginBottom: 16 }}>
+            <label className="lbl" style={{ marginBottom: 8, display: 'block', fontWeight: 700 }}>
+              {typePortion === 'sauce_seule' ? 'Type de sauce vendue *' : 'Sauce du plat (optionnel)'}
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7, marginBottom: 8 }}>
+              {SAUCES_DISPONIBLES.map((s) => {
+                const active = sauceChoisie === s.nom
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className={`btn ${active ? 'btn-o' : 'btn-g'}`}
+                    style={{
+                      padding: '9px 5px',
+                      fontSize: 12,
+                      fontWeight: active ? 800 : 600,
+                      textAlign: 'center',
+                      border: active ? '2px solid var(--orange)' : '2px solid transparent',
+                    }}
+                    onClick={() => setSauceChoisie(active ? '' : s.nom)}
+                  >
+                    {s.nom}
+                  </button>
+                )
+              })}
+            </div>
 
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button
-              type="button"
-              className={`btn ${sauceChoisie === '__autre__' ? 'btn-o' : 'btn-g'}`}
-              style={{ fontSize: 12, padding: '6px 10px' }}
-              onClick={() => setSauceChoisie(sauceChoisie === '__autre__' ? '' : '__autre__')}
-            >
-              Autre sauce…
-            </button>
-            {sauceChoisie && (
+            {/* Autre sauce + effacer */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button
                 type="button"
-                className="btn btn-g"
-                style={{ fontSize: 12, padding: '6px 10px', color: 'var(--mut)' }}
-                onClick={() => {
-                  setSauceChoisie('')
-                  setPrixSauce('')
-                }}
+                className={`btn ${sauceChoisie === '__autre__' ? 'btn-o' : 'btn-g'}`}
+                style={{ fontSize: 12, padding: '6px 10px' }}
+                onClick={() => setSauceChoisie(sauceChoisie === '__autre__' ? '' : '__autre__')}
               >
-                ✕ Sans sauce
+                Autre sauce…
               </button>
-            )}
-          </div>
-
-          {sauceChoisie === '__autre__' && (
-            <input
-              className="champ"
-              style={{ marginTop: 8, fontSize: 13 }}
-              placeholder="Saisir le nom de la sauce…"
-              value={autreSauce}
-              onChange={(e) => setAutreSauce(e.target.value)}
-              autoFocus
-            />
-          )}
-        </div>
-
-        {/* 3. Prix de la sauce (si une sauce est sélectionnée) */}
-        {Boolean(sauceChoisie) && (
-          <div style={{ marginBottom: 16, background: '#fff5ec', border: '1px solid var(--orange)', padding: 12, borderRadius: 8 }}>
-            <label className="lbl" style={{ marginBottom: 4, display: 'block', fontWeight: 700, color: 'var(--orange-dk)' }}>
-              Prix de la sauce « {sauceChoisie === '__autre__' ? (autreSauce || 'Autre') : sauceChoisie} » (FCFA)
-            </label>
-            <input
-              className="champ"
-              style={{ fontSize: 15, fontWeight: 700 }}
-              type="number"
-              min="0"
-              step="1"
-              placeholder="ex: 500 (0 si incluse)"
-              value={prixSauce}
-              onChange={(e) => setPrixSauce(e.target.value)}
-            />
-            <div style={{ fontSize: 11, color: 'var(--mut)', marginTop: 4 }}>
-              Laissez vide ou 0 si la sauce est déjà incluse dans le prix du plat.
+              {sauceChoisie && (
+                <button
+                  type="button"
+                  className="btn btn-g"
+                  style={{ fontSize: 12, padding: '6px 10px', color: 'var(--mut)' }}
+                  onClick={() => setSauceChoisie('')}
+                >
+                  ✕ Sans sauce
+                </button>
+              )}
             </div>
+
+            {sauceChoisie === '__autre__' && (
+              <input
+                className="champ"
+                style={{ marginTop: 8, fontSize: 13 }}
+                placeholder="Saisir le nom de la sauce…"
+                value={autreSauce}
+                onChange={(e) => setAutreSauce(e.target.value)}
+                autoFocus
+              />
+            )}
           </div>
         )}
 
-        {/* 4. Note additionnelle */}
+        {/* Message si Plat seul */}
+        {typePortion === 'plat_seul' && (
+          <div style={{ marginBottom: 16, padding: '10px 14px', background: '#f0fff4', border: '1px solid #38a169', borderRadius: 8, fontSize: 13, color: '#276749', fontWeight: 600 }}>
+            🍚 Vente sans sauce — seul l'accompagnement est servi.
+          </div>
+        )}
+
+        {/* ── 4. Note cuisine ── */}
         <div style={{ marginBottom: 16 }}>
           <label className="lbl" style={{ marginBottom: 4, display: 'block' }}>
             Instructions cuisine (Optionnel)
@@ -149,18 +243,38 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
           <input
             className="champ"
             style={{ fontSize: 13 }}
-            placeholder="ex: Piment à part, bien chaud…"
+            placeholder="ex: Piment à part, bien chaud, peu salé…"
             value={noteInstruction}
             onChange={(e) => setNoteInstruction(e.target.value)}
           />
         </div>
 
+        {/* ── Résumé avant validation ── */}
+        {Number(prix) > 0 && (
+          <div style={{ marginBottom: 14, padding: '10px 14px', background: portionInfo.fond, border: `1px solid ${portionInfo.bordure}`, borderRadius: 8 }}>
+            <div style={{ fontWeight: 700, color: portionInfo.couleur, fontSize: 14 }}>
+              {portionInfo.label}
+              {sauceChoisie && necessite_sauce ? ` · ${sauceChoisie === '__autre__' ? (autreSauce || 'Autre sauce') : sauceChoisie}` : ''}
+              {' → '}<span style={{ fontSize: 16 }}>{Number(prix).toLocaleString('fr-FR')} F</span>
+            </div>
+            {noteInstruction && (
+              <div style={{ fontSize: 12, color: portionInfo.couleur, marginTop: 3 }}>
+                📝 {noteInstruction}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="modal-act">
           <button type="button" className="btn btn-g" onClick={onFerme}>
             Annuler
           </button>
-          <button className="btn btn-o" disabled={!formulaireValide}>
-            Valider &amp; Envoyer
+          <button
+            className="btn btn-o"
+            disabled={!(Number(prix) > 0) || (typePortion === 'sauce_seule' && !sauceChoisie && !autreSauce.trim())}
+            style={{ background: portionInfo.couleur, borderColor: portionInfo.couleur }}
+          >
+            ✓ Ajouter au panier
           </button>
         </div>
       </form>

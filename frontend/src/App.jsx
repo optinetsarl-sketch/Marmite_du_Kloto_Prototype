@@ -11,6 +11,7 @@ import Cuisine from './pages/Cuisine'
 import Depenses from './pages/Depenses'
 import Emporter from './pages/Emporter'
 import Historique from './pages/Historique'
+import Inventaires from './pages/Inventaires'
 import Livraison from './pages/Livraison'
 import Rapports from './pages/Rapports'
 import Tables from './pages/Tables'
@@ -25,6 +26,7 @@ const MENU = [
   { to: '/tables', libelle: 'Tables' },
   { groupe: 'Opérations' },
   { to: '/bar', libelle: 'Bar / Stock' },
+  { to: '/inventaires', libelle: 'Registre Inventaires' },
   { to: '/cuisine', libelle: 'Cuisine' },
   { to: '/livraison', libelle: 'Livraison' },
   { groupe: 'Gestion' },
@@ -87,7 +89,7 @@ export default function App() {
               {utilisateur.nom}
             </span>
             <span style={{ fontSize: 10, color: estAdmin ? '#F47C20' : '#8E8E93', textTransform: 'uppercase', fontWeight: 700 }}>
-              {estAdmin ? '👑 Admin' : '👤 Gérant'}
+              {estAdmin ? 'Admin' : 'Gérant'}
             </span>
           </div>
           <button
@@ -105,6 +107,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Accueil />} />
           <Route path="/bar" element={<Bar />} />
+          <Route path="/inventaires" element={<Inventaires />} />
           <Route path="/ventes" element={<Ventes />} />
           <Route path="/emporter" element={<Emporter />} />
           <Route path="/tables" element={<Tables />} />
