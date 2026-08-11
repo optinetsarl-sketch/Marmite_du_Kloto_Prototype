@@ -19,19 +19,21 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
 
   function valider(evenement) {
     evenement.preventDefault()
-    const montantPlat = Number(prix)
+    const montantPlat = Number(prix) || 0
     const montantSauce = Number(prixSauce) || 0
-    if (montantPlat <= 0 && !produit.prix_standard) return
+    if (montantPlat <= 0 && montantSauce <= 0 && !produit.prix_standard) return
 
     const nomSauceFinal = sauceChoisie === '__autre__' ? autreSauce.trim() : sauceChoisie
 
     onValide({
-      prixPlat: montantPlat || produit.prix_standard || 0,
+      prixPlat: montantPlat || (produit.prix_standard ? Number(produit.prix_standard) : 0),
       sauceNom: nomSauceFinal,
       prixSauce: montantSauce,
       note: noteInstruction.trim(),
     })
   }
+
+  const formulaireValide = Number(prix) > 0 || Number(prixSauce) > 0 || Boolean(produit.prix_standard)
 
   return (
     <Modale titre="Prix & Choix de la Sauce" sousTitre={produit.nom} onFerme={onFerme}>
@@ -39,7 +41,7 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
         {/* 1. Saisie du prix du plat */}
         <div style={{ marginBottom: 16 }}>
           <label className="lbl" style={{ marginBottom: 6, display: 'block', fontWeight: 700 }}>
-            Prix du plat (FCFA) *
+            Prix du plat (FCFA)
           </label>
           <input
             className="champ"
@@ -47,11 +49,10 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
             type="number"
             min="0"
             step="1"
-            placeholder="ex: 500 ou 1000"
+            placeholder="ex: 500 ou 1000 (0 si sauce uniquement)"
             value={prix}
             onChange={(e) => setPrix(e.target.value)}
             autoFocus
-            required
           />
         </div>
 
@@ -158,7 +159,7 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
           <button type="button" className="btn btn-g" onClick={onFerme}>
             Annuler
           </button>
-          <button className="btn btn-o" disabled={!(Number(prix) > 0)}>
+          <button className="btn btn-o" disabled={!formulaireValide}>
             Valider &amp; Envoyer
           </button>
         </div>
