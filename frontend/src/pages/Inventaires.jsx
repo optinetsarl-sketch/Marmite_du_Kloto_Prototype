@@ -285,48 +285,45 @@ export default function Inventaires() {
       ) : (
         /* Document Officiel Procès-Verbal d'Inventaire */
         <div className="card" style={{ background: '#fff', border: '1px solid var(--bord)', borderRadius: 14, padding: 24 }}>
-          {/* Entête officiel du procès-verbal */}
+          {/* Entête officiel du procès-verbal (Centré au milieu) */}
           <div
             style={{
               display: 'flex',
-              justify: 'space-between',
-              alignItems: 'flex-start',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
               borderBottom: '2px solid var(--bord)',
               paddingBottom: 16,
               marginBottom: 20,
-              flexWrap: 'wrap',
-              gap: 16,
+              gap: 4,
             }}
           >
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--orange-dk)', letterSpacing: 1, textTransform: 'uppercase' }}>
-                PROCÈS-VERBAL D'INVENTAIRE OFFICIEL
-              </div>
-              <h2 style={{ margin: '4px 0 2px', fontSize: 20, fontWeight: 800 }}>
-                La Marmite du Kloto — Bar-Resto
-              </h2>
-              <div style={{ fontSize: 13, color: 'var(--mut)' }}>
-                Avédji · Lomé, Togo
-              </div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--orange-dk)', letterSpacing: 1.5, textTransform: 'uppercase' }}>
+              PROCÈS-VERBAL D'INVENTAIRE OFFICIEL
+            </div>
+            <h2 style={{ margin: '4px 0 2px', fontSize: 22, fontWeight: 800, color: 'var(--noir)' }}>
+              La Marmite du Kloto — Bar-Resto
+            </h2>
+            <div style={{ fontSize: 13, color: 'var(--mut)', fontWeight: 600 }}>
+              Avédji · Lomé, Togo
             </div>
 
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--noir)' }}>
-                Date : {new Date(sessionActive.date).toLocaleString('fr-FR', {
-                  weekday: 'long',
-                  day: '2-digit',
-                  month: 'long',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--mut)', marginTop: 4 }}>
-                Motif / Session : <strong style={{ color: 'var(--noir)' }}>{sessionActive.commentaire}</strong>
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--mut)', marginTop: 2 }}>
-                Statut : <span style={{ color: '#2e7d32', fontWeight: 700 }}>Figé & Auditable</span>
-              </div>
+            <div style={{ marginTop: 8, fontSize: 14, fontWeight: 700, color: 'var(--noir)' }}>
+              Date : {new Date(sessionActive.date).toLocaleString('fr-FR', {
+                weekday: 'long',
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--mut)' }}>
+              Motif / Session : <strong style={{ color: 'var(--noir)' }}>{sessionActive.commentaire}</strong>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--mut)', marginTop: 2 }}>
+              Statut : <span style={{ color: '#2e7d32', fontWeight: 700 }}>Figé & Auditable</span>
             </div>
           </div>
 
