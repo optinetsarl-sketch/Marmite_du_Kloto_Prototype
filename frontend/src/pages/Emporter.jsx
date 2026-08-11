@@ -189,16 +189,6 @@ export default function Emporter() {
             </span>
           </div>
 
-          {commandes.length > 0 && (
-            <button
-              className="btn btn-o"
-              style={{ fontWeight: 800, padding: '8px 16px', fontSize: 13 }}
-              onClick={() => setGroupeAEncaisser(commandes)}
-            >
-              Tout encaisser ({commandes.length} commande{commandes.length > 1 ? 's' : ''} · {fcfa(totalCumule)})
-            </button>
-          )}
-
           <button className="btn btn-o" onClick={() => naviguer('/ventes?type=emporter')}>
             + Nouvelle commande
           </button>
@@ -328,8 +318,8 @@ export default function Emporter() {
           </button>
         </div>
 
-        {/* Barre de recherche */}
-        <div>
+        {/* Barre de recherche & Action Tout Encaisser (sans icône) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <input
             className="champ"
             style={{ width: 220, padding: '7px 12px', fontSize: 13 }}
@@ -337,6 +327,16 @@ export default function Emporter() {
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
           />
+
+          {commandes.length > 0 && (
+            <button
+              className="btn btn-o"
+              style={{ fontWeight: 800, padding: '7px 14px', fontSize: 13, whiteSpace: 'nowrap' }}
+              onClick={() => setGroupeAEncaisser(commandes)}
+            >
+              Tout encaisser ({commandes.length} commande{commandes.length > 1 ? 's' : ''} · {fcfa(totalCumule)})
+            </button>
+          )}
         </div>
       </div>
 
