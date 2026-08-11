@@ -42,7 +42,7 @@ export default function Emporter() {
   const [aEncaisser, setAEncaisser] = useState(null)
   const [groupeAEncaisser, setGroupeAEncaisser] = useState(null)
   const [recu, setRecu] = useState(null)
-  const [vue, setVue] = useState('cartes')
+  const [vue, setVue] = useState('tableau')
   const [filtreStatut, setFiltreStatut] = useState('tous')
   const [recherche, setRecherche] = useState('')
   const [derniereMaj, setDerniereMaj] = useState(new Date())
@@ -195,7 +195,7 @@ export default function Emporter() {
               style={{ fontWeight: 800, padding: '8px 16px', fontSize: 13 }}
               onClick={() => setGroupeAEncaisser(commandes)}
             >
-              ⚡ Tout encaisser ({commandes.length} commandes · {fcfa(totalCumule)})
+              Tout encaisser ({commandes.length} commande{commandes.length > 1 ? 's' : ''} · {fcfa(totalCumule)})
             </button>
           )}
 
@@ -328,8 +328,8 @@ export default function Emporter() {
           </button>
         </div>
 
-        {/* Barre de recherche & Commutateur de Vue */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* Barre de recherche */}
+        <div>
           <input
             className="champ"
             style={{ width: 220, padding: '7px 12px', fontSize: 13 }}
@@ -337,245 +337,70 @@ export default function Emporter() {
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
           />
-
-          <div className="seg">
-            <button
-              className={`segb ${vue === 'cartes' ? 'on' : ''}`}
-              onClick={() => setVue('cartes')}
-              title="Affichage en grille de cartes"
-            >
-              Cartes
-            </button>
-            <button
-              className={`segb ${vue === 'tableau' ? 'on' : ''}`}
-              onClick={() => setVue('tableau')}
-              title="Affichage en tableau compact"
-            >
-              Tableau
-            </button>
-          </div>
         </div>
       </div>
 
-      {/* --- VUE EN CARTES (Grille Moderne) --- */}
-      {vue === 'cartes' && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 16,
-            marginBottom: 24,
-          }}
-        >
-          {commandesFiltrees.map((cmd) => {
-            const st = STATUTS[cmd.statut] || { libelle: cmd.statut, classe: 'b-neutre', couleur: '#555', fond: '#f5f5f5' }
-            const estPrete = cmd.statut === 'prete'
+      {/* --- VUE EN TABLEAU (Exclusif) --- */}
+      <div className="card">
+        <table className="grid cartes">
+          <thead>
+            <tr>
+              <th>Réf &amp; Client</th>
+              <th>Plats commandés</th>
+              <th style={{ textAlign: 'right' }}>Montant</th>
+              <th style={{ textAlign: 'center' }}>Statut</th>
+              <th style={{ textAlign: 'right' }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {commandesFiltrees.map((cmd) => {
+              const st = STATUTS[cmd.statut] || { libelle: cmd.statut, classe: 'b-neutre' }
+              const plats = (cmd.lignes || [])
+                .map((l) => `${l.libelle}${l.quantite > 1 ? ` ×${l.quantite}` : ''}`)
+                .join(' · ')
 
-            return (
-              <div
-                key={cmd.id}
-                className="card"
-                style={{
-                  padding: '18px 20px',
-                  borderRadius: 14,
-                  border: `2px solid ${estPrete ? '#38a169' : 'var(--bord)'}`,
-                  background: estPrete ? 'rgba(56,161,105,0.02)' : 'var(--bg-app, #fff)',
-                  boxShadow: estPrete ? '0 6px 20px rgba(56,161,105,0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justify: 'space-between',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                {/* En-tête de la carte */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+              return (
+                <tr key={cmd.id}>
+                  <td data-titre style={{ fontWeight: 600 }}>
                     <div>
-                      <span
-                        style={{
-                          background: 'rgba(245,124,0,0.12)',
-                          color: 'var(--orange-dk)',
-                          fontSize: 13,
-                          fontWeight: 800,
-                          padding: '4px 10px',
-                          borderRadius: 8,
-                          letterSpacing: 0.5,
-                        }}
-                      >
+                      <span style={{ color: 'var(--orange-dk)', fontSize: 13, marginRight: 6, fontWeight: 700 }}>
                         {referenceCommande(cmd)}
                       </span>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--noir)', marginTop: 8 }}>
-                        {cmd.client_nom || 'Client à emporter'}
+                      {cmd.client_nom || '—'}
+                    </div>
+                    {cmd.client_telephone && (
+                      <div style={{ fontSize: 12, color: 'var(--mut)', fontWeight: 400 }}>
+                        {cmd.client_telephone}
                       </div>
-                      {cmd.client_telephone && (
-                        <div style={{ fontSize: 13, color: 'var(--mut)', marginTop: 2 }}>
-                          {cmd.client_telephone}
-                        </div>
-                      )}
-                    </div>
-
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        padding: '5px 12px',
-                        borderRadius: 20,
-                        background: st.fond,
-                        color: st.couleur,
-                        border: `1px solid ${st.couleur}44`,
-                      }}
-                    >
-                      {st.libelle}
-                    </span>
-                  </div>
-
-                  {/* Heure de la commande */}
-                  {cmd.cree_le && (
-                    <div style={{ fontSize: 11, color: 'var(--mut)', marginBottom: 12 }}>
-                      Commandé à {new Date(cmd.cree_le).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  )}
-
-                  {/* Liste des plats commandés */}
-                  <div
-                    style={{
-                      background: 'var(--fond-sub, #f8f9fa)',
-                      borderRadius: 10,
-                      padding: '10px 12px',
-                      fontSize: 13,
-                      marginBottom: 16,
-                      border: '1px solid var(--bord)',
-                    }}
-                  >
-                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--mut)', marginBottom: 6 }}>
-                      Plats commandés :
-                    </div>
-                    <ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'square', color: 'var(--noir)' }}>
-                      {(cmd.lignes || []).map((l, idx) => (
-                        <li key={idx} style={{ marginBottom: 4 }}>
-                          <span style={{ fontWeight: 600 }}>{l.libelle}</span>
-                          {l.quantite > 1 && (
-                            <span style={{ color: 'var(--orange-dk)', fontWeight: 700, marginLeft: 6 }}>
-                              ×{l.quantite}
-                            </span>
-                          )}
-                          {l.prix_unitaire > 0 && (
-                            <span style={{ color: 'var(--mut)', fontSize: 12, marginLeft: 6 }}>
-                              ({fcfa(l.prix_unitaire)})
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Bas de carte : Montant & Actions */}
-                <div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justify: 'space-between',
-                      alignItems: 'center',
-                      paddingTop: 12,
-                      borderTop: '1px dashed var(--bord)',
-                      marginBottom: 14,
-                    }}
-                  >
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--mut)' }}>Total à payer</span>
-                    <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--orange-dk)' }}>
-                      {fcfa(cmd.total)}
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    {cmd.statut === 'en_cuisine' && (
-                      <button
-                        className="btn btn-g"
-                        style={{ flex: 1, padding: '10px', fontSize: 13, fontWeight: 700 }}
-                        onClick={() => marquerPrete(cmd)}
-                      >
-                        Marquer prêt
-                      </button>
                     )}
-                    <button
-                      className="btn btn-o"
-                      style={{ flex: 1, padding: '10px', fontSize: 13, fontWeight: 700 }}
-                      onClick={() => setAEncaisser(cmd)}
-                    >
-                      Encaisser
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {/* --- VUE EN TABLEAU (Compact) --- */}
-      {vue === 'tableau' && (
-        <div className="card">
-          <table className="grid cartes">
-            <thead>
-              <tr>
-                <th>Réf &amp; Client</th>
-                <th>Plats commandés</th>
-                <th style={{ textAlign: 'right' }}>Montant</th>
-                <th style={{ textAlign: 'center' }}>Statut</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {commandesFiltrees.map((cmd) => {
-                const st = STATUTS[cmd.statut] || { libelle: cmd.statut, classe: 'b-neutre' }
-                const plats = (cmd.lignes || [])
-                  .map((l) => `${l.libelle}${l.quantite > 1 ? ` ×${l.quantite}` : ''}`)
-                  .join(' · ')
-
-                return (
-                  <tr key={cmd.id}>
-                    <td data-titre style={{ fontWeight: 600 }}>
-                      <div>
-                        <span style={{ color: 'var(--orange-dk)', fontSize: 13, marginRight: 6, fontWeight: 700 }}>
-                          {referenceCommande(cmd)}
-                        </span>
-                        {cmd.client_nom || '—'}
-                      </div>
-                      {cmd.client_telephone && (
-                        <div style={{ fontSize: 12, color: 'var(--mut)', fontWeight: 400 }}>
-                          {cmd.client_telephone}
-                        </div>
-                      )}
-                    </td>
-                    <td data-label="Plats" style={{ fontSize: 13 }}>
-                      {plats || '—'}
-                    </td>
-                    <td data-label="Montant" style={{ textAlign: 'right', fontWeight: 700, color: 'var(--orange-dk)' }}>
-                      {fcfa(cmd.total)}
-                    </td>
-                    <td data-label="Statut" style={{ textAlign: 'center' }}>
-                      <span className={`badge ${st.classe}`}>{st.libelle}</span>
-                    </td>
-                    <td data-actions style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                        {cmd.statut === 'en_cuisine' && (
-                          <button className="btn btn-g btn-mini" onClick={() => marquerPrete(cmd)}>
-                            Marquer prêt
-                          </button>
-                        )}
-                        <button className="btn btn-o btn-mini" onClick={() => setAEncaisser(cmd)}>
-                          Encaisser
+                  </td>
+                  <td data-label="Plats" style={{ fontSize: 13 }}>
+                    {plats || '—'}
+                  </td>
+                  <td data-label="Montant" style={{ textAlign: 'right', fontWeight: 700, color: 'var(--orange-dk)' }}>
+                    {fcfa(cmd.total)}
+                  </td>
+                  <td data-label="Statut" style={{ textAlign: 'center' }}>
+                    <span className={`badge ${st.classe}`}>{st.libelle}</span>
+                  </td>
+                  <td data-actions style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                      {cmd.statut === 'en_cuisine' && (
+                        <button className="btn btn-g btn-mini" onClick={() => marquerPrete(cmd)}>
+                          Marquer prêt
                         </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                      )}
+                      <button className="btn btn-o btn-mini" onClick={() => setAEncaisser(cmd)}>
+                        Encaisser
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
 
       {/* État vide si aucune commande ne correspond */}
       {commandesFiltrees.length === 0 && (
