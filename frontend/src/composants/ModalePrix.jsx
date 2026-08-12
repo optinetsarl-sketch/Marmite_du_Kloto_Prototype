@@ -13,12 +13,12 @@ const SAUCES_DISPONIBLES = [
 ]
 
 /* ─────────────────────────────────────────────────────────────
-   TYPES DE PORTION
+   TYPES DE PORTION (Sans icônes)
    ───────────────────────────────────────────────────────────── */
 const PORTIONS = [
   {
     id: 'complet',
-    label: '🍽️ Plat complet',
+    label: 'Plat complet',
     description: 'Plat + Sauce incluse',
     couleur: '#dd6b20',
     fond: '#fff5ec',
@@ -26,7 +26,7 @@ const PORTIONS = [
   },
   {
     id: 'sauce_seule',
-    label: '🥣 Sauce seule',
+    label: 'Sauce seule',
     description: 'Sans accompagnement',
     couleur: '#2b6cb0',
     fond: '#ebf8ff',
@@ -34,7 +34,7 @@ const PORTIONS = [
   },
   {
     id: 'plat_seul',
-    label: '🍚 Plat seul',
+    label: 'Plat seul',
     description: 'Sans sauce',
     couleur: '#38a169',
     fond: '#f0fff4',
@@ -72,9 +72,9 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
     let noteFinale = noteInstruction.trim()
     const infoType =
       typePortion === 'sauce_seule'
-        ? '🥣 Sauce seule'
+        ? 'Sauce seule'
         : typePortion === 'plat_seul'
-          ? '🍚 Plat seul'
+          ? 'Plat seul'
           : ''
     if (infoType) {
       noteFinale = noteFinale ? `${infoType} · ${noteFinale}` : infoType
@@ -117,8 +117,8 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 4,
-                    padding: '12px 6px',
+                    gap: 6,
+                    padding: '16px 8px',
                     borderRadius: 10,
                     border: `2px solid ${active ? portion.bordure : '#e2e8f0'}`,
                     background: active ? portion.fond : '#f8fafc',
@@ -127,9 +127,8 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
                     boxShadow: active ? `0 0 0 3px ${portion.couleur}22` : 'none',
                   }}
                 >
-                  <span style={{ fontSize: 22 }}>{portion.label.split(' ')[0]}</span>
-                  <span style={{ fontSize: 12, fontWeight: active ? 800 : 600, color: active ? portion.couleur : '#4a5568', textAlign: 'center', lineHeight: 1.2 }}>
-                    {portion.label.replace(portion.label.split(' ')[0] + ' ', '')}
+                  <span style={{ fontSize: 13, fontWeight: active ? 800 : 700, color: active ? portion.couleur : '#4a5568', textAlign: 'center', lineHeight: 1.2 }}>
+                    {portion.label}
                   </span>
                   <span style={{ fontSize: 10, color: active ? portion.couleur : '#a0aec0', textAlign: 'center' }}>
                     {portion.description}
@@ -210,7 +209,7 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
                   style={{ fontSize: 12, padding: '6px 10px', color: 'var(--mut)' }}
                   onClick={() => setSauceChoisie('')}
                 >
-                  ✕ Sans sauce
+                  Sans sauce
                 </button>
               )}
             </div>
@@ -231,7 +230,7 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
         {/* Message si Plat seul */}
         {typePortion === 'plat_seul' && (
           <div style={{ marginBottom: 16, padding: '10px 14px', background: '#f0fff4', border: '1px solid #38a169', borderRadius: 8, fontSize: 13, color: '#276749', fontWeight: 600 }}>
-            🍚 Vente sans sauce — seul l'accompagnement est servi.
+            Vente sans sauce — seul l'accompagnement est servi.
           </div>
         )}
 
@@ -259,7 +258,7 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
             </div>
             {noteInstruction && (
               <div style={{ fontSize: 12, color: portionInfo.couleur, marginTop: 3 }}>
-                📝 {noteInstruction}
+                Note : {noteInstruction}
               </div>
             )}
           </div>
@@ -274,7 +273,7 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
             disabled={!(Number(prix) > 0) || (typePortion === 'sauce_seule' && !sauceChoisie && !autreSauce.trim())}
             style={{ background: portionInfo.couleur, borderColor: portionInfo.couleur }}
           >
-            ✓ Ajouter au panier
+            Ajouter au panier
           </button>
         </div>
       </form>
