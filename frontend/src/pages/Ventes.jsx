@@ -759,6 +759,7 @@ export default function Ventes() {
           produit={platEnAttente}
           initialTypePortion={initialPortion}
           uniquementSeuls={Boolean(platEnAttente.isSpecialPortion)}
+          platsCuisine={produits.filter((p) => p.rayon === 'cuisine' && !p.isSpecialPortion).map((p) => p.nom)}
           onFerme={() => setPlatEnAttente(null)}
           onValide={(res) => {
             let produit = platEnAttente
@@ -766,8 +767,14 @@ export default function Ventes() {
             if (typeof res === 'object' && res !== null) {
               const prixFinal = Number(res.prixPlat) || 0
               if (produit.isSpecialPortion) {
-                const nomEffectif = res.typePortion === 'sauce_seule' ? 'Sauce seule' : 'Plat seul'
-                produit = { ...produit, nom: nomEffectif }
+                if (res.typePortion === 'sauce_seule') {
+                  produit = { ...produit, nom: 'Sauce seule' }
+                } else {
+                  produit = {
+                    ...produit,
+                    nom: res.platNom ? `${res.platNom} (Plat seul)` : 'Plat seul',
+                  }
+                }
               }
               ajouter(produit, prixFinal, res.note || '')
             } else {

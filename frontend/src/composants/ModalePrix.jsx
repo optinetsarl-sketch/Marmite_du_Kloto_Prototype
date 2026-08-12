@@ -57,10 +57,14 @@ export default function ModalePrix({
   produit,
   initialTypePortion = 'complet',
   uniquementSeuls = false,
+  platsCuisine = [],
   onValide,
   onFerme,
 }) {
   const isSpecial = uniquementSeuls || Boolean(produit?.isSpecialPortion)
+
+  const nomsPlatsDefaut = ['Fufu', 'Riz', 'Akoumé', 'Pâte', 'Igname pilée', 'Pinon', 'Ablo', 'Djenkoumé']
+  const tousLesPlats = Array.from(new Set([...nomsPlatsDefaut, ...platsCuisine.filter(Boolean)]))
 
   // Si modale spéciale (Plat seul / Sauce seule), n'afficher QUE Plat seul et Sauce seule
   const portionsDisponibles = isSpecial
@@ -276,14 +280,14 @@ export default function ModalePrix({
         {typePortion === 'plat_seul' && (
           <div style={{ marginBottom: 16 }}>
             <label className="lbl" style={{ marginBottom: 8, display: 'block', fontWeight: 700 }}>
-              Type de plat vendu (Optionnel)
+              Type de plat vendu *
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7, marginBottom: 8 }}>
-              {PLATS_DISPONIBLES.map((p) => {
-                const active = platChoisi === p.nom
+              {tousLesPlats.map((nomPlat) => {
+                const active = platChoisi === nomPlat
                 return (
                   <button
-                    key={p.id}
+                    key={nomPlat}
                     type="button"
                     className={`btn ${active ? 'btn-o' : 'btn-g'}`}
                     style={{
@@ -295,9 +299,9 @@ export default function ModalePrix({
                       background: active ? '#f0fff4' : '',
                       color: active ? '#276749' : '',
                     }}
-                    onClick={() => setPlatChoisi(active ? '' : p.nom)}
+                    onClick={() => setPlatChoisi(active ? '' : nomPlat)}
                   >
-                    {p.nom}
+                    {nomPlat}
                   </button>
                 )
               })}
