@@ -250,6 +250,7 @@ export default function Ventes() {
     let misAJour = await api.post(`/commandes/${cible.id}/synchroniser/`, {
       lignes: panier.map((item) => ({
         produit: item.produit.id,
+        libelle: item.produit.nom,
         quantite: item.quantite,
         prix_unitaire: item.prix_unitaire,
         note: item.note,

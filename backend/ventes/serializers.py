@@ -85,6 +85,7 @@ class AjoutLigneSerializer(serializers.Serializer):
     """Entrée de POST /commandes/{id}/lignes/."""
 
     produit = serializers.PrimaryKeyRelatedField(queryset=Produit.objects.filter(actif=True))
+    libelle = serializers.CharField(max_length=80, required=False, allow_blank=True, default="")
     quantite = serializers.IntegerField(min_value=1, default=1)
     prix_unitaire = serializers.IntegerField(min_value=0, required=False, allow_null=True)
     note = serializers.CharField(max_length=120, required=False, allow_blank=True, default="")

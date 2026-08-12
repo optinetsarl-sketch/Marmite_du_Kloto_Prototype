@@ -64,7 +64,7 @@ def envoyer_en_cuisine(commande, produit):
 def synchroniser_lignes(commande, lignes_voulues):
     """Aligne la commande sur un panier validé, en une transaction.
 
-    `lignes_voulues` : liste de dicts {produit, quantite, prix_unitaire?, note?}.
+    `lignes_voulues` : liste de dicts {produit, quantite, prix_unitaire?, note?, libelle?}.
     C'est le geste « Valider la commande » : le panier construit à l'écran devient
     la commande. On réconcilie plutôt que tout recréer, pour ne pas réinitialiser
     l'état cuisine des plats déjà envoyés — seul le neuf part en cuisine.
@@ -72,10 +72,10 @@ def synchroniser_lignes(commande, lignes_voulues):
     if commande.statut in (Commande.STATUT_PAYEE, Commande.STATUT_ANNULEE):
         raise ValidationError("Cette commande est close, on ne peut plus la modifier.")
 
-    def cle(produit_id, prix, note):
-        return (produit_id, prix, note or "")
+    def cle(produit_id, prix, note, libelle):
+        return (produit_id, prix, note or "", libelle or "")
 
-    existantes = {cle(l.produit_id, l.prix_unitaire, l.note): l for l in commande.lignes.all()}
+    existantes = {cle(l.produit_id, l.prix_unitaire, l.note, l.libelle): l for l in commande.lignes.all()}
     voulues = {}
     for entree in lignes_voulues:
         produit = entree["produit"]
@@ -85,12 +85,13 @@ def synchroniser_lignes(commande, lignes_voulues):
         if prix is None:
             raise ValidationError(f"« {produit.nom} » n'a pas de prix : saisissez-le.")
         note = entree.get("note", "") or ""
-        k = cle(produit.pk, prix, note)
-        # Le même produit/prix/note peut apparaître deux fois : on cumule.
+        libelle = (entree.get("libelle") or "").strip() or produit.nom
+        k = cle(produit.pk, prix, note, libelle)
+        # Le même produit/prix/note/libelle peut apparaître deux fois : on cumule.
         if k in voulues:
             voulues[k]["quantite"] += entree.get("quantite", 1)
         else:
-            voulues[k] = {"produit": produit, "prix": prix, "note": note, "quantite": entree.get("quantite", 1)}
+            voulues[k] = {"produit": produit, "prix": prix, "note": note, "libelle": libelle, "quantite": entree.get("quantite", 1)}
 
     for k, ligne in existantes.items():
         if k not in voulues:
@@ -106,7 +107,7 @@ def synchroniser_lignes(commande, lignes_voulues):
             LigneCommande.objects.create(
                 commande=commande,
                 produit=v["produit"],
-                libelle=v["produit"].nom,
+                libelle=v["libelle"],
                 quantite=v["quantite"],
                 prix_unitaire=v["prix"],
                 note=v["note"],
