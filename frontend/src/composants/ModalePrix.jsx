@@ -42,10 +42,27 @@ const PORTIONS = [
   },
 ]
 
-export default function ModalePrix({ produit, initialTypePortion = 'complet', onValide, onFerme }) {
-  const [typePortion, setTypePortion] = useState(
-    initialTypePortion || (produit?.isSauceSeule ? 'sauce_seule' : 'complet')
-  )
+export default function ModalePrix({
+  produit,
+  initialTypePortion = 'complet',
+  uniquementSeuls = false,
+  onValide,
+  onFerme,
+}) {
+  const isSpecial = uniquementSeuls || Boolean(produit?.isSpecialPortion)
+
+  // Si modale spéciale (Plat seul / Sauce seule), n'afficher QUE Plat seul et Sauce seule
+  const portionsDisponibles = isSpecial
+    ? PORTIONS.filter((p) => p.id === 'plat_seul' || p.id === 'sauce_seule')
+    : PORTIONS
+
+  const [typePortion, setTypePortion] = useState(() => {
+    if (initialTypePortion && portionsDisponibles.some((p) => p.id === initialTypePortion)) {
+      return initialTypePortion
+    }
+    return isSpecial ? 'sauce_seule' : 'complet'
+  })
+
   const [prix, setPrix] = useState(produit.prix_standard ? String(produit.prix_standard) : '')
   const [sauceChoisie, setSauceChoisie] = useState('')
   const [autreSauce, setAutreSauce] = useState('')
@@ -74,9 +91,9 @@ export default function ModalePrix({ produit, initialTypePortion = 'complet', on
     let noteFinale = noteInstruction.trim()
     const infoType =
       typePortion === 'sauce_seule'
-        ? (produit?.isSauceSeule ? '' : 'Sauce seule')
+        ? (produit?.isSpecialPortion ? '' : 'Sauce seule')
         : typePortion === 'plat_seul'
-          ? 'Plat seul'
+          ? (produit?.isSpecialPortion ? '' : 'Plat seul')
           : ''
     if (infoType) {
       noteFinale = noteFinale ? `${infoType} · ${noteFinale}` : infoType
@@ -106,8 +123,8 @@ export default function ModalePrix({ produit, initialTypePortion = 'complet', on
           <label className="lbl" style={{ marginBottom: 10, display: 'block', fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Le client veut…
           </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-            {PORTIONS.map((portion) => {
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${portionsDisponibles.length}, 1fr)`, gap: 8 }}>
+            {portionsDisponibles.map((portion) => {
               const active = typePortion === portion.id
               return (
                 <button

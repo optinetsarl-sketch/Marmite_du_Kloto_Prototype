@@ -601,34 +601,67 @@ export default function Ventes() {
               (categoriesUniques.find((c) => c.id === categorieActive)?.nom || '').toLowerCase().includes('plat') ||
               produitsFiltres.some((p) => p.rayon === 'cuisine')
             ) && (
-              <button
-                type="button"
-                className="prod"
-                disabled={platsBloques}
-                onClick={() => {
-                  setInitialPortion('sauce_seule')
-                  setPlatEnAttente({
-                    id: '__sauce_seule__',
-                    nom: 'Sauce seule',
-                    rayon: 'cuisine',
-                    prix_standard: 0,
-                    prix_libre: true,
-                    isSauceSeule: true,
-                  })
-                }}
-                style={{
-                  background: '#ebf8ff',
-                  border: '2px solid #2b6cb0',
-                  borderRadius: 'var(--radius, 12px)',
-                }}
-              >
-                <div className="pn" style={{ color: '#2b6cb0', fontWeight: 800 }}>
-                  Sauce seule
-                </div>
-                <div className="pp" style={{ color: '#2b6cb0', fontSize: 11, fontWeight: 600 }}>
-                  Sans accompagnement · Prix à saisir
-                </div>
-              </button>
+              <>
+                {/* Carte 1 : Plat seul */}
+                <button
+                  type="button"
+                  className="prod"
+                  disabled={platsBloques}
+                  onClick={() => {
+                    setInitialPortion('plat_seul')
+                    setPlatEnAttente({
+                      id: '__plat_seul_spe__',
+                      nom: 'Plat seul',
+                      rayon: 'cuisine',
+                      prix_standard: 0,
+                      prix_libre: true,
+                      isSpecialPortion: true,
+                    })
+                  }}
+                  style={{
+                    background: '#f0fff4',
+                    border: '2px solid #38a169',
+                    borderRadius: 'var(--radius, 12px)',
+                  }}
+                >
+                  <div className="pn" style={{ color: '#276749', fontWeight: 800 }}>
+                    Plat seul
+                  </div>
+                  <div className="pp" style={{ color: '#276749', fontSize: 11, fontWeight: 600 }}>
+                    Sans sauce · Prix à saisir
+                  </div>
+                </button>
+
+                {/* Carte 2 : Sauce seule */}
+                <button
+                  type="button"
+                  className="prod"
+                  disabled={platsBloques}
+                  onClick={() => {
+                    setInitialPortion('sauce_seule')
+                    setPlatEnAttente({
+                      id: '__sauce_seule_spe__',
+                      nom: 'Sauce seule',
+                      rayon: 'cuisine',
+                      prix_standard: 0,
+                      prix_libre: true,
+                      isSpecialPortion: true,
+                    })
+                  }}
+                  style={{
+                    background: '#ebf8ff',
+                    border: '2px solid #2b6cb0',
+                    borderRadius: 'var(--radius, 12px)',
+                  }}
+                >
+                  <div className="pn" style={{ color: '#2b6cb0', fontWeight: 800 }}>
+                    Sauce seule
+                  </div>
+                  <div className="pp" style={{ color: '#2b6cb0', fontSize: 11, fontWeight: 600 }}>
+                    Sans accompagnement · Prix à saisir
+                  </div>
+                </button>
+              </>
             )}
 
             {produitsFiltres.map((produit) => {
