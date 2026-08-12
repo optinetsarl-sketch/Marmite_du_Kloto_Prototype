@@ -71,16 +71,18 @@ export default function Ventes() {
   const chargerPanier = useCallback(
     (cmd) => {
       setPanier(
-        (cmd?.lignes ?? []).map((ligne) => ({
-          produit: produits.find((p) => p.id === ligne.produit) ?? {
-            id: ligne.produit,
-            nom: ligne.libelle,
-            prix_libre: false,
-          },
-          quantite: ligne.quantite,
-          prix_unitaire: ligne.prix_unitaire,
-          note: ligne.note || '',
-        })),
+        (cmd?.lignes ?? []).map((ligne) => {
+          const prodBase = produits.find((p) => p.id === ligne.produit)
+          return {
+            produit: {
+              ...(prodBase || { id: ligne.produit, prix_libre: false }),
+              nom: ligne.libelle || prodBase?.nom || 'Produit',
+            },
+            quantite: ligne.quantite,
+            prix_unitaire: ligne.prix_unitaire,
+            note: ligne.note || '',
+          }
+        }),
       )
     },
     [produits],

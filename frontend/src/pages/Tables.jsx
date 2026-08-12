@@ -146,11 +146,18 @@ export default function Tables() {
               ) : (
                 <>
                   {ardoise.lignes.map((ligne) => (
-                    <div className="line" key={ligne.id}>
-                      <span>
-                        {ligne.quantite} × {ligne.libelle}
-                      </span>
-                      <span>{fcfa(ligne.montant)}</span>
+                    <div key={ligne.id || Math.random()} style={{ marginBottom: 6 }}>
+                      <div className="line">
+                        <span>
+                          {ligne.quantite} × {ligne.libelle}
+                        </span>
+                        <span>{fcfa(ligne.montant)}</span>
+                      </div>
+                      {ligne.note && (
+                        <div style={{ fontSize: 11, color: 'var(--orange-dk)', fontStyle: 'italic', paddingLeft: 14, marginTop: -2 }}>
+                          {ligne.note}
+                        </div>
+                      )}
                     </div>
                   ))}
                   <div className="tot">
