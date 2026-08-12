@@ -783,14 +783,19 @@ export default function Ventes() {
               const prodCuisineRef = produits.find((p) => p.rayon === 'cuisine') || produits[0]
               if (res.typePortion === 'sauce_seule') {
                 const sauceNomText = res.sauceNom ? `Sauce ${res.sauceNom}` : 'Sauce seule'
-                const prodSauceBase = produits.find((p) => p.nom === 'Sauce seule') || prodCuisineRef
+                const prodSauceBase =
+                  produits.find((p) => p.nom.toLowerCase().trim() === 'sauce seule') ||
+                  produits.find((p) => p.nom.toLowerCase().includes('sauce')) ||
+                  prodCuisineRef
                 produit = {
                   ...prodSauceBase,
                   nom: `${sauceNomText} (Sauce seule)`,
                 }
               } else if (res.typePortion === 'plat_seul') {
                 const platNomText = res.platNom || (produit.isSpecialPortion ? 'Plat' : produit.nom)
-                const produitReel = platNomText ? produits.find((p) => p.nom.toLowerCase() === platNomText.toLowerCase()) : null
+                const produitReel = platNomText
+                  ? produits.find((p) => p.nom.toLowerCase().trim() === platNomText.toLowerCase().trim())
+                  : null
                 produit = {
                   ...(produitReel || (produit.isSpecialPortion ? prodCuisineRef : produit)),
                   nom: `${platNomText} (Plat seul)`,
