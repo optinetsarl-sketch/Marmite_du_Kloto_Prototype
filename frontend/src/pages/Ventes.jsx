@@ -172,7 +172,11 @@ export default function Ventes() {
     const noteInit = noteCustom !== undefined ? noteCustom : ''
     setPanier((actuel) => {
       const i = actuel.findIndex(
-        (item) => item.produit.id === produit.id && item.prix_unitaire === prixUnitaire && item.note === noteInit,
+        (item) =>
+          item.produit.id === produit.id &&
+          item.produit.nom === produit.nom &&
+          item.prix_unitaire === prixUnitaire &&
+          item.note === noteInit,
       )
       if (i >= 0) {
         if (produit.gere_stock && actuel[i].quantite + 1 > produit.stock) {
@@ -762,6 +766,7 @@ export default function Ventes() {
           initialTypePortion={initialPortion}
           uniquementSeuls={Boolean(platEnAttente.isSpecialPortion)}
           platsCuisine={produits.filter((p) => p.rayon === 'cuisine' && !p.isSpecialPortion).map((p) => p.nom)}
+          contexte={contexte}
           onFerme={() => setPlatEnAttente(null)}
           onValide={(res) => {
             let produit = platEnAttente

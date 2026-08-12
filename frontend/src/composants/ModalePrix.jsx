@@ -58,6 +58,7 @@ export default function ModalePrix({
   initialTypePortion = 'complet',
   uniquementSeuls = false,
   platsCuisine = [],
+  contexte = '',
   onValide,
   onFerme,
 }) {
@@ -143,9 +144,10 @@ export default function ModalePrix({
   }
 
   const portionInfo = portionActive || PORTIONS[0]
+  const titreComplet = contexte ? `${contexte} · ${produit.nom}` : produit.nom
 
   return (
-    <Modale titre="Type de portion & Prix" sousTitre={produit.nom} onFerme={onFerme}>
+    <Modale titre="Type de portion & Prix" sousTitre={titreComplet} onFerme={onFerme}>
       <form onSubmit={valider}>
 
         {/* ── 1. Choix du type de portion ── */}
@@ -210,6 +212,11 @@ export default function ModalePrix({
             onChange={(e) => setPrix(e.target.value)}
             autoFocus
           />
+          {!(Number(prix) > 0) && (
+            <div style={{ fontSize: 11, color: '#e53e3e', marginTop: 4, fontWeight: 600 }}>
+              Saisissez le montant en FCFA pour valider l'ajout au panier.
+            </div>
+          )}
         </div>
 
         {/* ── 3. Sélection de la sauce (si sauce_seule ou complet) ── */}
