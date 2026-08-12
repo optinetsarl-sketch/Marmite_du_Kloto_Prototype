@@ -42,8 +42,10 @@ const PORTIONS = [
   },
 ]
 
-export default function ModalePrix({ produit, onValide, onFerme }) {
-  const [typePortion, setTypePortion] = useState('complet')
+export default function ModalePrix({ produit, initialTypePortion = 'complet', onValide, onFerme }) {
+  const [typePortion, setTypePortion] = useState(
+    initialTypePortion || (produit?.isSauceSeule ? 'sauce_seule' : 'complet')
+  )
   const [prix, setPrix] = useState(produit.prix_standard ? String(produit.prix_standard) : '')
   const [sauceChoisie, setSauceChoisie] = useState('')
   const [autreSauce, setAutreSauce] = useState('')
@@ -72,7 +74,7 @@ export default function ModalePrix({ produit, onValide, onFerme }) {
     let noteFinale = noteInstruction.trim()
     const infoType =
       typePortion === 'sauce_seule'
-        ? 'Sauce seule'
+        ? (produit?.isSauceSeule ? '' : 'Sauce seule')
         : typePortion === 'plat_seul'
           ? 'Plat seul'
           : ''

@@ -41,6 +41,7 @@ export default function Ventes() {
   const [erreur, setErreur] = useState('')
   const [occupe, setOccupe] = useState(false)
   const [platEnAttente, setPlatEnAttente] = useState(null)
+  const [initialPortion, setInitialPortion] = useState('complet')
   const [paiementOuvert, setPaiementOuvert] = useState(false)
   const [documentOuvert, setDocumentOuvert] = useState(null)
   const [bonCuisineOuvert, setBonCuisineOuvert] = useState(null)
@@ -163,6 +164,7 @@ export default function Ventes() {
       return
     }
     if ((produit.prix_libre || produit.rayon === 'cuisine') && prix === undefined) {
+      setInitialPortion('complet')
       setPlatEnAttente(produit)
       return
     }
@@ -594,6 +596,41 @@ export default function Ventes() {
           </div>
 
           <div className="prods">
+            {(
+              (categoriesUniques.find((c) => c.id === categorieActive)?.nom || '').toLowerCase().includes('cuisine') ||
+              (categoriesUniques.find((c) => c.id === categorieActive)?.nom || '').toLowerCase().includes('plat') ||
+              produitsFiltres.some((p) => p.rayon === 'cuisine')
+            ) && (
+              <button
+                type="button"
+                className="prod"
+                disabled={platsBloques}
+                onClick={() => {
+                  setInitialPortion('sauce_seule')
+                  setPlatEnAttente({
+                    id: '__sauce_seule__',
+                    nom: 'Sauce seule',
+                    rayon: 'cuisine',
+                    prix_standard: 0,
+                    prix_libre: true,
+                    isSauceSeule: true,
+                  })
+                }}
+                style={{
+                  background: '#ebf8ff',
+                  border: '2px solid #2b6cb0',
+                  borderRadius: 'var(--radius, 12px)',
+                }}
+              >
+                <div className="pn" style={{ color: '#2b6cb0', fontWeight: 800 }}>
+                  Sauce seule
+                </div>
+                <div className="pp" style={{ color: '#2b6cb0', fontSize: 11, fontWeight: 600 }}>
+                  Sans accompagnement · Prix à saisir
+                </div>
+              </button>
+            )}
+
             {produitsFiltres.map((produit) => {
               const enRupture = produit.gere_stock && (produit.stock <= 0 || produit.etat_stock === 'rupture')
               return (
@@ -718,6 +755,7 @@ export default function Ventes() {
       {platEnAttente && (
         <ModalePrix
           produit={platEnAttente}
+          initialTypePortion={initialPortion}
           onFerme={() => setPlatEnAttente(null)}
           onValide={(res) => {
             const produit = platEnAttente
