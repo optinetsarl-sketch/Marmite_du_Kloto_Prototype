@@ -240,6 +240,7 @@ export default function Ventes() {
       })
     } else {
       cible = await api.patch(`/commandes/${cible.id}/`, {
+        type,
         client_nom: client,
         client_telephone: clientTelephone,
         client_adresse: clientAdresse,
