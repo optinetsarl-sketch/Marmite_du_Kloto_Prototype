@@ -607,9 +607,10 @@ export default function Ventes() {
                 className="prod"
                 disabled={platsBloques}
                 onClick={() => {
+                  const prodCuisineRef = produits.find((p) => p.rayon === 'cuisine') || produits[0]
                   setInitialPortion('plat_seul')
                   setPlatEnAttente({
-                    id: '__portion_seule_spe__',
+                    id: prodCuisineRef ? prodCuisineRef.id : '__portion_seule_spe__',
                     nom: 'Plat seul / Sauce seule',
                     rayon: 'cuisine',
                     prix_standard: 0,
