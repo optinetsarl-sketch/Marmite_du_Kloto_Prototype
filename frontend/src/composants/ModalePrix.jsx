@@ -12,6 +12,17 @@ const SAUCES_DISPONIBLES = [
   { id: 'arachide', nom: 'Arachide' },
 ]
 
+const PLATS_DISPONIBLES = [
+  { id: 'fufu', nom: 'Fufu' },
+  { id: 'riz', nom: 'Riz' },
+  { id: 'akoume', nom: 'Akoumé' },
+  { id: 'pate', nom: 'Pâte' },
+  { id: 'igname_pilee', nom: 'Igname pilée' },
+  { id: 'pinon', nom: 'Pinon' },
+  { id: 'ablo', nom: 'Ablo' },
+  { id: 'djenkoume', nom: 'Djenkoumé' },
+]
+
 /* ─────────────────────────────────────────────────────────────
    TYPES DE PORTION (Sans icônes)
    ───────────────────────────────────────────────────────────── */
@@ -66,16 +77,22 @@ export default function ModalePrix({
   const [prix, setPrix] = useState(produit.prix_standard ? String(produit.prix_standard) : '')
   const [sauceChoisie, setSauceChoisie] = useState('')
   const [autreSauce, setAutreSauce] = useState('')
+  const [platChoisi, setPlatChoisi] = useState('')
+  const [autrePlat, setAutrePlat] = useState('')
   const [noteInstruction, setNoteInstruction] = useState('')
 
   // Quand on change le type de portion, adapter l'affichage
   const portionActive = PORTIONS.find((p) => p.id === typePortion)
   const necessite_sauce = typePortion === 'complet' || typePortion === 'sauce_seule'
 
-  // Réinitialiser la sauce si on passe à "Plat seul"
+  // Réinitialiser les choix secondaires selon le type de portion
   useEffect(() => {
     if (typePortion === 'plat_seul') {
       setSauceChoisie('')
+      setAutreSauce('')
+    } else {
+      setPlatChoisi('')
+      setAutrePlat('')
     }
   }, [typePortion])
 
@@ -86,19 +103,27 @@ export default function ModalePrix({
 
     const nomSauceFinal =
       sauceChoisie === '__autre__' ? autreSauce.trim() : sauceChoisie
+    const nomPlatFinal =
+      platChoisi === '__autre__' ? autrePlat.trim() : platChoisi
 
     // Construire la note finale
     let noteFinale = noteInstruction.trim()
-    const infoType =
-      typePortion === 'sauce_seule'
-        ? (produit?.isSpecialPortion ? '' : 'Sauce seule')
-        : typePortion === 'plat_seul'
-          ? (produit?.isSpecialPortion ? '' : 'Plat seul')
-          : ''
-    if (infoType) {
-      noteFinale = noteFinale ? `${infoType} · ${noteFinale}` : infoType
-    }
-    if (nomSauceFinal && necessite_sauce) {
+
+    if (typePortion === 'plat_seul') {
+      if (nomPlatFinal) {
+        const platInfo = `Plat ${nomPlatFinal}`
+        noteFinale = noteFinale ? `${platInfo} · ${noteFinale}` : platInfo
+      } else if (!produit?.isSpecialPortion) {
+        noteFinale = noteFinale ? `Plat seul · ${noteFinale}` : 'Plat seul'
+      }
+    } else if (typePortion === 'sauce_seule') {
+      if (nomSauceFinal) {
+        const sauceInfo = `Sauce ${nomSauceFinal}`
+        noteFinale = noteFinale ? `${sauceInfo} · ${noteFinale}` : sauceInfo
+      } else if (!produit?.isSpecialPortion) {
+        noteFinale = noteFinale ? `Sauce seule · ${noteFinale}` : 'Sauce seule'
+      }
+    } else if (typePortion === 'complet' && nomSauceFinal) {
       const sauceInfo = `Sauce ${nomSauceFinal}`
       noteFinale = noteFinale ? `${sauceInfo} · ${noteFinale}` : sauceInfo
     }
@@ -106,6 +131,7 @@ export default function ModalePrix({
     onValide({
       prixPlat: montantSaisi,
       sauceNom: necessite_sauce ? nomSauceFinal : '',
+      platNom: typePortion === 'plat_seul' ? nomPlatFinal : '',
       prixSauce: 0,
       note: noteFinale,
       typePortion,
@@ -182,7 +208,7 @@ export default function ModalePrix({
           />
         </div>
 
-        {/* ── 3. Sélection de la sauce (masqué si "Plat seul") ── */}
+        {/* ── 3. Sélection de la sauce (si sauce_seule ou complet) ── */}
         {necessite_sauce && (
           <div style={{ marginBottom: 16 }}>
             <label className="lbl" style={{ marginBottom: 8, display: 'block', fontWeight: 700 }}>
@@ -246,10 +272,69 @@ export default function ModalePrix({
           </div>
         )}
 
-        {/* Message si Plat seul */}
+        {/* ── 4. Sélection du plat (si Plat seul) ── */}
         {typePortion === 'plat_seul' && (
-          <div style={{ marginBottom: 16, padding: '10px 14px', background: '#f0fff4', border: '1px solid #38a169', borderRadius: 8, fontSize: 13, color: '#276749', fontWeight: 600 }}>
-            Vente sans sauce — seul l'accompagnement est servi.
+          <div style={{ marginBottom: 16 }}>
+            <label className="lbl" style={{ marginBottom: 8, display: 'block', fontWeight: 700 }}>
+              Type de plat vendu (Optionnel)
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7, marginBottom: 8 }}>
+              {PLATS_DISPONIBLES.map((p) => {
+                const active = platChoisi === p.nom
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={`btn ${active ? 'btn-o' : 'btn-g'}`}
+                    style={{
+                      padding: '9px 5px',
+                      fontSize: 12,
+                      fontWeight: active ? 800 : 600,
+                      textAlign: 'center',
+                      border: active ? '2px solid #38a169' : '2px solid transparent',
+                      background: active ? '#f0fff4' : '',
+                      color: active ? '#276749' : '',
+                    }}
+                    onClick={() => setPlatChoisi(active ? '' : p.nom)}
+                  >
+                    {p.nom}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Autre plat + effacer */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button
+                type="button"
+                className={`btn ${platChoisi === '__autre__' ? 'btn-o' : 'btn-g'}`}
+                style={{ fontSize: 12, padding: '6px 10px' }}
+                onClick={() => setPlatChoisi(platChoisi === '__autre__' ? '' : '__autre__')}
+              >
+                Autre plat…
+              </button>
+              {platChoisi && (
+                <button
+                  type="button"
+                  className="btn btn-g"
+                  style={{ fontSize: 12, padding: '6px 10px', color: 'var(--mut)' }}
+                  onClick={() => setPlatChoisi('')}
+                >
+                  Effacer
+                </button>
+              )}
+            </div>
+
+            {platChoisi === '__autre__' && (
+              <input
+                className="champ"
+                style={{ marginTop: 8, fontSize: 13 }}
+                placeholder="Saisir le nom du plat…"
+                value={autrePlat}
+                onChange={(e) => setAutrePlat(e.target.value)}
+                autoFocus
+              />
+            )}
           </div>
         )}
 
