@@ -773,14 +773,17 @@ export default function Ventes() {
             setPlatEnAttente(null)
             if (typeof res === 'object' && res !== null) {
               const prixFinal = Number(res.prixPlat) || 0
-              if (produit.isSpecialPortion) {
-                if (res.typePortion === 'sauce_seule') {
-                  produit = { ...produit, nom: 'Sauce seule' }
-                } else {
-                  produit = {
-                    ...produit,
-                    nom: res.platNom ? `${res.platNom} (Plat seul)` : 'Plat seul',
-                  }
+              if (res.typePortion === 'sauce_seule') {
+                const sauceNomText = res.sauceNom ? `Sauce ${res.sauceNom}` : 'Sauce seule'
+                produit = {
+                  ...produit,
+                  nom: `${sauceNomText} (Sauce seule)`,
+                }
+              } else if (res.typePortion === 'plat_seul') {
+                const platNomText = res.platNom || (produit.isSpecialPortion ? 'Plat' : produit.nom)
+                produit = {
+                  ...produit,
+                  nom: `${platNomText} (Plat seul)`,
                 }
               }
               ajouter(produit, prixFinal, res.note || '')

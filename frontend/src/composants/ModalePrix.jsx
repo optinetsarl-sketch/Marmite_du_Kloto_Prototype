@@ -120,7 +120,7 @@ export default function ModalePrix({
     const nomPlatFinal =
       platChoisi === '__autre__' ? autrePlat.trim() : platChoisi
 
-    // Construire la note finale
+    // Construire la note finale : uniquement les instructions cuisine + détail sauce pour plat complet
     let noteFinale = noteInstruction.trim()
 
     if (typePortion === 'complet' && nomSauceFinal) {
@@ -128,20 +128,6 @@ export default function ModalePrix({
         ? `Sauce ${nomSauceFinal} (${mSauce.toLocaleString('fr-FR')} F)`
         : `Sauce ${nomSauceFinal}`
       noteFinale = noteFinale ? `${infoSauce} · ${noteFinale}` : infoSauce
-    } else if (typePortion === 'plat_seul') {
-      if (nomPlatFinal) {
-        const platInfo = `Plat ${nomPlatFinal}`
-        noteFinale = noteFinale ? `${platInfo} · ${noteFinale}` : platInfo
-      } else if (!produit?.isSpecialPortion) {
-        noteFinale = noteFinale ? `Plat seul · ${noteFinale}` : 'Plat seul'
-      }
-    } else if (typePortion === 'sauce_seule') {
-      if (nomSauceFinal) {
-        const sauceInfo = `Sauce ${nomSauceFinal}`
-        noteFinale = noteFinale ? `${sauceInfo} · ${noteFinale}` : sauceInfo
-      } else if (!produit?.isSpecialPortion) {
-        noteFinale = noteFinale ? `Sauce seule · ${noteFinale}` : 'Sauce seule'
-      }
     }
 
     onValide({
