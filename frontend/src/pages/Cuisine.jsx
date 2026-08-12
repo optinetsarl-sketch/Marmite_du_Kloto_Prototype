@@ -540,18 +540,24 @@ function Bon({ commande, onImprimer, onTermine, onAnnuler }) {
           return (
             <div
               className="kl"
-              key={ligne.id}
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              key={ligne.id || Math.random()}
+              style={{ marginBottom: 6, paddingBottom: 4, borderBottom: '1px dashed #eee' }}
             >
-              <span>
-                {ligne.quantite} × {ligne.libelle}
-                {prixU > 0 && (
-                  <strong style={{ marginLeft: 8, color: 'var(--orange-dk)', fontSize: 13 }}>
-                    ({fcfa(prixU)})
-                  </strong>
-                )}
-              </span>
-              {ligne.note && <em className="bon-note">{ligne.note}</em>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 700, fontSize: 14 }}>
+                  {ligne.quantite} × {ligne.libelle}
+                  {prixU > 0 && (
+                    <strong style={{ marginLeft: 8, color: 'var(--orange-dk)', fontSize: 13 }}>
+                      ({fcfa(prixU)})
+                    </strong>
+                  )}
+                </span>
+              </div>
+              {ligne.note && (
+                <div style={{ fontSize: 12, color: 'var(--orange-dk)', fontStyle: 'italic', paddingLeft: 16, marginTop: 2 }}>
+                  {ligne.note}
+                </div>
+              )}
             </div>
           )
         })}

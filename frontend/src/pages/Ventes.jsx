@@ -371,7 +371,12 @@ export default function Ventes() {
     }
   }
 
-  const validee = commande && panier.length && !modifie(commande, panier)
+  const validee = Boolean(
+    commande &&
+    commande.statut !== 'ouverte' &&
+    panier.length > 0 &&
+    !modifie(commande, panier)
+  )
   const contexte =
     type === 'place'
       ? tableId
@@ -775,14 +780,16 @@ export default function Ventes() {
               const prixFinal = Number(res.prixPlat) || 0
               if (res.typePortion === 'sauce_seule') {
                 const sauceNomText = res.sauceNom ? `Sauce ${res.sauceNom}` : 'Sauce seule'
+                const produitReel = res.sauceNom ? produits.find((p) => p.nom.toLowerCase() === res.sauceNom.toLowerCase()) : null
                 produit = {
-                  ...produit,
+                  ...(produitReel || produit),
                   nom: `${sauceNomText} (Sauce seule)`,
                 }
               } else if (res.typePortion === 'plat_seul') {
                 const platNomText = res.platNom || (produit.isSpecialPortion ? 'Plat' : produit.nom)
+                const produitReel = res.platNom ? produits.find((p) => p.nom.toLowerCase() === res.platNom.toLowerCase()) : null
                 produit = {
-                  ...produit,
+                  ...(produitReel || produit),
                   nom: `${platNomText} (Plat seul)`,
                 }
               }
