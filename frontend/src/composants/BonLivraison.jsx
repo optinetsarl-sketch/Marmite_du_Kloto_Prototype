@@ -34,11 +34,18 @@ export default function BonLivraison({ commande, onFerme }) {
 
           <div className="rc-items">
             {commande.lignes.map((ligne) => (
-              <div className="rc-line" key={ligne.id}>
-                <span>
-                  {ligne.quantite} × {ligne.libelle}
-                </span>
-                <span>{fcfa(ligne.montant)}</span>
+              <div key={ligne.id || Math.random()} style={{ marginBottom: 6 }}>
+                <div className="rc-line">
+                  <span>
+                    {ligne.quantite} × {ligne.libelle}
+                  </span>
+                  <span>{fcfa(ligne.montant)}</span>
+                </div>
+                {ligne.note && (
+                  <div style={{ fontSize: 11, color: '#dd6b20', fontWeight: 600, paddingLeft: 16, marginTop: -2 }}>
+                    {ligne.note}
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -360,7 +360,7 @@ export default function Ventes() {
     setOccupe(true)
     setErreur('')
     try {
-      const persistee = await persister('en_cuisine')
+      const persistee = await persister()
       setDocumentOuvert({ commande: persistee, type: 'Addition' })
       setCommande(persistee)
       chargerPanier(persistee)
