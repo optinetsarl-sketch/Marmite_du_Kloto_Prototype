@@ -846,11 +846,11 @@ export default function Ventes() {
 function modifie(commande, panier) {
   const lignes = commande.lignes ?? []
   if (lignes.length !== panier.length) return true
-  const cle = (produit, prix, note) => `${produit}|${prix}|${note || ''}`
+  const cle = (produit, prix, note, libelle) => `${produit}|${prix}|${note || ''}|${libelle || ''}`
   const persistees = new Map(
-    lignes.map((l) => [cle(l.produit, l.prix_unitaire, l.note), l.quantite]),
+    lignes.map((l) => [cle(l.produit, l.prix_unitaire, l.note, l.libelle), l.quantite]),
   )
   return panier.some(
-    (item) => persistees.get(cle(item.produit.id, item.prix_unitaire, item.note)) !== item.quantite,
+    (item) => persistees.get(cle(item.produit.id, item.prix_unitaire, item.note, item.produit.nom)) !== item.quantite,
   )
 }
