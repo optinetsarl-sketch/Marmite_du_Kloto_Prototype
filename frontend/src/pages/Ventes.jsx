@@ -782,16 +782,16 @@ export default function Ventes() {
               const prixFinal = Number(res.prixPlat) || 0
               if (res.typePortion === 'sauce_seule') {
                 const sauceNomText = res.sauceNom ? `Sauce ${res.sauceNom}` : 'Sauce seule'
-                const produitReel = res.sauceNom ? produits.find((p) => p.nom.toLowerCase() === res.sauceNom.toLowerCase()) : null
+                const prodSauceBase = produits.find((p) => p.nom === 'Sauce seule') || prodCuisineRef
                 produit = {
-                  ...(produitReel || produit),
+                  ...prodSauceBase,
                   nom: `${sauceNomText} (Sauce seule)`,
                 }
               } else if (res.typePortion === 'plat_seul') {
                 const platNomText = res.platNom || (produit.isSpecialPortion ? 'Plat' : produit.nom)
-                const produitReel = res.platNom ? produits.find((p) => p.nom.toLowerCase() === res.platNom.toLowerCase()) : null
+                const produitReel = platNomText ? produits.find((p) => p.nom.toLowerCase() === platNomText.toLowerCase()) : null
                 produit = {
-                  ...(produitReel || produit),
+                  ...(produitReel || (produit.isSpecialPortion ? prodCuisineRef : produit)),
                   nom: `${platNomText} (Plat seul)`,
                 }
               }
