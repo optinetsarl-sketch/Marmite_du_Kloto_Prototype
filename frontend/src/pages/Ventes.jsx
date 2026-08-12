@@ -780,6 +780,7 @@ export default function Ventes() {
             setPlatEnAttente(null)
             if (typeof res === 'object' && res !== null) {
               const prixFinal = Number(res.prixPlat) || 0
+              const prodCuisineRef = produits.find((p) => p.rayon === 'cuisine') || produits[0]
               if (res.typePortion === 'sauce_seule') {
                 const sauceNomText = res.sauceNom ? `Sauce ${res.sauceNom}` : 'Sauce seule'
                 const prodSauceBase = produits.find((p) => p.nom === 'Sauce seule') || prodCuisineRef
