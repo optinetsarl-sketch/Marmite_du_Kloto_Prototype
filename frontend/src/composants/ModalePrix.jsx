@@ -80,6 +80,7 @@ export default function ModalePrix({
   })
 
   const [prix, setPrix] = useState(produit.prix_standard ? String(produit.prix_standard) : '')
+  const [prixSauce, setPrixSauce] = useState('')
   const [sauceChoisie, setSauceChoisie] = useState('')
   const [autreSauce, setAutreSauce] = useState('')
   const [platChoisi, setPlatChoisi] = useState('')
@@ -95,6 +96,11 @@ export default function ModalePrix({
     if (typePortion === 'plat_seul') {
       setSauceChoisie('')
       setAutreSauce('')
+      setPrixSauce('')
+    } else if (typePortion === 'sauce_seule') {
+      setPlatChoisi('')
+      setAutrePlat('')
+      setPrixSauce('')
     } else {
       setPlatChoisi('')
       setAutrePlat('')
@@ -103,8 +109,11 @@ export default function ModalePrix({
 
   function valider(evenement) {
     evenement.preventDefault()
-    const montantSaisi = Number(prix)
-    if (montantSaisi <= 0) return
+    const mPlat = Number(prix) || 0
+    const mSauce = (typePortion === 'complet' && sauceChoisie) ? (Number(prixSauce) || 0) : 0
+    const totalFinal = typePortion === 'sauce_seule' ? mPlat : (mPlat + mSauce)
+
+    if (totalFinal <= 0) return
 
     const nomSauceFinal =
       sauceChoisie === '__autre__' ? autreSauce.trim() : sauceChoisie
@@ -114,7 +123,12 @@ export default function ModalePrix({
     // Construire la note finale
     let noteFinale = noteInstruction.trim()
 
-    if (typePortion === 'plat_seul') {
+    if (typePortion === 'complet' && nomSauceFinal) {
+      const infoSauce = mSauce > 0
+        ? `Sauce ${nomSauceFinal} (${mSauce.toLocaleString('fr-FR')} F)`
+        : `Sauce ${nomSauceFinal}`
+      noteFinale = noteFinale ? `${infoSauce} · ${noteFinale}` : infoSauce
+    } else if (typePortion === 'plat_seul') {
       if (nomPlatFinal) {
         const platInfo = `Plat ${nomPlatFinal}`
         noteFinale = noteFinale ? `${platInfo} · ${noteFinale}` : platInfo
@@ -128,16 +142,13 @@ export default function ModalePrix({
       } else if (!produit?.isSpecialPortion) {
         noteFinale = noteFinale ? `Sauce seule · ${noteFinale}` : 'Sauce seule'
       }
-    } else if (typePortion === 'complet' && nomSauceFinal) {
-      const sauceInfo = `Sauce ${nomSauceFinal}`
-      noteFinale = noteFinale ? `${sauceInfo} · ${noteFinale}` : sauceInfo
     }
 
     onValide({
-      prixPlat: montantSaisi,
-      sauceNom: necessite_sauce ? nomSauceFinal : '',
-      platNom: typePortion === 'plat_seul' ? nomPlatFinal : '',
-      prixSauce: 0,
+      prixPlat: totalFinal,
+      sauceNom: nomSauceFinal,
+      platNom: nomPlatFinal,
+      prixSauce: mSauce,
       note: noteFinale,
       typePortion,
     })
@@ -145,6 +156,8 @@ export default function ModalePrix({
 
   const portionInfo = portionActive || PORTIONS[0]
   const titreComplet = contexte ? `${contexte} · ${produit.nom}` : produit.nom
+  const montantSauceVal = (typePortion === 'complet' && sauceChoisie) ? (Number(prixSauce) || 0) : 0
+  const totalCalcule = (Number(prix) || 0) + montantSauceVal
 
   return (
     <Modale titre="Type de portion & Prix" sousTitre={titreComplet} onFerme={onFerme}>
@@ -193,7 +206,7 @@ export default function ModalePrix({
         {/* ── 2. Prix ── */}
         <div style={{ marginBottom: 16 }}>
           <label className="lbl" style={{ marginBottom: 6, display: 'block', fontWeight: 700 }}>
-            Prix (FCFA) *
+            {typePortion === 'complet' ? 'Prix du plat (FCFA) *' : typePortion === 'sauce_seule' ? 'Prix de la sauce (FCFA) *' : 'Prix du plat seul (FCFA) *'}
           </label>
           <input
             className="champ"
@@ -263,7 +276,10 @@ export default function ModalePrix({
                   type="button"
                   className="btn btn-g"
                   style={{ fontSize: 12, padding: '6px 10px', color: 'var(--mut)' }}
-                  onClick={() => setSauceChoisie('')}
+                  onClick={() => {
+                    setSauceChoisie('')
+                    setPrixSauce('')
+                  }}
                 >
                   Sans sauce
                 </button>
@@ -279,6 +295,25 @@ export default function ModalePrix({
                 onChange={(e) => setAutreSauce(e.target.value)}
                 autoFocus
               />
+            )}
+
+            {/* Prix additionnel pour la sauce en Plat complet */}
+            {sauceChoisie && typePortion === 'complet' && (
+              <div style={{ marginTop: 10, padding: '10px 12px', background: '#fffaf0', border: '1px solid #feebc8', borderRadius: 8 }}>
+                <label className="lbl" style={{ marginBottom: 4, display: 'block', fontWeight: 700, fontSize: 12, color: '#dd6b20' }}>
+                  Prix de la sauce {sauceChoisie === '__autre__' ? (autreSauce || 'Autre sauce') : sauceChoisie} (FCFA) (Optionnel)
+                </label>
+                <input
+                  className="champ"
+                  style={{ fontSize: 16, fontWeight: 700, padding: '7px 10px', borderColor: '#dd6b20' }}
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="ex: 500 ou 1000 (laisser vide ou 0 si incluse)"
+                  value={prixSauce}
+                  onChange={(e) => setPrixSauce(e.target.value)}
+                />
+              </div>
             )}
           </div>
         )}
@@ -364,13 +399,19 @@ export default function ModalePrix({
         </div>
 
         {/* ── Résumé avant validation ── */}
-        {Number(prix) > 0 && (
+        {totalCalcule > 0 && (
           <div style={{ marginBottom: 14, padding: '10px 14px', background: portionInfo.fond, border: `1px solid ${portionInfo.bordure}`, borderRadius: 8 }}>
             <div style={{ fontWeight: 700, color: portionInfo.couleur, fontSize: 14 }}>
               {portionInfo.label}
-              {sauceChoisie && necessite_sauce ? ` · ${sauceChoisie === '__autre__' ? (autreSauce || 'Autre sauce') : sauceChoisie}` : ''}
-              {' → '}<span style={{ fontSize: 16 }}>{Number(prix).toLocaleString('fr-FR')} F</span>
+              {sauceChoisie && necessite_sauce ? ` · Sauce ${sauceChoisie === '__autre__' ? (autreSauce || 'Autre sauce') : sauceChoisie}` : ''}
+              {platChoisi && typePortion === 'plat_seul' ? ` · Plat ${platChoisi === '__autre__' ? (autrePlat || 'Autre plat') : platChoisi}` : ''}
+              {' → '}<span style={{ fontSize: 16 }}>{totalCalcule.toLocaleString('fr-FR')} F</span>
             </div>
+            {montantSauceVal > 0 && typePortion === 'complet' && (
+              <div style={{ fontSize: 11, color: portionInfo.couleur, marginTop: 2 }}>
+                Détail : Plat {Number(prix).toLocaleString('fr-FR')} F + Sauce {montantSauceVal.toLocaleString('fr-FR')} F
+              </div>
+            )}
             {noteInstruction && (
               <div style={{ fontSize: 12, color: portionInfo.couleur, marginTop: 3 }}>
                 Note : {noteInstruction}
@@ -385,7 +426,7 @@ export default function ModalePrix({
           </button>
           <button
             className="btn btn-o"
-            disabled={!(Number(prix) > 0) || (typePortion === 'sauce_seule' && !sauceChoisie && !autreSauce.trim())}
+            disabled={!(totalCalcule > 0) || (typePortion === 'sauce_seule' && !sauceChoisie && !autreSauce.trim())}
             style={{ background: portionInfo.couleur, borderColor: portionInfo.couleur }}
           >
             Ajouter au panier
