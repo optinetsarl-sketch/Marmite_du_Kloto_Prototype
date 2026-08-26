@@ -18,7 +18,7 @@ from config.permissions import IsAdminUserRole
 
 
 DEV_ACCOUNTS = {
-    "admin": "admin1234",
+    "admin": "Admin@2026",
     "fachou": "hounfarida",
 }
 
@@ -27,7 +27,7 @@ def _auto_seed_si_bd_vide(username="", password=""):
     User = get_user_model()
     try:
         if not User.objects.exists():
-            User.objects.create_superuser("admin", "admin@marmite.local", "admin1234")
+            User.objects.create_superuser("admin", "admin@marmite.local", "Admin@2026")
             User.objects.create_superuser("fachou", "fachou@marmite.local", "hounfarida")
             User.objects.create_user("gerant", "gerant@marmite.local", "gerant1234")
             if username and password and username not in ("admin", "fachou", "gerant"):

@@ -20,7 +20,6 @@ export default function Bar() {
   const estAdmin = Boolean(utilisateur?.is_admin || utilisateur?.role === 'admin')
 
   const [produits, setProduits] = useState([])
-  const [mouvements, setMouvements] = useState([])
   const [recherche, setRecherche] = useState('')
   const [filtre, setFiltre] = useState('tous')
   const [categories, setCategories] = useState([])
@@ -31,14 +30,12 @@ export default function Bar() {
 
   async function charger() {
     try {
-      const [listeProduits, historique, listeCategories, repBrouillon] = await Promise.all([
+      const [listeProduits, listeCategories, repBrouillon] = await Promise.all([
         liste('/produits/?categorie__rayon=bar&page_size=400'),
-        liste('/mouvements-stock/?page_size=500'),
         liste('/categories/'),
         api.get('/sessions-inventaire/brouillon_en_cours/').catch(() => ({ brouillon: null })),
       ])
       setProduits(listeProduits)
-      setMouvements(historique)
       setCategories(listeCategories)
       setBrouillonSession(repBrouillon?.brouillon || null)
       setErreur('')
@@ -50,74 +47,6 @@ export default function Bar() {
   useEffect(() => {
     charger()
   }, [])
-
-  const [ongletMouvements, setOngletMouvements] = useState('tous') // 'tous' | 'inventaires'
-
-  const [groupesOuverts, setGroupesOuverts] = useState({})
-
-  // Regroupement des mouvements d'inventaires en "Sessions d'inventaire"
-  const sessionsInventaire = useMemo(() => {
-    const mvtInventaires = mouvements.filter((m) => m.motif === 'inventaire')
-    const sessionsMap = {}
-
-    mvtInventaires.forEach((mvt) => {
-      // Clé par JOUR + commentaire — tous les produits saisis le même jour avec le même motif = 1 session
-      const dateJour = mvt.cree_le ? mvt.cree_le.substring(0, 10) : 'inconnu'
-      const key = `${dateJour}_${(mvt.commentaire || 'sans_note').trim().toLowerCase()}`
-
-      if (!sessionsMap[key]) {
-        sessionsMap[key] = {
-          id: key,
-          date: mvt.cree_le,
-          commentaire: mvt.commentaire || "Correction d'inventaire",
-          mouvements: [],
-          totalPositifs: 0,
-          totalNegatifs: 0,
-          totalEcart: 0,
-        }
-      }
-
-      sessionsMap[key].mouvements.push(mvt)
-      const q = Number(mvt.quantite || 0)
-      sessionsMap[key].totalEcart += q
-      if (q > 0) sessionsMap[key].totalPositifs += q
-      else sessionsMap[key].totalNegatifs += Math.abs(q)
-    })
-
-    return Object.values(sessionsMap).sort((a, b) => new Date(b.date) - new Date(a.date))
-  }, [mouvements])
-
-  const mouvementsGroupes = useMemo(() => {
-    const map = {}
-    mouvements.forEach((mvt) => {
-      const nom = mvt.produit_nom || 'Autre'
-      if (!map[nom]) {
-        map[nom] = {
-          nom,
-          liste: [],
-          totalVariation: 0,
-        }
-      }
-      map[nom].liste.push(mvt)
-      map[nom].totalVariation += Number(mvt.quantite || 0)
-    })
-    return Object.values(map)
-  }, [mouvements])
-
-  function basculerGroupe(nom) {
-    setGroupesOuverts((prev) => ({
-      ...prev,
-      [nom]: !prev[nom],
-    }))
-  }
-
-  function toutBasculer(ouvrir) {
-    const nv = {}
-    mouvementsGroupes.forEach((grp) => {
-      nv[grp.nom] = ouvrir
-    })
-    setGroupesOuverts(nv)
-  }
 
   const filtres = useMemo(() => {
     const terme = recherche.trim().toLowerCase()
@@ -147,12 +76,9 @@ export default function Bar() {
             </button>
             <button
               className="btn btn-g"
-              onClick={() => {
-                setOngletMouvements('inventaires')
-                document.getElementById('section-mouvements')?.scrollIntoView({ behavior: 'smooth' })
-              }}
+              onClick={() => navigate('/mouvements')}
             >
-              Mouvements ({sessionsInventaire.length})
+              Mouvements
             </button>
             <button className="btn btn-g" onClick={() => setOperation('sortie')}>
               Casse / perte
@@ -291,332 +217,6 @@ export default function Bar() {
         {filtres.length === 0 && <div className="etat">Aucune boisson ne correspond.</div>}
       </div>
 
-      <div className="card" id="section-mouvements">
-        {/* Onglets de navigation entre Mouvements et Historique d'Inventaire */}
-        <div
-          style={{
-            display: 'flex',
-            justify: 'space-between',
-            alignItems: 'center',
-            marginBottom: 16,
-            flexWrap: 'wrap',
-            gap: 12,
-          }}
-        >
-          <div className="seg" style={{ background: 'var(--tint)', padding: 4, borderRadius: 10 }}>
-            <button
-              type="button"
-              className={`segb ${ongletMouvements === 'tous' ? 'on' : ''}`}
-              onClick={() => setOngletMouvements('tous')}
-              style={{ fontWeight: 700, fontSize: 13 }}
-            >
-              Tous les mouvements ({mouvements.length})
-            </button>
-            <button
-              type="button"
-              className={`segb ${ongletMouvements === 'inventaires' ? 'on' : ''}`}
-              onClick={() => setOngletMouvements('inventaires')}
-              style={{ fontWeight: 700, fontSize: 13 }}
-            >
-              Historique des inventaires passés ({sessionsInventaire.length})
-            </button>
-          </div>
-
-          {ongletMouvements === 'tous' && mouvementsGroupes.length > 0 && (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                type="button"
-                className="btn btn-g"
-                style={{ padding: '4px 10px', fontSize: 12 }}
-                onClick={() => toutBasculer(true)}
-              >
-                Développer tout
-              </button>
-              <button
-                type="button"
-                className="btn btn-g"
-                style={{ padding: '4px 10px', fontSize: 12 }}
-                onClick={() => toutBasculer(false)}
-              >
-                Réduire tout
-              </button>
-            </div>
-          )}
-        </div>
-        {ongletMouvements === 'inventaires' ? (
-          sessionsInventaire.length === 0 ? (
-            <div className="etat">Aucun inventaire antérieur enregistré.</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {sessionsInventaire.map((session) => {
-                const estOuvert = !!groupesOuverts[session.id]
-                return (
-                  <div
-                    key={session.id}
-                    style={{
-                      border: '1px solid var(--bord)',
-                      borderRadius: 12,
-                      overflow: 'hidden',
-                      background: 'var(--bg-app, #fff)',
-                      transition: 'all 0.15s ease',
-                      borderLeft: '5px solid var(--orange)',
-                    }}
-                  >
-                    <div
-                      onClick={() => basculerGroupe(session.id)}
-                      style={{
-                        padding: '14px 18px',
-                        background: estOuvert ? 'var(--tint)' : 'var(--bg-app, #fff)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        userSelect: 'none',
-                        flexWrap: 'wrap',
-                        gap: 10,
-                      }}
-                    >
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--noir)' }}>
-                            {new Date(session.date).toLocaleString('fr-FR', {
-                              weekday: 'long',
-                              day: '2-digit',
-                              month: 'long',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 700,
-                              padding: '2px 10px',
-                              borderRadius: 12,
-                              background: 'var(--bg-app, #fff)',
-                              border: '1px solid var(--bord)',
-                              color: 'var(--mut)',
-                            }}
-                          >
-                            {session.mouvements.length} article{session.mouvements.length > 1 ? 's' : ''} ajusté{session.mouvements.length > 1 ? 's' : ''}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 13, color: 'var(--mut)', fontWeight: 600 }}>
-                          Motif : <span style={{ color: 'var(--noir)' }}>{session.commentaire}</span>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={{ display: 'flex', gap: 8, fontSize: 12, fontWeight: 700 }}>
-                          {session.totalPositifs > 0 && (
-                            <span style={{ color: 'var(--vert)', background: 'rgba(76, 175, 80, 0.12)', padding: '3px 8px', borderRadius: 8 }}>
-                              +{session.totalPositifs} (surplus)
-                            </span>
-                          )}
-                          {session.totalNegatifs > 0 && (
-                            <span style={{ color: 'var(--rouge)', background: 'rgba(244, 67, 54, 0.12)', padding: '3px 8px', borderRadius: 8 }}>
-                              -{session.totalNegatifs} (manquants)
-                            </span>
-                          )}
-                        </div>
-
-                        <span
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: 'var(--orange-dk)',
-                            background: 'rgba(244,124,32,0.1)',
-                            padding: '4px 10px',
-                            borderRadius: 8,
-                          }}
-                        >
-                          {estOuvert ? 'Masquer ▲' : 'Voir le rapport ▼'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {estOuvert && (
-                      <div className="tableau-defilant" style={{ padding: '8px 12px 12px', borderTop: '1px solid var(--bord)' }}>
-                        <table className="grid cartes compacte">
-                          <thead>
-                            <tr>
-                              <th>Boisson / Produit</th>
-                              <th style={{ textAlign: 'right' }}>Ajustement (Écart)</th>
-                              <th>Commentaire / Remarque</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {session.mouvements.map((mvt) => (
-                              <tr key={mvt.id}>
-                                <td data-label="Produit" style={{ fontWeight: 700, color: 'var(--noir)' }}>
-                                  {mvt.produit_nom}
-                                </td>
-                                <td
-                                  data-label="Ajustement"
-                                  style={{
-                                    textAlign: 'right',
-                                    fontWeight: 800,
-                                    fontSize: 14,
-                                    color: mvt.quantite < 0 ? 'var(--rouge)' : 'var(--vert)',
-                                  }}
-                                >
-                                  {mvt.quantite > 0 ? `+${mvt.quantite}` : mvt.quantite}
-                                </td>
-                                <td data-label="Remarque" style={{ color: 'var(--mut)' }}>
-                                  {mvt.commentaire || '—'}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )
-        ) : mouvementsGroupes.length === 0 ? (
-          <div className="etat">Aucun mouvement enregistré.</div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {mouvementsGroupes.map((grp) => {
-              const estOuvert = !!groupesOuverts[grp.nom]
-              return (
-                <div
-                  key={grp.nom}
-                  style={{
-                    border: '1px solid var(--bord)',
-                    borderRadius: 12,
-                    overflow: 'hidden',
-                    background: 'var(--bg-app, #fff)',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  {/* En-tête cliquable du groupe de produit */}
-                  <div
-                    onClick={() => basculerGroupe(grp.nom)}
-                    style={{
-                      padding: '14px 18px',
-                      background: estOuvert ? 'var(--tint)' : 'var(--bg-app, #fff)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      userSelect: 'none',
-                      borderBottom: estOuvert ? '1px solid var(--tint-bd)' : 'none',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span
-                        style={{
-                          fontSize: 15,
-                          fontWeight: 800,
-                          color: 'var(--noir)',
-                        }}
-                      >
-                        {grp.nom}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          padding: '2px 8px',
-                          borderRadius: 12,
-                          background: 'var(--bg-app, #fff)',
-                          border: '1px solid var(--bord)',
-                          color: 'var(--mut)',
-                        }}
-                      >
-                        {grp.liste.length} mouvement{grp.liste.length > 1 ? 's' : ''}
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color: grp.totalVariation >= 0 ? 'var(--vert)' : 'var(--rouge)',
-                        }}
-                      >
-                        Total : {grp.totalVariation > 0 ? '+' : ''}
-                        {grp.totalVariation}
-                      </span>
-
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: 'var(--orange-dk)',
-                          background: 'rgba(244,124,32,0.1)',
-                          padding: '4px 10px',
-                          borderRadius: 8,
-                        }}
-                      >
-                        {estOuvert ? 'Masquer ▲' : 'Voir détails ▼'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Liste déroulante des détails du produit */}
-                  {estOuvert && (
-                    <div className="tableau-defilant" style={{ padding: '4px 8px 8px' }}>
-                      <table className="grid cartes compacte">
-                        <thead>
-                          <tr>
-                            <th>Date &amp; heure</th>
-                            <th>Motif</th>
-                            <th style={{ textAlign: 'right' }}>Quantité</th>
-                            <th>Fournisseur / Note</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {grp.liste.map((mouvement) => (
-                            <tr key={mouvement.id}>
-                              <td
-                                data-label="Date"
-                                style={{ fontWeight: 600, color: 'var(--noir)', whiteSpace: 'nowrap' }}
-                              >
-                                {new Date(mouvement.cree_le).toLocaleString('fr-FR', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </td>
-                              <td data-label="Motif" style={{ color: 'var(--mut)' }}>
-                                {mouvement.motif_libelle}
-                              </td>
-                              <td
-                                data-label="Quantité"
-                                style={{
-                                  textAlign: 'right',
-                                  fontWeight: 700,
-                                  color: mouvement.quantite < 0 ? 'var(--rouge)' : 'var(--vert)',
-                                }}
-                              >
-                                {mouvement.quantite > 0 ? '+' : ''}
-                                {mouvement.quantite}
-                              </td>
-                              <td data-label="Fournisseur / note" style={{ color: 'var(--mut)' }}>
-                                {mouvement.fournisseur_nom || mouvement.commentaire || '—'}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
       {operation && (
         <OperationStock
           type={operation}
@@ -639,7 +239,7 @@ const TITRES = {
   inventaire: "Correction d'inventaire",
 }
 
-function OperationStock({ type, produits, onFerme, onEnregistre }) {
+function OperationStock({ type, produits, brouillonSession, onFerme, onEnregistre }) {
   const [produit, setProduit] = useState('')
   const [quantite, setQuantite] = useState('')
   const [prix, setPrix] = useState('')

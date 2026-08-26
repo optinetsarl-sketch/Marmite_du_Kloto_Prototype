@@ -13,6 +13,7 @@ import Emporter from './pages/Emporter'
 import Historique from './pages/Historique'
 import Inventaires from './pages/Inventaires'
 import Livraison from './pages/Livraison'
+import Mouvements from './pages/Mouvements'
 import Rapports from './pages/Rapports'
 import Tables from './pages/Tables'
 import Ventes from './pages/Ventes'
@@ -114,6 +115,7 @@ export default function App() {
           <Route path="/cuisine" element={<Cuisine />} />
           <Route path="/livraison" element={<Livraison />} />
           <Route path="/historique" element={<Historique />} />
+          <Route path="/mouvements" element={<Mouvements />} />
 
           <Route path="/cloture" element={<Cloture />} />
           
