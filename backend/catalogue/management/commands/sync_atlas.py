@@ -171,6 +171,7 @@ class Command(BaseCommand):
                 "system.indexes",
                 "system.views",
                 "tombstones",
+                "catalogue_configuration",
             }
 
             pushed = 0

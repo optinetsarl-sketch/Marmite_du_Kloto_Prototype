@@ -50,3 +50,25 @@ class ProduitViewSet(AdminWritePermissionMixin, viewsets.ModelViewSet):
         contexte["stocks"] = MouvementStock.stocks_par_produit()
         return contexte
 
+
+from django.http import JsonResponse
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from .models import Configuration
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def activate_license(request):
+    """Active la licence si la clé est correcte."""
+    from .middleware import SECRET_KEY
+    cle_fournie = request.data.get("key", "").strip()
+
+    if cle_fournie == SECRET_KEY:
+        # Enregistrer dans la base de données
+        Configuration.objects.update_or_create(
+            cle="is_activated",
+            defaults={"valeur": "true"}
+        )
+        return JsonResponse({"message": "Licence activée avec succès !"})
+    
+    return JsonResponse({"error": "Clé d'activation invalide"}, status=400)

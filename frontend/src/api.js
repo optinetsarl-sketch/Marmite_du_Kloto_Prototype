@@ -42,6 +42,9 @@ async function requete(methode, chemin, corps) {
   if (reponse.status === 204) return null
 
   const donnees = await reponse.json().catch(() => null)
+  if (reponse.status === 402) {
+    window.dispatchEvent(new Event('licence_expiree'))
+  }
   if (!reponse.ok) {
     throw new ApiError(messageErreur(donnees, reponse.status), reponse.status, donnees)
   }

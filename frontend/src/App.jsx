@@ -18,6 +18,7 @@ import Rapports from './pages/Rapports'
 import Tables from './pages/Tables'
 import Ventes from './pages/Ventes'
 import ClocheStock from './composants/ClocheStock'
+import LicenseLockScreen from './composants/LicenseLockScreen'
 
 const MENU = [
   { groupe: "Vue d'ensemble" },
@@ -57,6 +58,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <LicenseLockScreen />
       <aside className="side">
         <div className="brand">
           <img src="/logo.jpg" alt="La Marmite du Kloto" />

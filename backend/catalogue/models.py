@@ -107,3 +107,17 @@ class Produit(models.Model):
         if niveau <= self.seuil_alerte:
             return "bas"
         return "ok"
+
+
+class Configuration(models.Model):
+    """Stockage clé-valeur pour des configurations globales (ex: activation licence)."""
+
+    cle = models.CharField(max_length=100, unique=True)
+    valeur = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "configuration"
+        verbose_name_plural = "configurations"
+
+    def __str__(self):
+        return f"{self.cle} = {self.valeur}"

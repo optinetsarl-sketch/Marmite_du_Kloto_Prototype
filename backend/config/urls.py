@@ -8,6 +8,7 @@ from rest_framework.routers import DefaultRouter
 
 from caisse.views import DepenseViewSet, SessionCaisseViewSet
 from catalogue.views import CategorieViewSet, FamilleViewSet, ProduitViewSet
+from catalogue import views as catalogue_views
 from livraison.views import LivreurViewSet
 from rapports import views as rapports
 from stock import views as stock_views
@@ -62,6 +63,7 @@ router.register("livreurs", LivreurViewSet)
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include(router.urls)),
+    path("api/activate-license/", catalogue_views.activate_license),
     path("api/auth/login/", auth.connexion),
     path("api/auth/moi/", auth.moi),
     path("api/auth/utilisateurs/", auth.liste_utilisateurs),
